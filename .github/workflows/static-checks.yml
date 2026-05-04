@@ -1,0 +1,40 @@
+name: Static Checks
+permissions: {}
+on:
+    workflow_dispatch:
+    push:
+        branches: ["main"]
+        paths-ignore:
+            - "docs/**"
+            - "**/*.md"
+    pull_request:
+        paths-ignore:
+            - "docs/**"
+            - "**/*.md"
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+jobs:
+    analyze:
+        name: Run
+        runs-on: "ubuntu-latest"
+        permissions:
+            contents: read # Required to checkout for analysing the code
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+              with:
+                  persist-credentials: false
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+              with:
+                  version: latest
+
+            - name: Run checks
+              run: uv run --frozen prek -a
+              env:
+                  PREK_UV_SOURCE: github
+
+            - name: Check for TODOs
+              run: uv run ruff check --select "FIX" # Disabled in pre-commit

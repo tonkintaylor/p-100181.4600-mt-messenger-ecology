@@ -1,0 +1,16 @@
+# Changes here will be overwritten by Copier
+_commit: v0.6.1-31-g6b0e7fb
+_src_path: git+https://bitbucket.org/tonkintaylor/python-template
+ci_platform: github
+is_advanced: true
+is_confluence_used: false
+is_doc_used: false
+is_jira_used: false
+is_sonarqube_used: true
+max_line_length: '88'
+name_slug: mgen
+project_name: Mt Messenger Ecology Figure Pipeline
+project_short_description: Automated figure generation for regular reporting on Mt
+    Messenger.
+py_version: 3.13.2
+tt_job_num: '100181.4600'
