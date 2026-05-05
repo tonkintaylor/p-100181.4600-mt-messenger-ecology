@@ -1,0 +1,9 @@
+# Mt Messenger monitoring pipeline configuration.
+# Copy this file to cycle.toml and update paths for the current reporting cycle.
+
+[input]
+macroinvertebrate_db = "T:/Wellington/TT Projects/1001181/1001181.4500/WorkingMaterial/Aquatic Monitoring/Aquatic monitoring spreadsheets/MTMA Macroinvertebrate Database.xlsx"
+aquatic_monitoring_db = "T:/Wellington/TT Projects/1001181/1001181.4500/WorkingMaterial/Aquatic Monitoring/Aquatic monitoring spreadsheets/MTMA Aquatic Monitoring Database.xlsx"
+
+[output]
+data_xlsx = "T:/Wellington/TT Projects/1001181/1001181.4500/WorkingMaterial/Aquatic Monitoring/2025-2026 Report/Stats/Data.xlsx"
