@@ -6,11 +6,13 @@ expect. Any change here is a breaking change for Phase 2.
 
 from __future__ import annotations
 
+_DATETIME = "datetime64[ns]"
+
 # Macro1 sheet: full-precision metrics, one row per site x date
 MACRO1_COLUMNS = ["Site", "Date", "Period", "EPTrich", "EPTabun", "QMCI", "Season"]
 MACRO1_DTYPES = {
     "Site": "object",
-    "Date": "datetime64[ns]",
+    "Date": _DATETIME,
     "Period": "object",
     "EPTrich": "float64",
     "EPTabun": "float64",
@@ -26,7 +28,7 @@ MACRO_DTYPES = MACRO1_DTYPES
 MACRO_SPECIES_COLUMNS = ["Phase", "Date", "Site", "Taxa", "Species", "Tally"]
 MACRO_SPECIES_DTYPES = {
     "Phase": "object",
-    "Date": "datetime64[ns]",
+    "Date": _DATETIME,
     "Site": "object",
     "Taxa": "object",
     "Species": "object",
@@ -37,7 +39,7 @@ MACRO_SPECIES_DTYPES = {
 SEDIMENT_COLUMNS = ["Site", "Date", "Period", "SAM1", "SAM3", "Season"]
 SEDIMENT_DTYPES = {
     "Site": "object",
-    "Date": "datetime64[ns]",
+    "Date": _DATETIME,
     "Period": "object",
     "SAM1": "float64",
     "SAM3": "float64",
@@ -78,7 +80,7 @@ SEDIMENT_SIZE_COLUMNS = [
 ]
 SEDIMENT_SIZE_DTYPES = {
     "Site": "object",
-    "Date": "datetime64[ns]",
+    "Date": _DATETIME,
     "Period": "object",
     "Season": "object",
     **dict.fromkeys(SEDIMENT_SIZE_COLUMNS[4:], "float64"),
