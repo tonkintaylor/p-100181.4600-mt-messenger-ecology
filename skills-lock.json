@@ -43,6 +43,12 @@
       "skillPath": ".agents/skills/using-superpowers/SKILL.md",
       "computedHash": "98f247ea911a81ecdb864f640af4eeb3de0cd7a5690015728c5357253fb59f6b"
     },
+    "verifying-claims": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/verifying-claims/SKILL.md",
+      "computedHash": "fb1ac04cf98a8d8d511c370b0ee7d92a61fa658fae04dca86060adbfb36831c2"
+    },
     "verifying-work": {
       "source": "tonkintaylor/.github-private",
       "sourceType": "github",
