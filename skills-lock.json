@@ -30,6 +30,24 @@
       "sourceType": "github",
       "skillPath": ".agents/skills/testing-python-units/SKILL.md",
       "computedHash": "d83a3de65245200dc842f90b71fb62e7af49faee7ac9b295236707cf2b2a51f2"
+    },
+    "using-prek-pre-commit": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/using-prek-pre-commit/SKILL.md",
+      "computedHash": "4e6c6eea3ab511c287e114566ea883baba94e8668c844ada59f429bb740b242d"
+    },
+    "using-superpowers": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/using-superpowers/SKILL.md",
+      "computedHash": "98f247ea911a81ecdb864f640af4eeb3de0cd7a5690015728c5357253fb59f6b"
+    },
+    "verifying-work": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/verifying-work/SKILL.md",
+      "computedHash": "a8c84ec5b45dca325b5f8c8e43b33b89b1dbf87fdd87ed97f3dab88315b2eb91"
     }
   }
 }
