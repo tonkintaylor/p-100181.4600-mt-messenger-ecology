@@ -7,3 +7,7 @@ You must start with `using-superpowers` for EVERY task, no matter how small. Kee
 Before finishing you MUST use `verifying-work` to verify your work, no matter what.
 
 Use the `using-prek-pre-commit` skill when running pre-commit checks.
+
+## Code Style
+
+- Never use multiline strings (docstrings) as inline comments on fields or attributes. Document class attributes in the class docstring's `Attributes:` section instead.
