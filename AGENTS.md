@@ -10,4 +10,4 @@ Use the `using-prek-pre-commit` skill when running pre-commit checks.
 
 ## Code Style
 
-- Never use multiline strings (docstrings) as inline comments on fields or attributes. Use `#` or `#:` comments instead.
+- Never use multiline strings (docstrings) as inline comments on fields or attributes. Document class attributes in the class docstring's `Attributes:` section instead.
