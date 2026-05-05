@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "testing-python-apis": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/testing-python-apis/SKILL.md",
+      "computedHash": "085277d975fb4a4a0b4baa56fc70910b200f36a4986a2352a8789d3737d9a49f"
+    },
+    "testing-python-apis-contracts": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/testing-python-apis-contracts/SKILL.md",
+      "computedHash": "4aec23453206f7c65d634c79743793b42f54cf0d114cf8cb413cc5686f396678"
+    },
+    "testing-python-apis-streaming": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/testing-python-apis-streaming/SKILL.md",
+      "computedHash": "88576650eb3cb97a676ba992ed697efbc66a7b5a3693025693cdda369c9e1904"
+    },
+    "testing-python-core": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/testing-python-core/SKILL.md",
+      "computedHash": "136c82c9530480846e672c23d5d9ecc71812099ffae984962ef4c6708327ecf3"
+    },
+    "testing-python-units": {
+      "source": "tonkintaylor/.github-private",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/testing-python-units/SKILL.md",
+      "computedHash": "d83a3de65245200dc842f90b71fb62e7af49faee7ac9b295236707cf2b2a51f2"
+    }
+  }
+}
