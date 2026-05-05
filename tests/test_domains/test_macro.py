@@ -338,6 +338,7 @@ class TestProcessMacroDomain:
         assert len(result.data["Macro"]) < len(result.data["Macro1"])
 
     def test_qmci_sb_used_for_non_replicate_sites(self, example_macro_db: Path) -> None:
+        """Verify non-replicate sites get QMCI-sb, not QMCI."""
         result = process_macro_domain(example_macro_db)
         macro1_df = result.data["Macro1"]
 
@@ -345,6 +346,29 @@ class TestProcessMacroDomain:
         non_rep = macro1_df[macro1_df["Site"].isin(SITES_WITHOUT_REPLICATES)]
         assert len(non_rep) > 0
         assert non_rep["QMCI"].notna().all()
+
+        # Independently compute QMCI and QMCI-sb for a non-replicate sample
+        # and verify the pipeline used QMCI-sb (not QMCI)
+        bundle = ingest_raw_data(example_macro_db)
+        meta_lookup = bundle.sample_metadata.set_index("sample_id")
+        for sample_id in meta_lookup.index:
+            site = str(meta_lookup.loc[sample_id, "Site"]).strip()
+            if site in SITES_WITHOUT_REPLICATES:
+                metrics = derive_metrics(
+                    bundle.taxa_counts, bundle.mci_scores, sample_col=sample_id
+                )
+                pipeline_row = macro1_df[
+                    (macro1_df["Site"] == site)
+                    & (
+                        macro1_df["Date"]
+                        == pd.to_datetime(meta_lookup.loc[sample_id, "Date"])
+                    )
+                ].iloc[0]
+                assert pipeline_row["QMCI"] == pytest.approx(
+                    metrics["QMCI-sb"], rel=1e-9
+                )
+                assert pipeline_row["QMCI"] != pytest.approx(metrics["QMCI"], rel=1e-9)
+                break  # One verified sample is sufficient
 
     def test_invalid_path_returns_error(self, tmp_path: Path) -> None:
         result = process_macro_domain(tmp_path / "nonexistent.xlsx")

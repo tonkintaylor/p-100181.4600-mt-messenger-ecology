@@ -166,19 +166,30 @@ def process_macro_domain(macro_db_path: Path) -> DomainResult:
 
     # Derive metrics for each sample column
     sample_ids = bundle.sample_metadata["sample_id"].tolist()
+    meta_lookup = bundle.sample_metadata.set_index("sample_id")
     rows: list[dict[str, object]] = []
 
     for sample_id in sample_ids:
-        meta_row = bundle.sample_metadata[
-            bundle.sample_metadata["sample_id"] == sample_id
-        ]
-        if meta_row.empty:
+        if sample_id not in meta_lookup.index:
             continue
 
-        meta = meta_row.iloc[0]
-        metrics = derive_metrics(
-            bundle.taxa_counts, bundle.mci_scores, sample_col=sample_id
-        )
+        meta = meta_lookup.loc[sample_id]
+        try:
+            metrics = derive_metrics(
+                bundle.taxa_counts, bundle.mci_scores, sample_col=sample_id
+            )
+        except Exception as e:  # noqa: BLE001 — deliberate broad catch for pipeline resilience
+            errors.append(
+                ValidationError(
+                    domain="macroinvertebrate",
+                    severity="warning",
+                    file=file_name,
+                    sheet="RawData",
+                    location=f"sample_col={sample_id}",
+                    message=f"Failed to derive metrics: {e}",
+                )
+            )
+            continue
 
         # Route QMCI: use QMCI-sb for sites without replicates
         site = str(meta["Site"]).strip()
