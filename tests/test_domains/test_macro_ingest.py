@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from mgen.domain.macro_ingest import RawDataBundle, ingest_raw_data
+from mgen.domain.macro_ingest import IngestError, RawDataBundle, ingest_raw_data
 from mgen.shared.domain_types import VALID_SEASONS, VALID_SITES
 
 
@@ -54,7 +54,7 @@ class TestSampleMetadata:
     def test_has_expected_columns(self, example_macro_db: Path) -> None:
         result = ingest_raw_data(example_macro_db)
 
-        expected_cols = {"column_index", "Season", "Date", "Site", "Replicate"}
+        expected_cols = {"sample_id", "Season", "Date", "Site", "Replicate"}
         assert set(result.sample_metadata.columns) >= expected_cols
 
     def test_sites_are_valid(self, example_macro_db: Path) -> None:
@@ -208,3 +208,39 @@ class TestMciScores:
         assert len(row) == 1
         assert row.iloc[0]["MCI"] == pytest.approx(7.0)
         assert row.iloc[0]["MCI_sb"] == pytest.approx(9.6)
+
+
+class TestIngestErrorHandling:
+    """Test that ingest_raw_data raises IngestError for invalid inputs."""
+
+    def test_raises_on_missing_file(self, tmp_path: Path) -> None:
+        with pytest.raises(IngestError, match="File not found"):
+            ingest_raw_data(tmp_path / "nonexistent.xlsx")
+
+    def test_raises_on_missing_rawdata_sheet(self, tmp_path: Path) -> None:
+        """An xlsx without a 'RawData' sheet raises IngestError."""
+        fake_xlsx = tmp_path / "no_rawdata.xlsx"
+        pd.DataFrame({"A": [1]}).to_excel(fake_xlsx, sheet_name="Other")
+
+        with pytest.raises(IngestError, match="Cannot read 'RawData' sheet"):
+            ingest_raw_data(fake_xlsx)
+
+    def test_raises_on_missing_metrics_marker(self, tmp_path: Path) -> None:
+        """Sheet without 'Number of Taxa' marker raises IngestError."""
+        # Build a minimal sheet with header rows but no marker
+        data = pd.DataFrame(
+            [
+                ["", "", "", "", ""],  # Row 1: QA
+                ["", "", "", "", "Baseline"],  # Row 2: Season
+                ["", "", "", "", "2024-01-01"],  # Row 3: Date
+                ["", "", "", "", "EM1"],  # Row 4: Site
+                ["", "", "", "", "1"],  # Row 5: Replicate
+                ["Mayflies", "Taxon1", "5", "3", "10"],  # Row 6: data (no marker)
+            ]
+        )
+        fake_xlsx = tmp_path / "no_marker.xlsx"
+        with pd.ExcelWriter(fake_xlsx) as writer:
+            data.to_excel(writer, sheet_name="RawData", header=False, index=False)
+
+        with pytest.raises(IngestError, match=r"Number of Taxa.*marker not found"):
+            ingest_raw_data(fake_xlsx)

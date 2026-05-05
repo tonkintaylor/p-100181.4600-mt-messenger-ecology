@@ -19,10 +19,17 @@ RawData layout (1-indexed as seen in Excel):
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+
+class IngestError(Exception):
+    """Raised when the RawData sheet cannot be parsed."""
 
 
 @dataclass
@@ -36,7 +43,7 @@ class RawDataBundle:
     sample_metadata: pd.DataFrame
     """One row per sample column.
 
-    Columns: column_index, Season, Date, Site, Replicate.
+    Columns: sample_id, Season, Date, Site, Replicate.
     """
 
     taxa_counts: pd.DataFrame
@@ -62,13 +69,23 @@ def ingest_raw_data(macro_db_path: Path) -> RawDataBundle:
 
     This is the ONLY place that knows about the messy multi-row header format.
     All downstream domain modules receive clean DataFrames.
+
+    Raises:
+        IngestError: If the file cannot be read or lacks the expected structure.
     """
-    raw = pd.read_excel(
-        macro_db_path,
-        sheet_name="RawData",
-        header=None,
-        dtype=object,
-    )
+    try:
+        raw = pd.read_excel(
+            macro_db_path,
+            sheet_name="RawData",
+            header=None,
+            dtype=object,
+        )
+    except (ValueError, KeyError) as exc:
+        msg = f"Cannot read 'RawData' sheet from {macro_db_path}: {exc}"
+        raise IngestError(msg) from exc
+    except FileNotFoundError as exc:
+        msg = f"File not found: {macro_db_path}"
+        raise IngestError(msg) from exc
 
     sample_metadata = _extract_sample_metadata(raw)
     taxa_block, metric_block = _split_at_metrics_marker(raw)
@@ -96,7 +113,7 @@ def _extract_sample_metadata(raw: pd.DataFrame) -> pd.DataFrame:
 
     meta = pd.DataFrame(
         {
-            "column_index": sample_col_indices,
+            "sample_id": sample_col_indices,
             "Season": seasons,
             "Date": dates,
             "Site": sites,
@@ -126,7 +143,11 @@ def _split_at_metrics_marker(
     marker_indices = col_b[col_b == _METRICS_MARKER].index
 
     if len(marker_indices) == 0:
-        return data_block, pd.DataFrame()
+        msg = (
+            f"'{_METRICS_MARKER}' marker not found in column B. "
+            "The RawData sheet structure may have changed."
+        )
+        raise IngestError(msg)
 
     split_at = marker_indices[0]
     taxa_block = data_block.iloc[:split_at].reset_index(drop=True)
@@ -146,7 +167,7 @@ def _build_taxa_counts(
         }
     )
 
-    sample_data: dict[int, pd.array] = {}
+    sample_data: dict[int, pd.api.extensions.ExtensionArray] = {}
     for i, col_idx in enumerate(sample_col_indices):
         numeric = pd.to_numeric(
             taxa_block.iloc[:, _DATA_COL_START + i].to_numpy(), errors="coerce"

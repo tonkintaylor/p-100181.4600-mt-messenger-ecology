@@ -18,7 +18,7 @@ def assets_dir() -> Path:
     return ASSETS_DIR
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def example_macro_db() -> Path:
     """Path to the example Macroinvertebrate Database."""
     return ASSETS_DIR / "MTMA Macroinvertebrate Database.xlsx"
