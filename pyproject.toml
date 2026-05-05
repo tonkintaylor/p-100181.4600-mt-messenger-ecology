@@ -18,7 +18,11 @@ license = { file = "LICENSE.txt" }
 readme = "README.md"
 requires-python = ">=3.13"
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "click>=8.1",
+]
 
 [dependency-groups]
 dev = [
@@ -46,7 +50,7 @@ doc = []
 uv = [ "uv==0.10.2" ]
 
 [project.scripts]
-# example = "mgen.scripts.example:myfunc"
+mgen = "mgen.cli:main"
 
 [tool.hatch.version]
 source = "vcs"
@@ -173,6 +177,9 @@ flake8-import-conventions.banned-from = ["ruru"]
   "FBT",     # Defensive programming techniques for function definitions are overkill
   "PLR0913", # OK to have functions with many arguments in scripts and notebooks
 ]
+"src/mgen/shared/validation.py" = [
+  "PLR0913", # Validation functions accept many context params for error reporting
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -181,8 +188,12 @@ convention = "google"
 strict-checking = true
 
 [tool.deptry]
-extend_exclude = ["src/notebooks", "src/scripts", "src/archive"]
+extend_exclude = ["src/notebooks", "src/scripts", "src/archive", ".agents"]
 experimental_namespace_package = true
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["openpyxl"]  # Used by pandas as Excel engine at runtime
+DEP003 = ["mgen"]  # This is the project itself, not a transitive dep
 
 [tool.sync-with-uv.repo-to-package]
 "https://github.com/astral-sh/uv-pre-commit" = "uv"

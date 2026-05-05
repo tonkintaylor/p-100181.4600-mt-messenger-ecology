@@ -1,0 +1,73 @@
+"""Tests for the CLI interface."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from click.testing import CliRunner
+
+from mgen.cli import main
+
+
+def _write_valid_config(tmp_path: Path) -> Path:
+    """Write a valid cycle.toml and its referenced input files."""
+    macro_file = tmp_path / "macro.xlsx"
+    aquatic_file = tmp_path / "aquatic.xlsx"
+    macro_file.touch()
+    aquatic_file.touch()
+
+    config_file = tmp_path / "cycle.toml"
+    config_file.write_text(
+        "[input]\n"
+        f'macroinvertebrate_db = "{macro_file.as_posix()}"\n'
+        f'aquatic_monitoring_db = "{aquatic_file.as_posix()}"\n'
+        "\n"
+        "[output]\n"
+        f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+    )
+    return config_file
+
+
+class TestCli:
+    def test_main_group_help(self) -> None:
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["--help"])
+
+        assert result.exit_code == 0
+        assert "Mt Messenger" in result.output
+
+    def test_run_missing_config(self) -> None:
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["run", "nonexistent.toml"])
+
+        assert result.exit_code != 0
+        assert "Config error" in result.output
+
+    def test_validate_missing_config(self) -> None:
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["validate", "nonexistent.toml"])
+
+        assert result.exit_code != 0
+        assert "Config error" in result.output
+
+    def test_run_valid_config(self, tmp_path: Path) -> None:
+        config_file = _write_valid_config(tmp_path)
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["run", str(config_file)])
+
+        assert result.exit_code == 0
+        assert "Config loaded" in result.output
+        assert "not yet implemented" in result.output
+
+    def test_validate_valid_config(self, tmp_path: Path) -> None:
+        config_file = _write_valid_config(tmp_path)
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["validate", str(config_file)])
+
+        assert result.exit_code == 0
+        assert "Config valid" in result.output
