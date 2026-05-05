@@ -41,22 +41,16 @@ class RawDataBundle:
     """
 
     sample_metadata: pd.DataFrame
-    """One row per sample column.
-
-    Columns: sample_id, Season, Date, Site, Replicate.
-    """
+    #: One row per sample column. Columns: sample_id, Season, Date, Site, Replicate.
 
     taxa_counts: pd.DataFrame
-    """One row per taxon.
-
-    Columns: TaxonGroup, Taxon, then one col per sample (Int64).
-    """
+    #: One row per taxon. Columns: TaxonGroup, Taxon, then one col per sample (Int64).
 
     metric_rows: pd.DataFrame
-    """Derived metrics. Columns: Metric, then one col per sample (float64)."""
+    #: Derived metrics. Columns: Metric, then one col per sample (float64).
 
     mci_scores: pd.DataFrame
-    """MCI tolerance values. Columns: Taxon, MCI, MCI_sb (float64)."""
+    #: MCI tolerance values. Columns: Taxon, MCI, MCI_sb (float64).
 
 
 _METRICS_MARKER = "Number of Taxa"
