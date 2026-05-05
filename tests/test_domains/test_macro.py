@@ -1,4 +1,4 @@
-"""Tests for macroinvertebrate metric derivation."""
+"""Tests for macroinvertebrate metric derivation and domain pipeline."""
 
 from __future__ import annotations
 
@@ -8,8 +8,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mgen.domain.macro import derive_metrics
+from mgen.domain.macro import derive_metrics, process_macro_domain
 from mgen.domain.macro_ingest import ingest_raw_data
+from mgen.shared.domain_types import SITES_WITHOUT_REPLICATES
+from mgen.shared.errors import DomainResult
+from mgen.shared.schemas import MACRO1_COLUMNS
 
 
 class TestDeriveMetrics:
@@ -283,3 +286,92 @@ class TestDeriveMetricsIntegration:
 
         # Spreadsheet row "MCI Value" col 5 = 103.076923
         assert result["MCI"] == pytest.approx(103.076923, rel=1e-4)
+
+
+class TestProcessMacroDomain:
+    """Integration tests for the full macro domain pipeline."""
+
+    def test_returns_domain_result(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        assert isinstance(result, DomainResult)
+
+    def test_result_is_ok(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        assert result.ok
+
+    def test_result_contains_macro1_and_macro_sheets(
+        self, example_macro_db: Path
+    ) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        assert "Macro1" in result.data
+        assert "Macro" in result.data
+
+    def test_macro1_has_correct_columns(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        assert list(result.data["Macro1"].columns) == MACRO1_COLUMNS
+
+    def test_macro_has_correct_columns(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        assert list(result.data["Macro"].columns) == MACRO1_COLUMNS
+
+    def test_macro1_has_rows(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        assert len(result.data["Macro1"]) > 0
+
+    def test_macro_excludes_non_replicate_sites(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+        macro_df = result.data["Macro"]
+
+        sites_in_macro = set(macro_df["Site"].unique())
+        assert not sites_in_macro & SITES_WITHOUT_REPLICATES
+
+    def test_macro_has_fewer_rows_than_macro1(self, example_macro_db: Path) -> None:
+        result = process_macro_domain(example_macro_db)
+
+        # Macro1 has individual samples; Macro aggregates replicates
+        assert len(result.data["Macro"]) < len(result.data["Macro1"])
+
+    def test_qmci_sb_used_for_non_replicate_sites(self, example_macro_db: Path) -> None:
+        """Verify non-replicate sites get QMCI-sb, not QMCI."""
+        result = process_macro_domain(example_macro_db)
+        macro1_df = result.data["Macro1"]
+
+        # Non-replicate sites should have QMCI values present
+        non_rep = macro1_df[macro1_df["Site"].isin(SITES_WITHOUT_REPLICATES)]
+        assert len(non_rep) > 0
+        assert non_rep["QMCI"].notna().all()
+
+        # Independently compute QMCI and QMCI-sb for a non-replicate sample
+        # and verify the pipeline used QMCI-sb (not QMCI)
+        bundle = ingest_raw_data(example_macro_db)
+        meta_lookup = bundle.sample_metadata.set_index("sample_id")
+        for sample_id in meta_lookup.index:
+            site = str(meta_lookup.loc[sample_id, "Site"]).strip()
+            if site in SITES_WITHOUT_REPLICATES:
+                metrics = derive_metrics(
+                    bundle.taxa_counts, bundle.mci_scores, sample_col=sample_id
+                )
+                pipeline_row = macro1_df[
+                    (macro1_df["Site"] == site)
+                    & (
+                        macro1_df["Date"]
+                        == pd.to_datetime(meta_lookup.loc[sample_id, "Date"])
+                    )
+                ].iloc[0]
+                assert pipeline_row["QMCI"] == pytest.approx(
+                    metrics["QMCI-sb"], rel=1e-9
+                )
+                assert pipeline_row["QMCI"] != pytest.approx(metrics["QMCI"], rel=1e-9)
+                break  # One verified sample is sufficient
+
+    def test_invalid_path_returns_error(self, tmp_path: Path) -> None:
+        result = process_macro_domain(tmp_path / "nonexistent.xlsx")
+
+        assert not result.ok
+        assert len(result.errors) > 0

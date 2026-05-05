@@ -1,4 +1,4 @@
-"""Macroinvertebrate domain: metric derivation.
+"""Macroinvertebrate domain: metric derivation and pipeline orchestration.
 
 Implements the ecologist-signed formulas for MCI, QMCI, EPT metrics.
 EPT membership is derived from TaxonGroup labels, NOT hard-coded row numbers.
@@ -6,10 +6,17 @@ EPT membership is derived from TaxonGroup labels, NOT hard-coded row numbers.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
-__all__ = ["derive_metrics"]
+from mgen.domain.macro_ingest import IngestError, ingest_raw_data
+from mgen.shared.domain_types import SITES_WITHOUT_REPLICATES
+from mgen.shared.errors import DomainResult, ValidationError
+from mgen.shared.schemas import MACRO1_COLUMNS
+
+__all__ = ["derive_metrics", "process_macro_domain"]
 
 # EPT taxonomic groups — the source spreadsheet uses common names (not
 # scientific orders like Ephemeroptera/Plecoptera/Trichoptera).
@@ -127,3 +134,103 @@ def derive_metrics(
         "% EPT Richness": pct_ept_richness,
         "ASPM-MCI": aspm_mci,
     }
+
+
+def process_macro_domain(macro_db_path: Path) -> DomainResult:
+    """Process the macroinvertebrate domain: derive metrics, emit Macro1 + Macro.
+
+    Orchestrates: ingest → derive_metrics per sample → QMCI routing →
+    build Macro1 (full precision) → aggregate Macro (replicated sites only).
+
+    Returns:
+        DomainResult with {"Macro1": df, "Macro": df} on success,
+        or errors on failure.
+    """
+    file_name = macro_db_path.name
+    errors: list[ValidationError] = []
+
+    try:
+        bundle = ingest_raw_data(macro_db_path)
+    except IngestError as e:
+        errors.append(
+            ValidationError(
+                domain="macroinvertebrate",
+                severity="error",
+                file=file_name,
+                sheet="RawData",
+                location="file",
+                message=f"Failed to read RawData: {e}",
+            )
+        )
+        return DomainResult(data=None, errors=errors)
+
+    # Derive metrics for each sample column
+    sample_ids = bundle.sample_metadata["sample_id"].tolist()
+    meta_lookup = bundle.sample_metadata.set_index("sample_id")
+    rows: list[dict[str, object]] = []
+
+    for sample_id in sample_ids:
+        if sample_id not in meta_lookup.index:
+            continue
+
+        meta = meta_lookup.loc[sample_id]
+        try:
+            metrics = derive_metrics(
+                bundle.taxa_counts, bundle.mci_scores, sample_col=sample_id
+            )
+        except Exception as e:  # noqa: BLE001 — deliberate broad catch for pipeline resilience
+            errors.append(
+                ValidationError(
+                    domain="macroinvertebrate",
+                    severity="warning",
+                    file=file_name,
+                    sheet="RawData",
+                    location=f"sample_col={sample_id}",
+                    message=f"Failed to derive metrics: {e}",
+                )
+            )
+            continue
+
+        # Route QMCI: use QMCI-sb for sites without replicates
+        site = str(meta["Site"]).strip()
+        qmci_value = (
+            metrics["QMCI-sb"] if site in SITES_WITHOUT_REPLICATES else metrics["QMCI"]
+        )
+
+        rows.append(
+            {
+                "Site": site,
+                "Date": meta["Date"],
+                "Period": meta["Season"],
+                "EPTrich": metrics["% EPT Richness"],
+                "EPTabun": metrics["% EPT Abundance"],
+                "QMCI": qmci_value,
+                "Season": meta["Season"],
+            }
+        )
+
+    if not rows:
+        errors.append(
+            ValidationError(
+                domain="macroinvertebrate",
+                severity="error",
+                file=file_name,
+                sheet="RawData",
+                location="data",
+                message="No sample data could be processed",
+            )
+        )
+        return DomainResult(data=None, errors=errors)
+
+    macro1_df = pd.DataFrame(rows, columns=MACRO1_COLUMNS)
+    macro1_df["Date"] = pd.to_datetime(macro1_df["Date"])
+
+    # Macro sheet: aggregated means for replicated sites only
+    replicated = macro1_df[~macro1_df["Site"].isin(SITES_WITHOUT_REPLICATES)]
+    macro_df = (
+        replicated.groupby(["Site", "Date", "Period", "Season"], as_index=False)
+        .agg({"EPTrich": "mean", "EPTabun": "mean", "QMCI": "mean"})
+        .reindex(columns=MACRO1_COLUMNS)
+    )
+
+    return DomainResult(data={"Macro1": macro1_df, "Macro": macro_df}, errors=errors)
