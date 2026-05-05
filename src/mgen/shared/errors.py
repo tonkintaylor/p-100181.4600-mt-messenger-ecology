@@ -29,7 +29,11 @@ class ValidationError:
 
 @dataclass
 class DomainResult:
-    """Result from a domain module: either data or errors, never both meaningful."""
+    """Result from a domain module: either data or errors, never both meaningful.
+
+    Mutable because domain modules build results incrementally.
+    Consumers MUST check ``.ok`` before accessing ``.data``.
+    """
 
     data: dict[str, pd.DataFrame] | None = None
     errors: list[ValidationError] = field(default_factory=list)

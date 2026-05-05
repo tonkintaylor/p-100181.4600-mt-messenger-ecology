@@ -81,6 +81,24 @@ def check_value_range(
 
     series = pd.to_numeric(df[column], errors="coerce")
 
+    # Detect non-numeric values that were silently coerced to NaN
+    coerced_nans = series.isna() & ~df[column].isna()
+    if coerced_nans.any():
+        bad_rows = df.index[coerced_nans].tolist()[:5]
+        errors.append(
+            ValidationError(
+                domain=domain,
+                severity="error",
+                file=file,
+                sheet=sheet,
+                location=f"column '{column}', rows {bad_rows}",
+                message=(
+                    f"Found {coerced_nans.sum()} non-numeric values"
+                    f" in column '{column}'"
+                ),
+            )
+        )
+
     if min_val is not None:
         below = series < min_val
         if below.any():

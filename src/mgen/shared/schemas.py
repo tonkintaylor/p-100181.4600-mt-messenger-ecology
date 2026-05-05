@@ -44,7 +44,20 @@ SEDIMENT_DTYPES = {
     "Season": "object",
 }
 
-# SedimentSize sheet: grain-size distribution
+# SedimentSize sheet: grain-size distribution.
+# Source Sediment tab has 10 size classes (Wentworth scale) which the ACL
+# maps to these 12 output bins expected by downstream R scripts.
+# Source-to-output mapping (for ACL implementors):
+#   Bedrock → Bedrock
+#   Boulders (>256 mm) → Boulder
+#   Large cobble + Small cobble → Cobble
+#   Large gravel (>32-64 mm) → LargeGravel
+#   Med-large + Small-med gravel (>8-32 mm) → SmallGravel
+#   Small gravel (>2-8 mm) → VeryFineGravel
+#   Sand (>0.06-2 mm) → Sand
+#   Clay/silt (<0.06 mm) → split into Silt and Clay (TBD by ecologist)
+#   Fines is a computed field (sum of Clay, Silt, Sand)
+#   Wood and Other may appear in future monitoring data
 SEDIMENT_SIZE_COLUMNS = [
     "Site",
     "Date",

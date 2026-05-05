@@ -4,15 +4,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Canonical site codes for the Mt Messenger monitoring programme
+# Canonical site codes for the Mt Messenger monitoring programme.
+# NOTE: "MMA 6" and "MMA 6b" have a space — matches source database values.
 VALID_SITES = frozenset(
-    {"EM1", "EM2", "EM3", "EM4", "EM5", "EM7", "EM8", "MMA6", "MMA6b"}
+    {"EM1", "EM2", "EM3", "EM4", "EM5", "EM7", "EM8", "MMA 6", "MMA 6b"}
 )
 
 # Sites that lack replicates and use QMCI-sb instead of QMCI
 SITES_WITHOUT_REPLICATES = frozenset({"EM1", "EM2", "EM4", "EM8"})
 
-# Valid season/phase labels
+# Valid monitoring period labels (from Sediment sheet first column)
+VALID_PERIODS = frozenset({"Baseline", "Construction"})
+
+# Valid season/phase labels used in output Data.xlsx.
+# "Routine" is a planned future monitoring phase post-construction.
 VALID_SEASONS = frozenset({"Baseline", "Construction", "Routine", "Additional"})
 
 
