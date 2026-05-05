@@ -76,7 +76,7 @@ filename = "CHANGELOG.md"
 src = ["src"]
 include = ["*.py", "*.pyi", "**/pyproject.toml", "*.ipynb"]
 line-length = 88
-extend-exclude = ["src/**/_version.py", "src/archive/**"]
+extend-exclude = ["src/**/_version.py", "src/archive/**", ".agents/skills/**"]
 
 [tool.ruff.lint]
 select = ["ALL"]
