@@ -9,11 +9,19 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-# EPT taxonomic groups mapped from common names to order
+__all__ = ["derive_metrics"]
+
+# EPT taxonomic groups — the source spreadsheet uses common names (not
+# scientific orders like Ephemeroptera/Plecoptera/Trichoptera).
 _EPT_GROUPS = frozenset({"Mayflies", "Stoneflies", "Caddisflies"})
 
 # Hydroptilidae genera excluded from Trichoptera counts (NZ freshwater)
 _HYDROPTILIDAE_GENERA = frozenset({"Oxyethira", "Paroxyethira"})
+
+# ASPM-MCI normalisation ceilings (Stark & Maxted 2007)
+_ASPM_MCI_MAX = 200
+_ASPM_EPT_RICHNESS_MAX = 29
+_ASPM_EPT_ABUNDANCE_MAX = 100
 
 
 def derive_metrics(
@@ -21,8 +29,12 @@ def derive_metrics(
     mci_scores: pd.DataFrame,
     *,
     sample_col: int,
-) -> dict[str, float]:
+) -> dict[str, float | int]:
     """Derive all macroinvertebrate metrics for a single sample.
+
+    Computes both QMCI and QMCI-sb unconditionally. The caller (orchestrator)
+    is responsible for selecting the appropriate variant based on site metadata
+    (e.g. SITES_WITHOUT_REPLICATES use QMCI-sb).
 
     Args:
         taxa_counts: DataFrame with TaxonGroup, Taxon, and integer sample columns.
@@ -52,18 +64,21 @@ def derive_metrics(
         (mci_sb_vals.sum() / len(mci_sb_vals) * 20) if len(mci_sb_vals) > 0 else np.nan
     )
 
-    # QMCI: weighted average of MCI scores by abundance
+    # QMCI: weighted average of MCI scores by abundance.
+    # fillna(0) matches the spreadsheet formula — taxa without an MCI score
+    # contribute their abundance to the denominator but zero to the numerator.
     qmci_numerator = (counts * merged["MCI"].fillna(0)).sum()
     qmci = qmci_numerator / num_individuals if num_individuals > 0 else np.nan
 
-    # QMCI-sb
+    # QMCI-sb (same fillna(0) convention)
     qmci_sb_numerator = (counts * merged["MCI_sb"].fillna(0)).sum()
     qmci_sb = qmci_sb_numerator / num_individuals if num_individuals > 0 else np.nan
 
     # EPT calculations — derived from TaxonGroup labels
+    is_ept = merged["TaxonGroup"].isin(_EPT_GROUPS)
     is_ephemeroptera = merged["TaxonGroup"] == "Mayflies"
     is_plecoptera = merged["TaxonGroup"] == "Stoneflies"
-    is_trichoptera = merged["TaxonGroup"] == "Caddisflies"
+    is_trichoptera = is_ept & ~is_ephemeroptera & ~is_plecoptera
     is_hydroptilidae = merged["Taxon"].str.strip().isin(_HYDROPTILIDAE_GENERA)
 
     # Trichoptera excludes Hydroptilidae
@@ -83,9 +98,15 @@ def derive_metrics(
     )
     pct_ept_richness = ept_richness / num_taxa if num_taxa > 0 else np.nan
 
-    # ASPM-MCI = average(MCI/200, EPT_Richness/29, EPT_Abundance/100)
+    # ASPM-MCI: composite index normalised to theoretical ceilings
     aspm_mci = (
-        np.mean([mci / 200, ept_richness / 29, ept_abundance / 100])
+        np.mean(
+            [
+                mci / _ASPM_MCI_MAX,
+                ept_richness / _ASPM_EPT_RICHNESS_MAX,
+                ept_abundance / _ASPM_EPT_ABUNDANCE_MAX,
+            ]
+        )
         if not np.isnan(mci)
         else np.nan
     )
