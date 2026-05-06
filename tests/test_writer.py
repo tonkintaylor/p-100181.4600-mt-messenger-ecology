@@ -236,34 +236,63 @@ class TestGoldenFileComparison:
 
     @pytest.mark.xfail(
         reason=(
-            "Golden file was produced from an earlier data snapshot "
-            "and the Macro domain module does not yet normalise "
+            "Macro domain module does not yet normalise "
             "Period/Season values (raw 'Construction'/'Baseline' vs "
             "expected 'Routine Construction'/'Spring'). "
-            "Will pass once macro period/season mapping is implemented "
-            "and the golden file is regenerated from current fixtures."
+            "Will pass once macro period/season mapping is implemented."
         ),
         strict=False,
     )
     @pytest.mark.parametrize(
         "sheet_name",
-        SHEET_ORDER,
+        ["Macro", "Macro1", "MacroSpecies"],
     )
-    def test_sheet_matches_golden_file(
+    def test_macro_sheets_match_golden_file(
         self,
         sheet_name: str,
         pipeline_data: dict[str, pd.DataFrame],
         expected_data_xlsx: Path,
     ) -> None:
-        """Each sheet's data should match the golden file within float tolerance."""
+        """Macro sheets should match golden file (pending Period/Season fix)."""
+        self._assert_sheet_matches_golden(sheet_name, pipeline_data, expected_data_xlsx)
+
+    @pytest.mark.parametrize(
+        "sheet_name",
+        ["Sediment", "SedimentSize"],
+    )
+    def test_sediment_sheets_match_golden_file(
+        self,
+        sheet_name: str,
+        pipeline_data: dict[str, pd.DataFrame],
+        expected_data_xlsx: Path,
+    ) -> None:
+        """Sediment sheets should match golden file (filtered to same dates)."""
+        self._assert_sheet_matches_golden(sheet_name, pipeline_data, expected_data_xlsx)
+
+    @staticmethod
+    def _assert_sheet_matches_golden(
+        sheet_name: str,
+        pipeline_data: dict[str, pd.DataFrame],
+        expected_data_xlsx: Path,
+    ) -> None:
+        """Compare pipeline output against golden file, filtering to golden dates."""
         expected = pd.read_excel(expected_data_xlsx, sheet_name=sheet_name)
 
         # Normalise column names (golden file has trailing spaces on some).
         expected.columns = [c.strip() for c in expected.columns]
 
-        actual = pipeline_data[sheet_name].reset_index(drop=True)
+        actual = pipeline_data[sheet_name]
 
-        # Same row count.
+        # Filter actual to only dates present in the golden file.
+        golden_dates = set(expected["Date"].dropna().unique())
+        actual = actual[actual["Date"].isin(golden_dates)]
+
+        # Sort both by Date+Site for stable row alignment.
+        sort_cols = ["Date", "Site"]
+        actual = actual.sort_values(sort_cols).reset_index(drop=True)
+        expected = expected.sort_values(sort_cols).reset_index(drop=True)
+
+        # Same row count after filtering.
         assert len(actual) == len(expected), (
             f"{sheet_name}: row count {len(actual)} != golden {len(expected)}"
         )
@@ -279,7 +308,6 @@ class TestGoldenFileComparison:
             expected_col = expected[col]
 
             if pd.api.types.is_numeric_dtype(actual_col):
-                # Float tolerance comparison, treating NaN as equal.
                 np.testing.assert_allclose(
                     actual_col.to_numpy(dtype="float64", na_value=np.nan),
                     expected_col.to_numpy(dtype="float64", na_value=np.nan),
