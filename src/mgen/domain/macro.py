@@ -136,6 +136,32 @@ def derive_metrics(
     }
 
 
+_PERIOD_MAP = {
+    "Baseline": "Baseline",
+    "Construction": "Routine Construction",
+    "Additional": "Incident",
+}
+
+_SPRING_MONTHS = frozenset({10, 11, 12})
+
+
+def _normalise_period(raw_season: str) -> str:
+    """Map the raw season label to the normalised Period value."""
+    return _PERIOD_MAP.get(raw_season, "Routine Construction")
+
+
+def _normalise_season(raw_season: str, date: object) -> str:
+    """Derive the output Season from raw label and sampling date.
+
+    Incident (Additional) monitoring events use 'incident response'.
+    Normal rounds use month-based derivation: Oct/Nov/Dec → Spring, else → Summer.
+    """
+    if raw_season == "Additional":
+        return "incident response"
+    month = pd.Timestamp(date).month
+    return "Spring" if month in _SPRING_MONTHS else "Summer"
+
+
 def process_macro_domain(macro_db_path: Path) -> DomainResult:
     """Process the macroinvertebrate domain: derive metrics, emit Macro1 + Macro.
 
@@ -201,11 +227,11 @@ def process_macro_domain(macro_db_path: Path) -> DomainResult:
             {
                 "Site": site,
                 "Date": meta["Date"],
-                "Period": meta["Season"],
+                "Period": _normalise_period(str(meta["Season"]).strip()),
                 "EPTrich": metrics["% EPT Richness"],
                 "EPTabun": metrics["% EPT Abundance"],
                 "QMCI": qmci_value,
-                "Season": meta["Season"],
+                "Season": _normalise_season(str(meta["Season"]).strip(), meta["Date"]),
             }
         )
 

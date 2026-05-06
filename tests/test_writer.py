@@ -234,39 +234,17 @@ class TestGoldenFileComparison:
         write_data_xlsx(pipeline_data, output_path)
         assert output_path.exists()
 
-    @pytest.mark.xfail(
-        reason=(
-            "Macro domain module does not yet normalise "
-            "Period/Season values (raw 'Construction'/'Baseline' vs "
-            "expected 'Routine Construction'/'Spring'). "
-            "Will pass once macro period/season mapping is implemented."
-        ),
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "sheet_name",
-        ["Macro", "Macro1", "MacroSpecies"],
+        SHEET_ORDER,
     )
-    def test_macro_sheets_match_golden_file(
+    def test_sheet_matches_golden_file(
         self,
         sheet_name: str,
         pipeline_data: dict[str, pd.DataFrame],
         expected_data_xlsx: Path,
     ) -> None:
-        """Macro sheets should match golden file (pending Period/Season fix)."""
-        self._assert_sheet_matches_golden(sheet_name, pipeline_data, expected_data_xlsx)
-
-    @pytest.mark.parametrize(
-        "sheet_name",
-        ["Sediment", "SedimentSize"],
-    )
-    def test_sediment_sheets_match_golden_file(
-        self,
-        sheet_name: str,
-        pipeline_data: dict[str, pd.DataFrame],
-        expected_data_xlsx: Path,
-    ) -> None:
-        """Sediment sheets should match golden file (filtered to same dates)."""
+        """Each sheet's data should match the golden file within float tolerance."""
         self._assert_sheet_matches_golden(sheet_name, pipeline_data, expected_data_xlsx)
 
     @staticmethod

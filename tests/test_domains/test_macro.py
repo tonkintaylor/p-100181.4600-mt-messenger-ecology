@@ -370,6 +370,65 @@ class TestProcessMacroDomain:
                 assert pipeline_row["QMCI"] != pytest.approx(metrics["QMCI"], rel=1e-9)
                 break  # One verified sample is sufficient
 
+    def test_period_normalises_baseline(self, example_macro_db: Path) -> None:
+        """Raw 'Baseline' season maps to Period='Baseline'."""
+        result = process_macro_domain(example_macro_db)
+        macro1 = result.data["Macro1"]
+
+        # First sample dates are Baseline (Oct 2018)
+        baseline_rows = macro1[macro1["Date"] == pd.Timestamp("2018-10-25")]
+        assert len(baseline_rows) > 0
+        assert (baseline_rows["Period"] == "Baseline").all()
+
+    def test_period_normalises_construction(self, example_macro_db: Path) -> None:
+        """Raw 'Construction' season maps to Period='Routine Construction'."""
+        result = process_macro_domain(example_macro_db)
+        macro1 = result.data["Macro1"]
+
+        # Oct 2022 dates are Construction in the raw data
+        construction_rows = macro1[macro1["Date"] == pd.Timestamp("2022-10-17")]
+        assert len(construction_rows) > 0
+        assert (construction_rows["Period"] == "Routine Construction").all()
+
+    def test_period_normalises_additional(self, example_macro_db: Path) -> None:
+        """Raw 'Additional' season maps to Period='Incident'."""
+        result = process_macro_domain(example_macro_db)
+        macro1 = result.data["Macro1"]
+
+        # Jan 2024 is Additional in the raw data
+        incident_rows = macro1[macro1["Date"] == pd.Timestamp("2024-01-12")]
+        assert len(incident_rows) > 0
+        assert (incident_rows["Period"] == "Incident").all()
+
+    def test_season_spring_from_month(self, example_macro_db: Path) -> None:
+        """Oct/Nov/Dec dates map to Season='Spring'."""
+        result = process_macro_domain(example_macro_db)
+        macro1 = result.data["Macro1"]
+
+        oct_rows = macro1[macro1["Date"].dt.month == 10]
+        assert len(oct_rows) > 0
+        assert (oct_rows["Season"] == "Spring").all()
+
+    def test_season_summer_from_month(self, example_macro_db: Path) -> None:
+        """Feb/Mar dates map to Season='Summer'."""
+        result = process_macro_domain(example_macro_db)
+        macro1 = result.data["Macro1"]
+
+        feb_rows = macro1[macro1["Date"].dt.month == 2]
+        assert len(feb_rows) > 0
+        assert (feb_rows["Season"] == "Summer").all()
+
+    def test_season_incident_response_for_additional(
+        self, example_macro_db: Path
+    ) -> None:
+        """Additional monitoring events get Season='incident response'."""
+        result = process_macro_domain(example_macro_db)
+        macro1 = result.data["Macro1"]
+
+        incident_rows = macro1[macro1["Period"] == "Incident"]
+        assert len(incident_rows) > 0
+        assert (incident_rows["Season"] == "incident response").all()
+
     def test_invalid_path_returns_error(self, tmp_path: Path) -> None:
         result = process_macro_domain(tmp_path / "nonexistent.xlsx")
 
