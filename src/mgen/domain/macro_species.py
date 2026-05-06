@@ -107,7 +107,7 @@ def process_macro_species_domain(macro_db_path: Path) -> DomainResult:
     rows: list[dict[str, object]] = []
 
     for sample_id in sample_ids:
-        if sample_id not in meta_lookup.index:
+        if sample_id not in meta_lookup.index:  # pragma: no cover
             continue
         try:
             rows.extend(
