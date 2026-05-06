@@ -11,7 +11,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-29T04:55:50.2849661Z"
+exclude-newer = "2026-04-29T06:12:17.5802758Z"
 exclude-newer-span = "P7D"
 
 [options.exclude-newer-package]
@@ -1349,6 +1349,7 @@ dev = [
 ]
 test = [
     { name = "coverage" },
+    { name = "pillow" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -1386,6 +1387,7 @@ dev = [
 doc = []
 test = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.9.1" },
+    { name = "pillow", specifier = ">=11" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
 ]
