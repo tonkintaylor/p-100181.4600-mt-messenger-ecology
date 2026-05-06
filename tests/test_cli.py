@@ -71,3 +71,30 @@ class TestCli:
 
         assert result.exit_code == 0
         assert "Config valid" in result.output
+
+
+class TestPlotCommand:
+    def test_plot_command_exists(self) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["plot", "--help"])
+        assert result.exit_code == 0
+        assert "Generate" in result.output
+
+    def test_plot_requires_data_xlsx(self, tmp_path: Path) -> None:
+        config_content = (
+            "[input]\n"
+            f'macroinvertebrate_db = "{(tmp_path / "macro.xlsx").as_posix()}"\n'
+            f'aquatic_monitoring_db = "{(tmp_path / "aquatic.xlsx").as_posix()}"\n'
+            "\n"
+            "[output]\n"
+            f'data_xlsx = "{(tmp_path / "nonexistent_Data.xlsx").as_posix()}"\n'
+        )
+        (tmp_path / "macro.xlsx").touch()
+        (tmp_path / "aquatic.xlsx").touch()
+        config_path = tmp_path / "cycle.toml"
+        config_path.write_text(config_content)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["plot", str(config_path)])
+        assert result.exit_code != 0
+        assert "Data.xlsx not found" in result.output
