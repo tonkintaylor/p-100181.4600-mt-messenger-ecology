@@ -23,6 +23,9 @@ dependencies = [
     "pandas>=2.2",
     "openpyxl>=3.1",
     "click>=8.1",
+    "matplotlib>=3.10",
+    "scipy>=1.14",
+    "scikit-learn>=1.5",
 ]
 
 [dependency-groups]
@@ -33,7 +36,6 @@ dev = [
     "ipykernel>=6.29.5",
     "ipython>=9.3.0",
     "ipywidgets>=8.1.7",
-    "matplotlib>=3.10.3",
     "nbstripout>=0.8.1",
     "notebook>=6.5.4",
     "prek>=0.3.10",
