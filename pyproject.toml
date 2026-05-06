@@ -119,6 +119,7 @@ ignore = [
   "ISC001",  # Incompatible with the ruff formatter.
   "PIE804",  # This is controversial, some pandas APIs work better with dict approach.
   "PLR2004", # Too strict for exploratory work
+  "PLR0913", # Too strict for multi-parameter functions like compute_trigger
   "PLW2901", # Too many false positives.
   "PT003",   # Explicit is better than implicit
   "PTH",     # These are often overly pedantic, has no autofixes, and AI violates often
