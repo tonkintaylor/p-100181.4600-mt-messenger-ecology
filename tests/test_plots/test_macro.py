@@ -55,7 +55,8 @@ class TestPlotMacroMetrics:
     ) -> None:
         paths = plot_macro_metrics(macro1_df, mock_summaries, mock_triggers, tmp_path)
         png_paths = [p for p in paths if p.suffix == ".png"]
-        assert len(png_paths) == 2  # 2 sites
+        # 2 combined (one per site) + 6 individual metrics (3 metrics x 2 sites)
+        assert len(png_paths) == 8
 
     def test_empty_df_returns_empty(
         self,

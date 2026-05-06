@@ -60,9 +60,9 @@ class TestPlotSedimentTimeseries:
         paths = plot_sediment_timeseries(sediment_df, triggers, tmp_path)
         png_paths = [p for p in paths if p.suffix == ".png"]
         pdf_paths = [p for p in paths if p.suffix == ".pdf"]
-        # 2 sites
-        assert len(png_paths) == 2
-        assert len(pdf_paths) == 2
+        # 2 sites x (2 individual SAM metrics + 1 combined) = 6 each
+        assert len(png_paths) == 6
+        assert len(pdf_paths) == 6
 
     def test_empty_triggers_still_plots(self, tmp_path: Path, sediment_df) -> None:
         paths = plot_sediment_timeseries(sediment_df, {}, tmp_path)

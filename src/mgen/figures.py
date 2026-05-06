@@ -99,7 +99,6 @@ def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Pat
     """Generate macro metric plots with CI error bars."""
     from mgen.plots.macro import plot_macro_metrics  # noqa: PLC0415
     from mgen.stats.confidence import summarize_with_ci  # noqa: PLC0415
-    from mgen.stats.triggers import compute_trigger  # noqa: PLC0415
 
     if "Macro1" not in data:
         return []
@@ -110,6 +109,12 @@ def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Pat
 
     summaries: dict[str, dict[str, list]] = {}
     triggers: dict[str, dict[str, float]] = {}
+
+    # R computes triggers from per-date means (average replicates first).
+    # This ensures dates with more replicates don't bias the baseline mean.
+    macro_means = (
+        macro_df.groupby(["Site", "Date", "Period"])[metrics].mean().reset_index()
+    )
 
     for site in sites:
         site_df = macro_df[macro_df["Site"] == site]
@@ -123,21 +128,17 @@ def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Pat
                 date_summaries.append(summarize_with_ci(values))
             summaries[site][metric] = date_summaries
 
-            try:
-                triggers[site][metric] = compute_trigger(
-                    macro_df,
-                    metric_col=metric,
-                    site=site,
-                    direction="decline",
-                    threshold_pct=0.15,
-                )
-            except ValueError:
-                pass
+            # Trigger: mean of per-date baseline averages * 0.85 (decline)
+            baseline_means = macro_means[
+                (macro_means["Site"] == site) & (macro_means["Period"] == "Baseline")
+            ][metric]
+            if not baseline_means.empty:
+                triggers[site][metric] = float(baseline_means.mean() * 0.85)
 
     return plot_macro_metrics(macro_df, summaries, triggers, output_dir)
 
 
-def _generate_community(
+def _generate_community(  # noqa: C901
     data: dict[str, pd.DataFrame],
     output_dir: Path,
     result: FigureResult,
@@ -149,7 +150,8 @@ def _generate_community(
         export_species_drivers_table,
     )
     from mgen.plots.community import (  # noqa: PLC0415
-        plot_nmds_ordination,
+        CATCHMENT_SUBSETS,
+        plot_nmds_grouped,
         plot_nmds_per_site,
     )
     from mgen.stats.community import (  # noqa: PLC0415
@@ -176,21 +178,55 @@ def _generate_community(
     species_df = community_df[species_cols]
     metadata = community_df[["Date", "Site", "Period"]].copy()
 
-    # 1. Bray-Curtis distance matrix
-    dm = bray_curtis_matrix(species_df)
+    # Build catchment lookup for per-site titles
+    catchment_lookup: dict[str, str] = {}
+    for catchment, sites in CATCHMENT_SUBSETS.items():
+        for s in sites:
+            if s not in catchment_lookup:
+                catchment_lookup[s] = catchment
 
-    # 2. NMDS ordination
+    # --- All-sites NMDS ---
+    dm = bray_curtis_matrix(species_df)
     nmds = run_nmds(dm, n_dims=2, seed=42)
 
-    # 3. NMDS plots
-    plot_nmds_ordination(nmds, metadata, output_dir)
-    plot_nmds_per_site(nmds, metadata, output_dir)
+    paths.extend(plot_nmds_grouped(nmds, metadata, output_dir, "NMDS_AllSites"))
 
-    for f in output_dir.iterdir():
-        if f.suffix in (".png", ".pdf") and "NMDS" in f.name:
-            paths.append(f)
+    # --- Per-site NMDS with regression arrows ---
+    paths.extend(
+        plot_nmds_per_site(
+            nmds,
+            metadata,
+            output_dir,
+            filename_prefix="NMDS_PerSite",
+            catchment_lookup=catchment_lookup,
+        )
+    )
 
-    # 4. ANOSIM
+    # --- Catchment subset NMDS ---
+    for catchment_name, catchment_sites in CATCHMENT_SUBSETS.items():
+        mask = metadata["Site"].isin(catchment_sites)
+        if mask.sum() < 4:
+            continue
+
+        subset_species = species_df[mask]
+        subset_meta = metadata[mask].reset_index(drop=True)
+
+        dm_sub = bray_curtis_matrix(subset_species)
+        nmds_sub = run_nmds(dm_sub, n_dims=2, seed=42)
+
+        safe_name = catchment_name.replace("ē", "e").replace(" ", "_")
+        paths.extend(
+            plot_nmds_grouped(
+                nmds_sub,
+                subset_meta,
+                output_dir,
+                filename_prefix=f"NMDS_{safe_name}",
+                title_suffix=f"{catchment_name} Sites",
+                shape_legend_title=f"{catchment_name} Site",
+            )
+        )
+
+    # --- ANOSIM ---
     anosim_results: dict[str, object] = {}
     if "Period" in metadata.columns:
         anosim_results["Period Effect"] = run_anosim(dm, metadata["Period"], seed=42)
@@ -200,7 +236,7 @@ def _generate_community(
         export_anosim_summary(anosim_results, anosim_path)
         paths.append(anosim_path)
 
-    # 5. Indicator species
+    # --- Indicator species ---
     if "Period" in metadata.columns:
         indicators = indicator_species_analysis(species_df, metadata["Period"], seed=42)
         if indicators:
@@ -208,7 +244,7 @@ def _generate_community(
             export_indicator_species_table(indicators, ind_path)
             paths.append(ind_path)
 
-    # 6. Envfit species drivers
+    # --- Envfit species drivers ---
     drivers = envfit_species_drivers(nmds.points, species_df, seed=42)
     if not drivers.empty:
         drivers_path = output_dir / "Species_Drivers.xlsx"

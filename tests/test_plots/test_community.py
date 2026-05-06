@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from mgen.figures import generate_figures
-from mgen.plots.community import plot_nmds_ordination, plot_nmds_per_site
+from mgen.plots.community import plot_nmds_grouped, plot_nmds_per_site
 from mgen.stats.community import NMDSResult
 
 
@@ -58,14 +58,14 @@ class TestPlotNMDSOrdination:
     def test_creates_output_files(
         self, nmds_result: NMDSResult, sample_metadata: pd.DataFrame, tmp_path: Path
     ) -> None:
-        plot_nmds_ordination(nmds_result, sample_metadata, output_dir=tmp_path)
+        plot_nmds_grouped(nmds_result, sample_metadata, output_dir=tmp_path)
         png_files = list(tmp_path.glob("*.png"))
         assert len(png_files) >= 1
 
     def test_creates_pdf(
         self, nmds_result: NMDSResult, sample_metadata: pd.DataFrame, tmp_path: Path
     ) -> None:
-        plot_nmds_ordination(nmds_result, sample_metadata, output_dir=tmp_path)
+        plot_nmds_grouped(nmds_result, sample_metadata, output_dir=tmp_path)
         pdf_files = list(tmp_path.glob("*.pdf"))
         assert len(pdf_files) >= 1
 
@@ -74,8 +74,8 @@ class TestPlotNMDSOrdination:
     ) -> None:
         empty = NMDSResult(points=np.empty((0, 2)), stress=0.0)
         # Should not raise, just skip
-        plot_nmds_ordination(empty, sample_metadata, output_dir=tmp_path)
-        assert len(list(tmp_path.glob("*"))) == 0
+        result = plot_nmds_grouped(empty, sample_metadata, output_dir=tmp_path)
+        assert len(result) == 0
 
 
 class TestPlotNMDSPerSite:
@@ -113,10 +113,11 @@ class TestPlotNMDSPerSite:
     def test_creates_per_site_files(
         self, nmds_result: NMDSResult, sample_metadata: pd.DataFrame, tmp_path: Path
     ) -> None:
-        plot_nmds_per_site(nmds_result, sample_metadata, output_dir=tmp_path)
+        paths = plot_nmds_per_site(nmds_result, sample_metadata, output_dir=tmp_path)
         png_files = list(tmp_path.glob("*.png"))
         # Should create at least one file per site
         assert len(png_files) >= 2
+        assert len(paths) >= 2
 
     def test_creates_per_site_pdf(
         self, nmds_result: NMDSResult, sample_metadata: pd.DataFrame, tmp_path: Path

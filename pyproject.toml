@@ -182,6 +182,14 @@ flake8-import-conventions.banned-from = ["ruru"]
   "FBT",     # Defensive programming techniques for function definitions are overkill
   "PLR0913", # OK to have functions with many arguments in scripts and notebooks
 ]
+"scripts/**" = [
+  "INP001",  # No __init__.py needed for standalone scripts
+  "C901",    # Complexity is acceptable in scripts
+  "PLC0415", # Deferred imports OK in scripts
+  "T201",    # Print statements fine in scripts
+  "ANN",     # No annotations needed
+  "D",       # No docstring rules
+]
 "src/mgen/shared/validation.py" = [
   "PLR0913", # Validation functions accept many context params for error reporting
 ]
