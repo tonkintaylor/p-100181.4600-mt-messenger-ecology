@@ -28,6 +28,7 @@ def pipeline_config(
         macroinvertebrate_db=example_macro_db,
         aquatic_monitoring_db=example_aquatic_db,
         data_xlsx=out_dir / "Data.xlsx",
+        figures_dir=out_dir / "Figures",
     )
 
 
@@ -72,6 +73,7 @@ class TestPipelineErrorHandling:
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
             data_xlsx=tmp_path / "Data.xlsx",
+            figures_dir=tmp_path / "Figures",
         )
         failed_result = DomainResult(
             data=None,
@@ -100,6 +102,7 @@ class TestPipelineErrorHandling:
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
             data_xlsx=tmp_path / "Data.xlsx",
+            figures_dir=tmp_path / "Figures",
         )
         failed_result = DomainResult(
             data=None,
@@ -127,6 +130,7 @@ class TestPipelineErrorHandling:
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
             data_xlsx=tmp_path / "Data.xlsx",
+            figures_dir=tmp_path / "Figures",
         )
         macro_fail = DomainResult(
             data=None,

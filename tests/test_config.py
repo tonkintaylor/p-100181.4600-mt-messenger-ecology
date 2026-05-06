@@ -56,3 +56,42 @@ class TestLoadConfig:
 
         with pytest.raises(ConfigError, match="macroinvertebrate_db"):
             load_config(config_file)
+
+
+class TestFiguresDir:
+    """Tests for figures_dir configuration."""
+
+    def test_figures_dir_from_config(self, tmp_path: Path) -> None:
+        config_content = (
+            "[input]\n"
+            f'macroinvertebrate_db = "{(tmp_path / "macro.xlsx").as_posix()}"\n'
+            f'aquatic_monitoring_db = "{(tmp_path / "aquatic.xlsx").as_posix()}"\n'
+            "\n"
+            "[output]\n"
+            f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+            f'figures_dir = "{(tmp_path / "Figures").as_posix()}"\n'
+        )
+        (tmp_path / "macro.xlsx").touch()
+        (tmp_path / "aquatic.xlsx").touch()
+        config_path = tmp_path / "cycle.toml"
+        config_path.write_text(config_content)
+
+        config = load_config(config_path)
+        assert config.figures_dir == tmp_path / "Figures"
+
+    def test_figures_dir_defaults_to_figures_subdir(self, tmp_path: Path) -> None:
+        config_content = (
+            "[input]\n"
+            f'macroinvertebrate_db = "{(tmp_path / "macro.xlsx").as_posix()}"\n'
+            f'aquatic_monitoring_db = "{(tmp_path / "aquatic.xlsx").as_posix()}"\n'
+            "\n"
+            "[output]\n"
+            f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+        )
+        (tmp_path / "macro.xlsx").touch()
+        (tmp_path / "aquatic.xlsx").touch()
+        config_path = tmp_path / "cycle.toml"
+        config_path.write_text(config_content)
+
+        config = load_config(config_path)
+        assert config.figures_dir == tmp_path / "Figures"
