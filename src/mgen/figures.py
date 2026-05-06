@@ -138,9 +138,81 @@ def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Pat
 
 
 def _generate_community(
-    _data: dict[str, pd.DataFrame],
-    _output_dir: Path,
-    _result: FigureResult,
+    data: dict[str, pd.DataFrame],
+    output_dir: Path,
+    result: FigureResult,
 ) -> list[Path]:
-    """Generate NMDS plots and exports."""
-    return []
+    """Generate NMDS plots and community analysis exports."""
+    from mgen.exports.community_tables import (  # noqa: PLC0415
+        export_anosim_summary,
+        export_indicator_species_table,
+        export_species_drivers_table,
+    )
+    from mgen.plots.community import (  # noqa: PLC0415
+        plot_nmds_ordination,
+        plot_nmds_per_site,
+    )
+    from mgen.stats.community import (  # noqa: PLC0415
+        bray_curtis_matrix,
+        envfit_species_drivers,
+        indicator_species_analysis,
+        run_anosim,
+        run_nmds,
+    )
+
+    if "Community" not in data:
+        return []
+
+    community_df = data["Community"]
+    paths: list[Path] = []
+
+    meta_cols = {"Date", "Site", "Period"}
+    species_cols = [c for c in community_df.columns if c not in meta_cols]
+
+    if not species_cols:
+        result.warnings.append("No species columns found in Community sheet")
+        return []
+
+    species_df = community_df[species_cols]
+    metadata = community_df[["Date", "Site", "Period"]].copy()
+
+    # 1. Bray-Curtis distance matrix
+    dm = bray_curtis_matrix(species_df)
+
+    # 2. NMDS ordination
+    nmds = run_nmds(dm, n_dims=2, seed=42)
+
+    # 3. NMDS plots
+    plot_nmds_ordination(nmds, metadata, output_dir)
+    plot_nmds_per_site(nmds, metadata, output_dir)
+
+    for f in output_dir.iterdir():
+        if f.suffix in (".png", ".pdf") and "NMDS" in f.name:
+            paths.append(f)
+
+    # 4. ANOSIM
+    anosim_results: dict[str, object] = {}
+    if "Period" in metadata.columns:
+        anosim_results["Period Effect"] = run_anosim(dm, metadata["Period"], seed=42)
+
+    if anosim_results:
+        anosim_path = output_dir / "ANOSIM_Results.xlsx"
+        export_anosim_summary(anosim_results, anosim_path)
+        paths.append(anosim_path)
+
+    # 5. Indicator species
+    if "Period" in metadata.columns:
+        indicators = indicator_species_analysis(species_df, metadata["Period"], seed=42)
+        if indicators:
+            ind_path = output_dir / "Indicator_Species.xlsx"
+            export_indicator_species_table(indicators, ind_path)
+            paths.append(ind_path)
+
+    # 6. Envfit species drivers
+    drivers = envfit_species_drivers(nmds.points, species_df, seed=42)
+    if not drivers.empty:
+        drivers_path = output_dir / "Species_Drivers.xlsx"
+        export_species_drivers_table(drivers, drivers_path)
+        paths.append(drivers_path)
+
+    return paths

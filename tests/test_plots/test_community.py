@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from mgen.figures import generate_figures
 from mgen.plots.community import plot_nmds_ordination, plot_nmds_per_site
 from mgen.stats.community import NMDSResult
 
@@ -123,3 +124,45 @@ class TestPlotNMDSPerSite:
         plot_nmds_per_site(nmds_result, sample_metadata, output_dir=tmp_path)
         pdf_files = list(tmp_path.glob("*.pdf"))
         assert len(pdf_files) >= 1
+
+
+class TestGenerateCommunityIntegration:
+    """Integration test for _generate_community via generate_figures."""
+
+    @pytest.fixture
+    def community_data(self) -> dict[str, pd.DataFrame]:
+        """Minimal community dataset with species counts."""
+        rng = np.random.default_rng(42)
+        n_samples = 12
+        dates = pd.to_datetime(["2020-06-01", "2020-12-01", "2021-06-01"] * 4)
+        sites = ["EM1"] * 3 + ["EM2"] * 3 + ["EM3"] * 3 + ["EM4"] * 3
+        periods = ["Baseline"] * 6 + ["Construction"] * 6
+
+        species_data = {}
+        for i in range(8):
+            species_data[f"Species_{i}"] = rng.integers(0, 50, n_samples)
+
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Site": sites,
+                "Period": periods,
+                **species_data,
+            }
+        )
+        return {"Community": df}
+
+    def test_generates_output_files(
+        self, community_data: dict[str, pd.DataFrame], tmp_path: Path
+    ) -> None:
+        result = generate_figures(community_data, tmp_path, only="community")
+        assert result.success
+        assert len(result.files_written) > 0
+
+    def test_generates_plots_and_tables(
+        self, community_data: dict[str, pd.DataFrame], tmp_path: Path
+    ) -> None:
+        result = generate_figures(community_data, tmp_path, only="community")
+        extensions = {p.suffix for p in result.files_written}
+        assert ".png" in extensions
+        assert ".xlsx" in extensions
