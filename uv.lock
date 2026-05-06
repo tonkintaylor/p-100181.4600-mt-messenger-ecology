@@ -11,7 +11,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-28T02:48:41.9389594Z"
+exclude-newer = "2026-04-28T21:18:46.9074794Z"
 exclude-newer-span = "P7D"
 
 [options.exclude-newer-package]
@@ -1314,6 +1314,7 @@ name = "mgen"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "numpy" },
     { name = "openpyxl" },
     { name = "pandas" },
 ]
@@ -1347,6 +1348,7 @@ uv = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "pandas", specifier = ">=2.2" },
 ]
