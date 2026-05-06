@@ -20,6 +20,15 @@ import pandas as pd
 
 from mgen.shared.errors import DomainResult, ValidationError
 
+__all__ = [
+    "GRAIN_SIZE_SOURCE_COLUMNS",
+    "SOURCE_SAM1_COL",
+    "SOURCE_SAM3_COL",
+    "IngestError",
+    "make_error_result",
+    "read_sediment_sheet",
+]
+
 logger = logging.getLogger(__name__)
 
 # Source column names (exact strings from the workbook).
@@ -27,8 +36,8 @@ _SOURCE_PERIOD_COL = " "
 _SOURCE_SITE_COL = "Site "
 _SOURCE_SEASON_COL = "Season"
 _SOURCE_DATE_COL = "Date"
-_SOURCE_SAM1_COL = "SAM1 %fine cover"
-_SOURCE_SAM3_COL = "SAM3 (%Fine Cover)"
+SOURCE_SAM1_COL = "SAM1 %fine cover"
+SOURCE_SAM3_COL = "SAM3 (%Fine Cover)"
 
 # Grain-size source columns in output order.
 GRAIN_SIZE_SOURCE_COLUMNS = [
@@ -52,33 +61,6 @@ _REQUIRED_COLUMNS = frozenset(
 
 class IngestError(Exception):
     """Raised when the Sediment sheet cannot be parsed."""
-
-
-def _derive_period(source_period: str, source_season: str) -> str:
-    """Map source period + season to output Period value.
-
-    Rules:
-      - source period "Baseline" → "Baseline"
-      - source period "Construction" + season starting "Additional" → "Incident"
-      - source period "Construction" + regular season → "Routine Construction"
-    """
-    if source_period == "Baseline":
-        return "Baseline"
-    if source_season.startswith("Additional"):
-        return "Incident"
-    return "Routine Construction"
-
-
-def _derive_season(source_season: str) -> str:
-    """Map source season to output Season value.
-
-    Rules:
-      - If "Summer" appears anywhere in the source season → "Summer"
-      - Otherwise → "Spring"
-    """
-    if "Summer" in source_season:
-        return "Summer"
-    return "Spring"
 
 
 def read_sediment_sheet(path: Path) -> pd.DataFrame:
@@ -109,17 +91,16 @@ def read_sediment_sheet(path: Path) -> pd.DataFrame:
         msg = f"Missing required columns: {sorted(missing)}"
         raise IngestError(msg)
 
-    # Derive output Period and Season.
-    df["Period"] = df.apply(
-        lambda row: _derive_period(
-            str(row[_SOURCE_PERIOD_COL]).strip(),
-            str(row[_SOURCE_SEASON_COL]).strip(),
-        ),
-        axis=1,
-    )
-    df["Season"] = df[_SOURCE_SEASON_COL].apply(
-        lambda s: _derive_season(str(s).strip())
-    )
+    # Derive output Period and Season (vectorized).
+    period_raw = df[_SOURCE_PERIOD_COL].astype(str).str.strip()
+    season_raw = df[_SOURCE_SEASON_COL].astype(str).str.strip()
+
+    df["Period"] = "Routine Construction"
+    df.loc[period_raw == "Baseline", "Period"] = "Baseline"
+    df.loc[season_raw.str.startswith("Additional"), "Period"] = "Incident"
+
+    df["Season"] = "Spring"
+    df.loc[season_raw.str.contains("Summer", na=False), "Season"] = "Summer"
 
     # Normalise Site (strip trailing whitespace).
     df["Site"] = df[_SOURCE_SITE_COL].astype(str).str.strip()

@@ -12,8 +12,8 @@ from pathlib import Path
 import pandas as pd
 
 from mgen.domain.sediment_ingest import (
-    _SOURCE_SAM1_COL,
-    _SOURCE_SAM3_COL,
+    SOURCE_SAM1_COL,
+    SOURCE_SAM3_COL,
     IngestError,
     make_error_result,
     read_sediment_sheet,
@@ -46,7 +46,7 @@ def process_sediment_domain(path: Path) -> DomainResult:
         return make_error_result("Sediment", path, f"Unexpected error: {exc}")
 
     # Validate SAM columns exist.
-    for col in (_SOURCE_SAM1_COL, _SOURCE_SAM3_COL):
+    for col in (SOURCE_SAM1_COL, SOURCE_SAM3_COL):
         if col not in df.columns:
             return make_error_result(
                 "Sediment", path, f"Missing required column: {col!r}"
@@ -58,10 +58,10 @@ def process_sediment_domain(path: Path) -> DomainResult:
             "Site": df["Site"],
             "Date": df["Date"],
             "Period": df["Period"],
-            "SAM1": pd.to_numeric(df[_SOURCE_SAM1_COL], errors="coerce").astype(
+            "SAM1": pd.to_numeric(df[SOURCE_SAM1_COL], errors="coerce").astype(
                 "float64"
             ),
-            "SAM3": pd.to_numeric(df[_SOURCE_SAM3_COL], errors="coerce").astype(
+            "SAM3": pd.to_numeric(df[SOURCE_SAM3_COL], errors="coerce").astype(
                 "float64"
             ),
             "Season": df["Season"],
