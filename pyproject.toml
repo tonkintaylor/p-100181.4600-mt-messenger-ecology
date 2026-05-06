@@ -231,6 +231,8 @@ omit = ["*/pytest-of-*/*", "*/_version.py", "src/archive/*"]
 ignore_errors = true
 show_missing = true
 exclude_lines = [
+  # Standard pragma:
+  "pragma: no cover",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
   "raise NotImplementedError",
