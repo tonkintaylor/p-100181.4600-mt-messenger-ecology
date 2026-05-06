@@ -6,6 +6,7 @@ EPT membership is derived from TaxonGroup labels, NOT hard-coded row numbers.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +16,8 @@ from mgen.domain.macro_ingest import IngestError, ingest_raw_data
 from mgen.shared.domain_types import SITES_WITHOUT_REPLICATES
 from mgen.shared.errors import DomainResult, ValidationError
 from mgen.shared.schemas import MACRO1_COLUMNS
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["derive_metrics", "process_macro_domain"]
 
@@ -146,8 +149,19 @@ _SPRING_MONTHS = frozenset({10, 11, 12})
 
 
 def _normalise_period(raw_season: str) -> str:
-    """Map the raw season label to the normalised Period value."""
-    return _PERIOD_MAP.get(raw_season, "Routine Construction")
+    """Map the raw season label to the normalised Period value.
+
+    The source spreadsheet's 'Season' column actually encodes the monitoring
+    phase (Baseline/Construction/Additional), not the calendar season.
+    """
+    period = _PERIOD_MAP.get(raw_season)
+    if period is None:
+        logger.warning(
+            "Unmapped period label %r — defaulting to 'Routine Construction'",
+            raw_season,
+        )
+        return "Routine Construction"
+    return period
 
 
 def _normalise_season(raw_season: str, date: object) -> str:

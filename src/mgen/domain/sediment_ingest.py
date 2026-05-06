@@ -92,6 +92,11 @@ def read_sediment_sheet(path: Path) -> pd.DataFrame:
         raise IngestError(msg)
 
     # Derive output Period and Season (vectorized).
+    # NOTE: Sediment Season is derived from the source's raw season text
+    # (e.g. "Summer 2024" → Summer, else Spring). This intentionally differs
+    # from Macro, which uses month-based derivation and maps Additional →
+    # "incident response". Sediment source data does not use the "incident
+    # response" convention — see docs/golden-file-notes.md.
     period_raw = df[_SOURCE_PERIOD_COL].astype(str).str.strip()
     season_raw = df[_SOURCE_SEASON_COL].astype(str).str.strip()
 

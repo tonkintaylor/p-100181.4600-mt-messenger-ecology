@@ -65,6 +65,28 @@ The golden file was regenerated on 2026-05-06 from pipeline output filtered to d
 output exactly. The test filters actual pipeline output to golden-file dates and sorts
 by Date+Site before comparison.
 
+## Season Normalisation Strategy (Macro vs Sediment)
+
+The Macro and Sediment domains intentionally use **different** Season derivation logic,
+reflecting differences in their source data formats:
+
+| Domain   | Season Logic                                                    | "Additional" handling            |
+| -------- | --------------------------------------------------------------- | -------------------------------- |
+| Macro    | Month-based: Oct/Nov/Dec → Spring, else → Summer                | Season = "incident response"     |
+| Sediment | Source-string matching: contains "Summer" → Summer, else Spring | Season remains Spring or Summer  |
+
+**Why they differ:** The Macro source spreadsheet encodes monitoring phase in its
+"Season" column (e.g. "Additional"), so the pipeline must derive calendar season from
+the sampling date. The Sediment source already provides a meaningful season string
+(e.g. "Summer 2024") but uses "Additional" only for the Period, so Season stays as
+the calendar-derived value.
+
+This means for incident monitoring events:
+- Macro sheet: `Period="Incident", Season="incident response"`
+- Sediment sheet: `Period="Incident", Season="Spring"` or `"Summer"`
+
+This is **by design** and matches the original hand-produced golden file's conventions.
+
 ## Updating the Golden File
 
 If domain logic or source data changes, regenerate with:
