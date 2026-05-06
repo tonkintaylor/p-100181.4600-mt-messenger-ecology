@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import matplotlib as mpl
 import pytest
+
+mpl.use("Agg")
 
 collect_ignore_glob = ["assets/**"]
 pytest_plugins = []
