@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import click
 
 from mgen.config import ConfigError, load_config
+from mgen.pipeline import run_pipeline
 
 
 @click.group()
@@ -21,12 +23,25 @@ def run(config_path: str) -> None:
     try:
         config = load_config(Path(config_path))
     except ConfigError as e:
-        msg = f"❌ Config error: {e}"
-        raise SystemExit(msg) from None
+        click.echo(f"❌ Config error: {e}", err=True)
+        sys.exit(2)
 
-    click.echo(f"Config loaded: {config.data_xlsx}")
-    # Pipeline execution will be added in Task 10
-    click.echo("⚠️  Pipeline not yet implemented")
+    result = run_pipeline(config)
+
+    if result.errors:
+        click.echo("", err=True)
+        for error in result.errors:
+            click.echo(f"  {error}", err=True)
+        click.echo("", err=True)
+
+    if not result.success:
+        error_count = sum(1 for e in result.errors if e.severity == "error")
+        click.echo(
+            f"❌ Pipeline failed: {error_count} error(s) across domains", err=True
+        )
+        sys.exit(1)
+
+    click.echo(f"✅ Wrote {config.data_xlsx}")
 
 
 @main.command()
@@ -36,8 +51,8 @@ def validate(config_path: str) -> None:
     try:
         config = load_config(Path(config_path))
     except ConfigError as e:
-        msg = f"❌ Config error: {e}"
-        raise SystemExit(msg) from None
+        click.echo(f"❌ Config error: {e}", err=True)
+        sys.exit(2)
 
     click.echo("✅ Config valid. Inputs found:")
     click.echo(f"   Macro DB: {config.macroinvertebrate_db}")

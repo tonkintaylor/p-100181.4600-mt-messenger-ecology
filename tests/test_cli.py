@@ -42,7 +42,7 @@ class TestCli:
 
         result = runner.invoke(main, ["run", "nonexistent.toml"])
 
-        assert result.exit_code != 0
+        assert result.exit_code == 2
         assert "Config error" in result.output
 
     def test_validate_missing_config(self) -> None:
@@ -50,7 +50,7 @@ class TestCli:
 
         result = runner.invoke(main, ["validate", "nonexistent.toml"])
 
-        assert result.exit_code != 0
+        assert result.exit_code == 2
         assert "Config error" in result.output
 
     def test_run_valid_config(self, tmp_path: Path) -> None:
@@ -59,9 +59,9 @@ class TestCli:
 
         result = runner.invoke(main, ["run", str(config_file)])
 
-        assert result.exit_code == 0
-        assert "Config loaded" in result.output
-        assert "not yet implemented" in result.output
+        # With empty input files, the pipeline will fail at domain level (exit 1)
+        assert result.exit_code == 1
+        assert "Pipeline failed" in result.output
 
     def test_validate_valid_config(self, tmp_path: Path) -> None:
         config_file = _write_valid_config(tmp_path)

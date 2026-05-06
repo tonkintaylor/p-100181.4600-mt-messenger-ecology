@@ -14,6 +14,56 @@ Automated figure generation for regular reporting on Mt Messenger.
 
 Job number: 100181.4600
 
+## Pipeline Architecture
+
+```mermaid
+flowchart TD
+    Config[/"cycle.toml"/] --> CLI
+
+    subgraph CLI ["cli.py"]
+        LoadConfig["load_config()"]
+    end
+
+    CLI --> Pipeline
+
+    subgraph Pipeline ["pipeline.py"]
+        RunPipeline["run_pipeline()"]
+    end
+
+    subgraph Sources ["Source Spreadsheets"]
+        MacroDB[("Macroinvertebrate\nDatabase.xlsx")]
+        AquaticDB[("Aquatic Monitoring\nDatabase.xlsx")]
+    end
+
+    MacroDB --> Macro
+    MacroDB --> MacroSpecies
+    AquaticDB --> Sediment
+    AquaticDB --> SedimentSize
+
+    subgraph Domains ["Domain Processors"]
+        Macro["process_macro_domain()\nmacro.py"]
+        MacroSpecies["process_macro_species_domain()\nmacro_species.py"]
+        Sediment["process_sediment_domain()\nsediment.py"]
+        SedimentSize["process_sediment_size_domain()\nsediment_size.py"]
+    end
+
+    Macro --> Merge
+    MacroSpecies --> Merge
+    Sediment --> Merge
+    SedimentSize --> Merge
+
+    Merge{All OK?}
+    Merge -->|yes| Writer
+    Merge -->|no| Errors
+
+    subgraph Writer ["writer.py"]
+        WriteXlsx["write_data_xlsx()"]
+    end
+
+    Writer --> Output[/"Data.xlsx\n5 sheets"/]
+    Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
+```
+
 ## Getting Started on Development
 
 ### Installing the Python environment and Configuring VS Code
