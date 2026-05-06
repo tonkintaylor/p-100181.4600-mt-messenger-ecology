@@ -95,9 +95,46 @@ def _generate_sediment(data: dict[str, pd.DataFrame], output_dir: Path) -> list[
     return paths
 
 
-def _generate_macro(_data: dict[str, pd.DataFrame], _output_dir: Path) -> list[Path]:
-    """Generate macro metric plots."""
-    return []
+def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Path]:
+    """Generate macro metric plots with CI error bars."""
+    from mgen.plots.macro import plot_macro_metrics  # noqa: PLC0415
+    from mgen.stats.confidence import summarize_with_ci  # noqa: PLC0415
+    from mgen.stats.triggers import compute_trigger  # noqa: PLC0415
+
+    if "Macro1" not in data:
+        return []
+
+    macro_df = data["Macro1"]
+    sites = sorted(macro_df["Site"].unique())
+    metrics = ["QMCI", "EPTrich", "EPTabun"]
+
+    summaries: dict[str, dict[str, list]] = {}
+    triggers: dict[str, dict[str, float]] = {}
+
+    for site in sites:
+        site_df = macro_df[macro_df["Site"] == site]
+        summaries[site] = {}
+        triggers[site] = {}
+
+        for metric in metrics:
+            date_summaries = []
+            for dt in sorted(site_df["Date"].unique()):
+                values = site_df[site_df["Date"] == dt][metric]
+                date_summaries.append(summarize_with_ci(values))
+            summaries[site][metric] = date_summaries
+
+            try:
+                triggers[site][metric] = compute_trigger(
+                    macro_df,
+                    metric_col=metric,
+                    site=site,
+                    direction="decline",
+                    threshold_pct=0.15,
+                )
+            except ValueError:
+                pass
+
+    return plot_macro_metrics(macro_df, summaries, triggers, output_dir)
 
 
 def _generate_community(

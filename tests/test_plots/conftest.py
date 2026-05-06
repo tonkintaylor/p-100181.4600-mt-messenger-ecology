@@ -70,3 +70,28 @@ def sediment_df() -> pd.DataFrame:
             "Season": ["Summer", "Winter", "Spring", "Winter"] * 2,
         }
     )
+
+
+@pytest.fixture
+def macro1_df() -> pd.DataFrame:
+    """Macro1 sheet with replicate data for 2 sites, 3 dates."""
+    rows = []
+    for site in ["EM1", "EM2"]:
+        for date_str, period in [
+            ("2021-03-15", "Baseline"),
+            ("2021-09-15", "Baseline"),
+            ("2022-06-15", "Routine Construction"),
+        ]:
+            for rep in range(3):
+                rows.append(
+                    {
+                        "Site": site,
+                        "Date": pd.Timestamp(date_str),
+                        "Period": period,
+                        "EPTrich": 40.0 + rep * 5 + (0 if site == "EM1" else 10),
+                        "EPTabun": 50.0 + rep * 3 + (0 if site == "EM1" else 5),
+                        "QMCI": 5.0 + rep * 0.5 + (0 if site == "EM1" else 1),
+                        "Season": "Summer" if "03" in date_str else "Winter",
+                    }
+                )
+    return pd.DataFrame(rows)
