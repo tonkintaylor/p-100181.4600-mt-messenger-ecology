@@ -44,6 +44,7 @@ source(file.path(helpers_dir, "triggers.R"))
 source(file.path(helpers_dir, "sediment_plots.R"))
 source(file.path(helpers_dir, "macro_plots.R"))
 source(file.path(helpers_dir, "nmds_plots.R"))
+source(file.path(helpers_dir, "clarity_plots.R"))
 
 # --- Parse arguments ---
 args <- commandArgs(trailingOnly = TRUE)
@@ -209,6 +210,18 @@ if (!is.null(data$Community)) {
   # Dissimilarity table
   message("Dissimilarity table...")
   export_dissimilarity_table(community_df, file.path(output_dir, "Dissimilarity_Table.xlsx"))
+}
+
+message("")
+message("--- Clarity Plots ---")
+if (!is.null(data$Clarity)) {
+  if ("Clarity (mm)" %in% names(data$Clarity)) {
+    plot_clarity_boxplot(data$Clarity, output_dir)
+    plot_clarity_timeseries(data$Clarity, output_dir)
+  }
+  plot_clarity_ntu_relationship(data$Clarity, output_dir)
+} else {
+  message("  Skipped: no Clarity sheet found")
 }
 
 message("")

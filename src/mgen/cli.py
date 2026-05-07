@@ -64,7 +64,7 @@ def validate(config_path: str) -> None:
 @click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
 @click.option(
     "--only",
-    type=click.Choice(["sediment", "macro", "community", "clarity", "all"]),
+    type=click.Choice(["sediment", "macro", "community", "all"]),
     default="all",
 )
 @click.option(
