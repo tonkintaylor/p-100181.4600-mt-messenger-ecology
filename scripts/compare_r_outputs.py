@@ -391,10 +391,6 @@ def _build_html(entries: list[dict]) -> str:
             f'<td class="label">{label}</td>'
             f'<td class="img-cell">{ref_cell}</td>'
             f'<td class="img-cell">{new_cell}</td>'
-            f'<td class="fb-cell">'
-            f'<textarea data-label="{label}" rows="3"'
-            f' placeholder="Notes..."></textarea>'
-            f"</td>"
             f"</tr>"
         )
 
@@ -484,55 +480,6 @@ td.img-cell img {{
 tr:hover {{
     background: #f8f8ff;
 }}
-td.fb-cell {{
-    width: 180px;
-    vertical-align: middle;
-}}
-td.fb-cell textarea {{
-    width: 100%;
-    resize: vertical;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 6px;
-    font-size: 0.85em;
-    font-family: inherit;
-}}
-.btn-bar {{
-    text-align: center;
-    margin: 16px 0;
-}}
-.btn-bar button {{
-    padding: 10px 24px;
-    font-size: 1em;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin: 0 8px;
-    color: white;
-}}
-.btn-copy {{
-    background: #0f3460;
-}}
-.btn-copy:hover {{
-    background: #16498a;
-}}
-.btn-save {{
-    background: #27ae60;
-}}
-.btn-save:hover {{
-    background: #2ecc71;
-}}
-.toast {{
-    display: none;
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #333;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    z-index: 99;
-}}
 </style>
 </head>
 <body>
@@ -544,57 +491,12 @@ td.fb-cell textarea {{
 <table>
 <thead><tr>\
 <th>Label</th><th>Reference (ref/)</th>\
-<th>New R Pipeline</th><th>Feedback</th>\
+<th>New R Pipeline</th>\
 </tr></thead>
 <tbody>
 {"".join(rows_html)}
 </tbody>
 </table>
-<div class="btn-bar">
-  <button class="btn-copy" onclick="copyFeedback()">
-    Copy Feedback to Clipboard
-  </button>
-  <button class="btn-save" onclick="saveFeedback()">
-    Save as Text File
-  </button>
-</div>
-<div class="toast" id="toast">Copied!</div>
-<script>
-function gatherFeedback() {{
-  const areas = document.querySelectorAll('textarea[data-label]');
-  const lines = [];
-  areas.forEach(ta => {{
-    const text = ta.value.trim();
-    if (text) {{
-      lines.push(ta.dataset.label + ': ' + text);
-    }}
-  }});
-  return lines.join('\\n');
-}}
-function showToast(msg) {{
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(() => {{ t.style.display = 'none'; }}, 2000);
-}}
-function copyFeedback() {{
-  const fb = gatherFeedback();
-  if (!fb) {{ showToast('No feedback entered'); return; }}
-  navigator.clipboard.writeText(fb)
-    .then(() => showToast('Copied!'));
-}}
-function saveFeedback() {{
-  const fb = gatherFeedback();
-  if (!fb) {{ showToast('No feedback entered'); return; }}
-  const blob = new Blob([fb], {{type: 'text/plain'}});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'comparison_feedback.txt';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('Saved!');
-}}
-</script>
 </body>
 </html>
 """
