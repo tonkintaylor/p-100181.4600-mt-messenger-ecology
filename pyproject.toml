@@ -23,6 +23,9 @@ dependencies = [
     "pandas>=2.2",
     "openpyxl>=3.1",
     "click>=8.1",
+    "matplotlib>=3.10",
+    "scipy>=1.14",
+    "scikit-learn>=1.5",
 ]
 
 [dependency-groups]
@@ -33,7 +36,6 @@ dev = [
     "ipykernel>=6.29.5",
     "ipython>=9.3.0",
     "ipywidgets>=8.1.7",
-    "matplotlib>=3.10.3",
     "nbstripout>=0.8.1",
     "notebook>=6.5.4",
     "prek>=0.3.10",
@@ -44,6 +46,7 @@ dev = [
 ]
 test = [
     "coverage[toml]>=7.9.1",
+    "pillow>=11",
     "pytest>=8.4.0",
     "pytest-cov>=6.1.1",
 ]
@@ -117,6 +120,7 @@ ignore = [
   "ISC001",  # Incompatible with the ruff formatter.
   "PIE804",  # This is controversial, some pandas APIs work better with dict approach.
   "PLR2004", # Too strict for exploratory work
+  "PLR0913", # Too strict for multi-parameter functions like compute_trigger
   "PLW2901", # Too many false positives.
   "PT003",   # Explicit is better than implicit
   "PTH",     # These are often overly pedantic, has no autofixes, and AI violates often
@@ -178,6 +182,14 @@ flake8-import-conventions.banned-from = ["ruru"]
   "FBT",     # Defensive programming techniques for function definitions are overkill
   "PLR0913", # OK to have functions with many arguments in scripts and notebooks
 ]
+"scripts/**" = [
+  "INP001",  # No __init__.py needed for standalone scripts
+  "C901",    # Complexity is acceptable in scripts
+  "PLC0415", # Deferred imports OK in scripts
+  "T201",    # Print statements fine in scripts
+  "ANN",     # No annotations needed
+  "D",       # No docstring rules
+]
 "src/mgen/shared/validation.py" = [
   "PLR0913", # Validation functions accept many context params for error reporting
 ]
@@ -210,6 +222,9 @@ addopts = [
   "--doctest-modules",
 ]
 console_output_style = "progress"
+markers = [
+  "golden: marks tests as golden image comparison tests (deselect with '-m \"not golden\"')",
+]
 filterwarnings = [ "error" ]
 xfail_strict = true
 log_cli_level = "INFO"

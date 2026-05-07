@@ -58,3 +58,52 @@ def validate(config_path: str) -> None:
     click.echo(f"   Macro DB: {config.macroinvertebrate_db}")
     click.echo(f"   Aquatic DB: {config.aquatic_monitoring_db}")
     click.echo(f"   Output: {config.data_xlsx}")
+
+
+@main.command()
+@click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
+@click.option(
+    "--only",
+    type=click.Choice(["sediment", "macro", "community", "all"]),
+    default="all",
+)
+@click.option(
+    "--data-xlsx",
+    type=click.Path(),
+    default=None,
+    help="Override Data.xlsx path",
+)
+def plot(config_path: str, only: str, data_xlsx: str | None) -> None:
+    """Generate monitoring figures from Data.xlsx."""
+    try:
+        config = load_config(Path(config_path))
+    except ConfigError as e:
+        click.echo(f"❌ Config error: {e}", err=True)
+        sys.exit(2)
+
+    xlsx_path = Path(data_xlsx) if data_xlsx else config.data_xlsx
+    if not xlsx_path.exists():
+        click.echo(f"❌ Data.xlsx not found: {xlsx_path}", err=True)
+        sys.exit(1)
+
+    import pandas as pd  # noqa: PLC0415
+
+    data: dict[str, pd.DataFrame] = {}
+    with pd.ExcelFile(xlsx_path) as xls:
+        for sheet in xls.sheet_names:
+            data[sheet] = pd.read_excel(xls, sheet_name=sheet)
+
+    from mgen.figures import generate_figures  # noqa: PLC0415
+
+    fig_result = generate_figures(data, config.figures_dir, only=only)
+
+    if fig_result.warnings:
+        for warning in fig_result.warnings:
+            click.echo(f"⚠️  {warning}", err=True)
+
+    if fig_result.success:
+        file_count = len(fig_result.files_written)
+        click.echo(f"✅ Wrote {file_count} files to {config.figures_dir}")
+    else:
+        click.echo("❌ No figures generated", err=True)
+        sys.exit(1)

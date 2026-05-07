@@ -18,6 +18,7 @@ class PipelineConfig:
     macroinvertebrate_db: Path
     aquatic_monitoring_db: Path
     data_xlsx: Path
+    figures_dir: Path
 
 
 def load_config(config_path: Path) -> PipelineConfig:
@@ -51,6 +52,12 @@ def load_config(config_path: Path) -> PipelineConfig:
     aquatic_db = Path(input_section["aquatic_monitoring_db"])
     data_xlsx = Path(output_section["data_xlsx"])
 
+    # Get figures_dir from config or default to data_xlsx parent / "Figures"
+    if "figures_dir" in output_section:
+        figures_dir = Path(output_section["figures_dir"])
+    else:
+        figures_dir = data_xlsx.parent / "Figures"
+
     # Validate input files exist
     for path in [macro_db, aquatic_db]:
         if not path.exists():
@@ -61,4 +68,5 @@ def load_config(config_path: Path) -> PipelineConfig:
         macroinvertebrate_db=macro_db,
         aquatic_monitoring_db=aquatic_db,
         data_xlsx=data_xlsx,
+        figures_dir=figures_dir,
     )

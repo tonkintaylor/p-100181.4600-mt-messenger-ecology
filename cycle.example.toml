@@ -7,3 +7,4 @@ aquatic_monitoring_db = "T:/Wellington/TT Projects/1001181/1001181.4500/WorkingM
 
 [output]
 data_xlsx = "T:/Wellington/TT Projects/1001181/1001181.4500/WorkingMaterial/Aquatic Monitoring/2025-2026 Report/Stats/Data.xlsx"
+figures_dir = "T:/Wellington/TT Projects/1001181/1001181.4500/WorkingMaterial/Aquatic Monitoring/2025-2026 Report/Figures"
