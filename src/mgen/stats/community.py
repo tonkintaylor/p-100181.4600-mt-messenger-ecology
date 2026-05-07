@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import pdist, squareform
+from scipy.stats import rankdata
 from sklearn.manifold import MDS
 
 __all__ = [
@@ -143,7 +144,7 @@ def run_anosim(
 
     def _compute_r(dm: np.ndarray, grp: np.ndarray) -> float:
         condensed = dm[np.triu_indices(n, k=1)]
-        rank_vals = condensed.argsort().argsort().astype(float) + 1
+        rank_vals = rankdata(condensed, method="average")
 
         ranks = np.zeros_like(dm)
         idx = 0
@@ -219,6 +220,8 @@ def indicator_species_analysis(
 
         for group in unique_groups:
             mask = (groups == group).to_numpy()
+            if mask.sum() == 0:
+                continue
             mean_in = abundances[mask].mean()
             mean_all = abundances.mean()
             specificity = mean_in / mean_all if mean_all > 0 else 0.0
@@ -234,6 +237,8 @@ def indicator_species_analysis(
             perm_groups = rng.permutation(groups.to_numpy())
             for group in unique_groups:
                 mask = perm_groups == group
+                if mask.sum() == 0:
+                    continue
                 mean_in = abundances[mask].mean()
                 mean_all = abundances.mean()
                 spec = mean_in / mean_all if mean_all > 0 else 0.0
@@ -287,6 +292,8 @@ def envfit_species_drivers(
         centered = abundances - abundances.mean()
         corr1 = np.corrcoef(centered, nmds_points[:, 0])[0, 1]
         corr2 = np.corrcoef(centered, nmds_points[:, 1])[0, 1]
+        # Sum of squared correlations with each NMDS axis (can exceed 1.0;
+        # matches R vegan::envfit goodness-of-fit statistic, not classical R²)
         r2 = corr1**2 + corr2**2
 
         count_ge = 0

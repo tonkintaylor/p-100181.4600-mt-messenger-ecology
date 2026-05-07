@@ -52,7 +52,8 @@ def _plot_metric_axes(
     """Render a single metric on an axes with error bars and trigger."""
     zipped = zip(dates, metric_summaries, strict=False)
     for dt, summary in zipped:
-        period = site_df[site_df["Date"] == dt]["Period"].iloc[0]
+        matches = site_df[site_df["Date"] == dt]["Period"]
+        period = matches.iloc[0] if not matches.empty else "Unknown"
         color = PERIOD_COLORS.get(period, "gray")
 
         # Only show error bars when n >= 2 (matching R: n==1 shows point only)

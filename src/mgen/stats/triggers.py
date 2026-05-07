@@ -12,9 +12,9 @@ from typing import Literal
 
 import pandas as pd
 
-__all__ = ["compute_trigger"]
+__all__ = ["DEFAULT_BASELINE_END", "compute_trigger"]
 
-_DEFAULT_BASELINE_END = date(2022, 2, 28)
+DEFAULT_BASELINE_END = date(2022, 2, 28)
 
 
 def compute_trigger(
@@ -24,7 +24,7 @@ def compute_trigger(
     direction: Literal["decline", "increase"] = "decline",
     threshold_pct: float = 0.15,
     cap: float | None = None,
-    baseline_end: date = _DEFAULT_BASELINE_END,
+    baseline_end: date = DEFAULT_BASELINE_END,
 ) -> float:
     """Compute trigger level from baseline mean for a given site and metric.
 

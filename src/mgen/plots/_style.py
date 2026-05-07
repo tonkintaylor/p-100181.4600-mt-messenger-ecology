@@ -14,6 +14,8 @@ import matplotlib.dates as mdates
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 
+from mgen.stats.triggers import DEFAULT_BASELINE_END
+
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
@@ -36,7 +38,7 @@ PERIOD_COLORS: dict[str, str] = {
 
 SITES: list[str] = ["EM1", "EM2", "EM3", "EM5", "EM4", "EM7", "EM8"]
 
-BASELINE_END = date(2022, 2, 28)
+BASELINE_END = DEFAULT_BASELINE_END
 
 _DPI = 300
 

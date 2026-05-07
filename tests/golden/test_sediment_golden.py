@@ -6,6 +6,7 @@ To update references, delete the reference files and re-run the tests.
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 
@@ -98,6 +99,11 @@ class TestSedimentSizeGolden:
         reference = REFERENCES_DIR / f"sediment_size_{actual.name}"
 
         if not reference.exists():
+            if os.environ.get("GOLDEN_UPDATE") != "1":
+                pytest.fail(
+                    f"Reference missing: {reference.name}. "
+                    "Set GOLDEN_UPDATE=1 to create."
+                )
             shutil.copy(actual, reference)
             pytest.skip(f"Created reference: {reference.name}")
 
@@ -128,6 +134,11 @@ class TestSedimentTimeseriesGolden:
         reference = REFERENCES_DIR / f"sediment_ts_{actual.name}"
 
         if not reference.exists():
+            if os.environ.get("GOLDEN_UPDATE") != "1":
+                pytest.fail(
+                    f"Reference missing: {reference.name}. "
+                    "Set GOLDEN_UPDATE=1 to create."
+                )
             shutil.copy(actual, reference)
             pytest.skip(f"Created reference: {reference.name}")
 

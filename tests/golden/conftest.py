@@ -39,7 +39,12 @@ def assert_images_similar(
 
     # Resize if dimensions differ (shouldn't happen in practice)
     if img_actual.size != img_expected.size:
-        img_actual = img_actual.resize(img_expected.size, Image.LANCZOS)
+        msg = (
+            f"Image dimensions differ: {img_actual.size} vs {img_expected.size}\n"
+            f"  Actual: {actual}\n"
+            f"  Expected: {expected}"
+        )
+        raise AssertionError(msg)
 
     arr_actual = np.array(img_actual, dtype=float)
     arr_expected = np.array(img_expected, dtype=float)

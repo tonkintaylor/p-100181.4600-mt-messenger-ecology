@@ -65,6 +65,7 @@ class TestAssertImagesSimilar:
 
 @pytest.mark.golden
 class TestGoldenMarker:
-    def test_marker_exists(self) -> None:
-        """Verify the golden marker is registered."""
-        assert True
+    def test_marker_exists(self, request: pytest.FixtureRequest) -> None:
+        """Verify the golden marker is registered in pytest config."""
+        markers = request.config.getini("markers")
+        assert any("golden" in m for m in markers)
