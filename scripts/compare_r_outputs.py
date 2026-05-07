@@ -205,11 +205,11 @@ def _nmds_entries() -> list[dict]:
     # Per-site with Regression Arrow
     arrow_map = {
         "EM1": (
-            "Mangap\u0113p\u0113ke_EM1_Control.jpeg",
+            "Mangap\u0113peke_EM1_Control.jpeg",
             "Mangapepeke_EM1_Control.jpeg",
         ),
-        "EM2": ("Mangap\u0113p\u0113ke_EM2.jpeg", "Mangapepeke_EM2.jpeg"),
-        "EM3": ("Mangap\u0113p\u0113ke_EM3.jpeg", "Mangapepeke_EM3.jpeg"),
+        "EM2": ("Mangap\u0113peke_EM2.jpeg", "Mangapepeke_EM2.jpeg"),
+        "EM3": ("Mangap\u0113peke_EM3.jpeg", "Mangapepeke_EM3.jpeg"),
         "EM4": ("Mimi_EM4_Control.jpeg", "Mimi_EM4_Control.jpeg"),
         "EM7": ("Mimi_EM7.jpeg", "Mimi_EM7.jpeg"),
         "EM8": ("Mimi_EM8.jpeg", "Mimi_EM8.jpeg"),
@@ -300,7 +300,7 @@ def _indicator_entries() -> list[dict]:
             "indicator_species_EM8.jpeg",
         ),
         "Mangapepeke": (
-            "indicator_species_Mangap\u0113p\u0113ke_Sites.jpeg",
+            "indicator_species_Mangap\u0113peke_Sites.jpeg",
             "indicator_species_Mangapepeke_Sites.jpeg",
         ),
         "Mimi": (
