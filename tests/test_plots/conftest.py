@@ -6,6 +6,7 @@ import matplotlib as mpl
 
 mpl.use("Agg")
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -94,4 +95,35 @@ def macro1_df() -> pd.DataFrame:
                         "Season": "Summer" if "03" in date_str else "Winter",
                     }
                 )
+    return pd.DataFrame(rows)
+
+
+@pytest.fixture
+def clarity_df() -> pd.DataFrame:
+    """Minimal Clarity sheet data for 3 sites, 4 quarters each."""
+    rows = []
+    sites = ["CM1", "CM2", "EM1"]
+    dates = [
+        "2024-02-15",
+        "2024-05-15",
+        "2024-08-15",
+        "2024-11-15",
+    ]
+    rng = np.random.default_rng(0)
+    for site in sites:
+        for d in dates:
+            rows.append(
+                {
+                    "Site": site,
+                    "Date": pd.Timestamp(d),
+                    "NTU-Fieldmeter": round(rng.uniform(1, 20), 1),
+                    "NTU-Continous Sensor": round(rng.uniform(1, 40), 1),
+                    "NTU-Lab": round(rng.uniform(1, 40), 1),
+                    "pH-Fieldmeter": round(rng.uniform(6.5, 8.0), 1),
+                    "pH-Lab": round(rng.uniform(6.5, 8.0), 1),
+                    "TSS-Lab": round(rng.uniform(1, 15), 1),
+                    "Clarity (mm)": round(rng.uniform(500, 1200), 0),
+                    "Comments": "",
+                }
+            )
     return pd.DataFrame(rows)

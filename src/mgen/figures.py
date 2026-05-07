@@ -41,7 +41,8 @@ def generate_figures(
     Args:
         data: Mapping of sheet_name -> DataFrame from Data.xlsx.
         output_dir: Directory to write figures to.
-        only: Which subset to generate ("all", "sediment", "macro", "community").
+        only: Which subset to generate ("all", "sediment", "macro",
+            "community", "clarity").
 
     Returns:
         FigureResult with list of files written and any warnings.
@@ -57,6 +58,9 @@ def generate_figures(
 
     if only in ("all", "community"):
         result.files_written.extend(_generate_community(data, output_dir, result))
+
+    if only in ("all", "clarity"):
+        result.files_written.extend(_generate_clarity(data, output_dir, result))
 
     return result
 
@@ -351,5 +355,33 @@ def _generate_community(  # noqa: C901, PLR0912, PLR0915
                 cd_path = output_dir / "species_drivers_sig.xlsx"
                 export_species_drivers_per_catchment(catchment_drivers, cd_path)
                 paths.append(cd_path)
+
+    return paths
+
+
+def _generate_clarity(
+    data: dict[str, pd.DataFrame],
+    output_dir: Path,
+    result: FigureResult,
+) -> list[Path]:
+    """Generate water clarity plots (boxplot, time-series, NTU scatter)."""
+    from mgen.plots.clarity import (  # noqa: PLC0415
+        plot_clarity_boxplot,
+        plot_clarity_ntu_relationship,
+        plot_clarity_timeseries,
+    )
+
+    if "Clarity" not in data:
+        result.warnings.append("Clarity sheet not found in Data.xlsx")
+        return []
+
+    clarity_df = data["Clarity"]
+    paths: list[Path] = []
+
+    if "Clarity (mm)" in clarity_df.columns:
+        paths.extend(plot_clarity_boxplot(clarity_df, output_dir))
+        paths.extend(plot_clarity_timeseries(clarity_df, output_dir))
+
+    paths.extend(plot_clarity_ntu_relationship(clarity_df, output_dir))
 
     return paths
