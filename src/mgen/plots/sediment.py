@@ -199,7 +199,7 @@ def _plot_single_sediment_metric(
 
 def plot_sediment_timeseries(
     df: pd.DataFrame,
-    triggers: dict[str, float],
+    triggers: dict[str, dict[str, float]],
     output_dir: Path,
 ) -> list[Path]:
     """Create per-site SAM1 and SAM3 time-series plots with trigger levels.
@@ -209,7 +209,7 @@ def plot_sediment_timeseries(
 
     Args:
         df: Sediment DataFrame with columns Site, Date, Period, SAM1, SAM3.
-        triggers: Mapping of site → trigger level for SAM1.
+        triggers: Mapping of site → metric → trigger level.
         output_dir: Directory to save output files.
 
     Returns:
@@ -223,9 +223,10 @@ def plot_sediment_timeseries(
 
     for site in sites:
         site_df = df[df["Site"] == site].sort_values("Date")
+        site_triggers = triggers.get(site, {})
 
         for metric in ["SAM1", "SAM3"]:
-            trigger_val = triggers.get(site)
+            trigger_val = site_triggers.get(metric)
             fig = _plot_single_sediment_metric(site_df, metric, trigger_val, site)
             paths = save_figure(fig, output_dir / f"{site}_{metric}_plot")
             all_paths.extend(paths)
@@ -253,9 +254,10 @@ def plot_sediment_timeseries(
                         zorder=3,
                     )
 
-            if site in triggers:
+            trigger_val = site_triggers.get(metric)
+            if trigger_val is not None:
                 ax.axhline(
-                    y=triggers[site],
+                    y=trigger_val,
                     color="black",
                     linestyle="-",
                     linewidth=0.8,

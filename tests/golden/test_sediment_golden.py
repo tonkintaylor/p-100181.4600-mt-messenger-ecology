@@ -114,7 +114,10 @@ class TestSedimentTimeseriesGolden:
         sediment_ts_data: pd.DataFrame,
         tmp_path: Path,
     ) -> None:
-        triggers = {"EM1": 75.0, "EM2": 80.0}
+        triggers = {
+            "EM1": {"SAM1": 75.0, "SAM3": 75.0},
+            "EM2": {"SAM1": 80.0, "SAM3": 80.0},
+        }
         plot_sediment_timeseries(sediment_ts_data, triggers, tmp_path)
 
         png_files = sorted(tmp_path.glob("*.png"))

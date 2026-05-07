@@ -77,8 +77,14 @@ def add_summer_shading(ax: Axes, year_range: tuple[int, int]) -> None:
         ax.add_patch(rect)
 
 
-def add_baseline_vline(ax: Axes) -> None:
-    """Add dashed vertical line at baseline monitoring end date."""
+def add_baseline_vline(ax: Axes, *, add_label: bool = True) -> None:
+    """Add dashed vertical line at baseline monitoring end date.
+
+    Args:
+        ax: Matplotlib axes to add the line to.
+        add_label: If True, include label for legend display.
+    """
+    label = "Baseline \nMonitoring End" if add_label else None
     ax.axvline(
         x=mdates.date2num(BASELINE_END),
         color="black",
@@ -86,6 +92,7 @@ def add_baseline_vline(ax: Axes) -> None:
         linewidth=0.8,
         alpha=0.7,
         zorder=1,
+        label=label,
     )
 
 

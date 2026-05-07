@@ -77,19 +77,21 @@ def _generate_sediment(data: dict[str, pd.DataFrame], output_dir: Path) -> list[
     if "Sediment" in data:
         sediment_df = data["Sediment"]
         sites = sorted(sediment_df["Site"].unique())
-        triggers: dict[str, float] = {}
+        triggers: dict[str, dict[str, float]] = {}
         for site in sites:
-            try:
-                triggers[site] = compute_trigger(
-                    sediment_df,
-                    metric_col="SAM1",
-                    site=site,
-                    direction="increase",
-                    threshold_pct=0.15,
-                    cap=100.0,
-                )
-            except ValueError:
-                pass
+            triggers[site] = {}
+            for metric in ("SAM1", "SAM3"):
+                try:
+                    triggers[site][metric] = compute_trigger(
+                        sediment_df,
+                        metric_col=metric,
+                        site=site,
+                        direction="increase",
+                        threshold_pct=0.15,
+                        cap=100.0,
+                    )
+                except ValueError:
+                    pass
         paths.extend(plot_sediment_timeseries(sediment_df, triggers, output_dir))
 
     return paths
@@ -123,9 +125,13 @@ def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Pat
 
         for metric in metrics:
             date_summaries = []
+            # QMCI is 0-10 scale; EPTrich/EPTabun are 0-100%
+            clamp_upper = 10.0 if metric == "QMCI" else 100.0
             for dt in sorted(site_df["Date"].unique()):
                 values = site_df[site_df["Date"] == dt][metric]
-                date_summaries.append(summarize_with_ci(values))
+                date_summaries.append(
+                    summarize_with_ci(values, clamp_upper=clamp_upper)
+                )
             summaries[site][metric] = date_summaries
 
             # Trigger: mean of per-date baseline averages * 0.85 (decline)
@@ -138,7 +144,7 @@ def _generate_macro(data: dict[str, pd.DataFrame], output_dir: Path) -> list[Pat
     return plot_macro_metrics(macro_df, summaries, triggers, output_dir)
 
 
-def _generate_community(  # noqa: C901
+def _generate_community(  # noqa: C901, PLR0912, PLR0915
     data: dict[str, pd.DataFrame],
     output_dir: Path,
     result: FigureResult,
@@ -147,7 +153,10 @@ def _generate_community(  # noqa: C901
     from mgen.exports.community_tables import (  # noqa: PLC0415
         export_anosim_summary,
         export_indicator_species_table,
+        export_nmds_scores_table,
+        export_species_drivers_per_catchment,
         export_species_drivers_table,
+        export_topspecies_individualsites,
     )
     from mgen.plots.community import (  # noqa: PLC0415
         CATCHMENT_SUBSETS,
@@ -156,27 +165,57 @@ def _generate_community(  # noqa: C901
     )
     from mgen.stats.community import (  # noqa: PLC0415
         bray_curtis_matrix,
+        compute_abundance_change,
         envfit_species_drivers,
+        envfit_species_drivers_per_group,
         indicator_species_analysis,
         run_anosim,
         run_nmds,
     )
 
-    if "Community" not in data:
+    if "Community" not in data and "MacroSpecies" not in data:
         return []
 
-    community_df = data["Community"]
+    if "Community" in data:
+        community_df = data["Community"]
+    else:
+        # Build community matrix from MacroSpecies long-format
+        # (same as R: group by Site/Date/Species → mean Tally → pivot wider)
+        ms = data["MacroSpecies"].copy()
+        ms.columns = [c.strip() for c in ms.columns]
+        grouped = (
+            ms.groupby(["Site", "Date", "Species"], observed=True)["Tally"]
+            .mean()
+            .reset_index()
+        )
+        community_df = grouped.pivot_table(
+            index=["Site", "Date"],
+            columns="Species",
+            values="Tally",
+            fill_value=0,
+        ).reset_index()
+        community_df.columns.name = None
+        # Add Period from Phase if available in MacroSpecies
+        if "Phase" in ms.columns:
+            phase_map = ms.drop_duplicates(["Site", "Date"])[["Site", "Date", "Phase"]]
+            community_df = community_df.merge(
+                phase_map, on=["Site", "Date"], how="left"
+            ).rename(columns={"Phase": "Period"})
+
     paths: list[Path] = []
 
     meta_cols = {"Date", "Site", "Period"}
     species_cols = [c for c in community_df.columns if c not in meta_cols]
 
     if not species_cols:
-        result.warnings.append("No species columns found in Community sheet")
+        result.warnings.append("No species columns found in Community data")
         return []
 
     species_df = community_df[species_cols]
-    metadata = community_df[["Date", "Site", "Period"]].copy()
+    meta_available = [
+        c for c in ["Date", "Site", "Period"] if c in community_df.columns
+    ]
+    metadata = community_df[meta_available].copy()
 
     # Build catchment lookup for per-site titles
     catchment_lookup: dict[str, str] = {}
@@ -190,6 +229,11 @@ def _generate_community(  # noqa: C901
     nmds = run_nmds(dm, n_dims=2, seed=42)
 
     paths.extend(plot_nmds_grouped(nmds, metadata, output_dir, "NMDS_AllSites"))
+
+    # --- NMDS scores table (Appendix B4) ---
+    nmds_table_path = output_dir / "Dissimilarity_Table.xlsx"
+    export_nmds_scores_table(dm, metadata, nmds_table_path)
+    paths.append(nmds_table_path)
 
     # --- Per-site NMDS with regression arrows ---
     paths.extend(
@@ -236,19 +280,76 @@ def _generate_community(  # noqa: C901
         export_anosim_summary(anosim_results, anosim_path)
         paths.append(anosim_path)
 
-    # --- Indicator species ---
-    if "Period" in metadata.columns:
-        indicators = indicator_species_analysis(species_df, metadata["Period"], seed=42)
-        if indicators:
-            ind_path = output_dir / "Indicator_Species.xlsx"
-            export_indicator_species_table(indicators, ind_path)
+    # --- Indicator species by Site (matching R multipatt with Site as grouping) ---
+    if "Site" in metadata.columns:
+        # All sites
+        indicators_all = indicator_species_analysis(
+            species_df, metadata["Site"], seed=42
+        )
+        if indicators_all:
+            ind_path = output_dir / "significant_species_importance.xlsx"
+            export_indicator_species_table(indicators_all, ind_path)
             paths.append(ind_path)
 
-    # --- Envfit species drivers ---
+        # Per-catchment subsets (R: _13 = Mangapepeke, _4578 = Mimi)
+        catchment_indicator_sites = {
+            "13": ["EM1", "EM2", "EM3"],
+            "4578": ["EM4", "EM7", "EM8"],
+        }
+        for suffix, sites_list in catchment_indicator_sites.items():
+            mask = metadata["Site"].isin(sites_list)
+            if mask.sum() < 4:
+                continue
+            sub_species = species_df[mask].reset_index(drop=True)
+            sub_groups = metadata.loc[mask, "Site"].reset_index(drop=True)
+            indicators_sub = indicator_species_analysis(
+                sub_species, sub_groups, seed=42
+            )
+            if indicators_sub:
+                sub_path = output_dir / f"significant_species_importance_{suffix}.xlsx"
+                export_indicator_species_table(indicators_sub, sub_path)
+                paths.append(sub_path)
+
+    # --- Envfit species drivers (all-sites) ---
     drivers = envfit_species_drivers(nmds.points, species_df, seed=42)
     if not drivers.empty:
         drivers_path = output_dir / "Species_Drivers.xlsx"
         export_species_drivers_table(drivers, drivers_path)
         paths.append(drivers_path)
+
+    # --- Per-site envfit species drivers + topspecies ---
+    if "Site" in metadata.columns:
+        per_site_drivers = envfit_species_drivers_per_group(
+            species_df, metadata["Site"], seed=42, group_col_name="Site"
+        )
+        if not per_site_drivers.empty and "MacroSpecies" in data:
+            abundance_change = compute_abundance_change(data["MacroSpecies"])
+            top_path = output_dir / "topspecies_individualsites.xlsx"
+            export_topspecies_individualsites(
+                per_site_drivers, abundance_change, top_path
+            )
+            paths.append(top_path)
+
+    # --- Per-catchment envfit species drivers ---
+    if "Site" in metadata.columns:
+        catchment_driver_sites = {
+            "Mangapepeke": ["EM2", "EM3"],
+            "Mimi": ["EM4", "EM7", "EM8"],
+        }
+        catchment_series = metadata["Site"].map(
+            {s: c for c, sites in catchment_driver_sites.items() for s in sites}
+        )
+        valid_mask = catchment_series.notna()
+        if valid_mask.sum() >= 4:
+            catchment_drivers = envfit_species_drivers_per_group(
+                species_df[valid_mask].reset_index(drop=True),
+                catchment_series[valid_mask].reset_index(drop=True),
+                seed=42,
+                group_col_name="Catchment",
+            )
+            if not catchment_drivers.empty:
+                cd_path = output_dir / "species_drivers_sig.xlsx"
+                export_species_drivers_per_catchment(catchment_drivers, cd_path)
+                paths.append(cd_path)
 
     return paths

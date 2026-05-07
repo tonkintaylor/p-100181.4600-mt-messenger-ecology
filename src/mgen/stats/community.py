@@ -18,7 +18,9 @@ __all__ = [
     "IndicatorSpecies",
     "NMDSResult",
     "bray_curtis_matrix",
+    "compute_abundance_change",
     "envfit_species_drivers",
+    "envfit_species_drivers_per_group",
     "indicator_species_analysis",
     "run_anosim",
     "run_nmds",
@@ -307,3 +309,110 @@ def envfit_species_drivers(
         )
 
     return pd.DataFrame(results)
+
+
+def envfit_species_drivers_per_group(
+    species_df: pd.DataFrame,
+    groups: pd.Series,
+    permutations: int = 999,
+    seed: int = 42,
+    p_threshold: float = 0.05,
+    group_col_name: str = "Site",
+    min_samples: int = 3,
+) -> pd.DataFrame:
+    """Run per-group NMDS + envfit, returning significant species drivers.
+
+    For each unique value in ``groups``, subsets the community matrix,
+    runs NMDS, then envfit. Matches the R per-site and per-catchment
+    species driver analysis.
+
+    Args:
+        species_df: DataFrame where rows are samples and columns are species.
+        groups: Group label (Site or Catchment) for each sample.
+        permutations: Number of envfit permutations.
+        seed: Random seed.
+        p_threshold: Significance threshold for filtering.
+        group_col_name: Name for the group column in output
+            (e.g. "Site" or "Catchment").
+        min_samples: Minimum samples required per group to run NMDS.
+
+    Returns:
+        DataFrame with Species, NMDS1_corr, NMDS2_corr, R2, p_value, and group column.
+        Only significant species (p < p_threshold) are included.
+    """
+    all_results = []
+    for group_val in sorted(groups.unique()):
+        mask = (groups == group_val).to_numpy()
+        if mask.sum() < min_samples:
+            continue
+
+        subset = species_df[mask].reset_index(drop=True)
+        # Remove zero-sum rows
+        row_sums = subset.sum(axis=1)
+        subset = subset[row_sums > 0].reset_index(drop=True)
+        if len(subset) < min_samples:
+            continue
+
+        dm = bray_curtis_matrix(subset)
+        nmds = run_nmds(dm, n_dims=2, seed=seed)
+
+        drivers = envfit_species_drivers(
+            nmds.points, subset, permutations=permutations, seed=seed
+        )
+        if drivers.empty:
+            continue
+
+        sig = drivers[drivers["p_value"] < p_threshold].copy()
+        sig[group_col_name] = group_val
+        all_results.append(sig)
+
+    if not all_results:
+        return pd.DataFrame()
+    return pd.concat(all_results, ignore_index=True)
+
+
+def compute_abundance_change(
+    macrospecies_df: pd.DataFrame,
+    baseline_phase: str = "Baseline",
+    construction_phase: str = "Routine Construction",
+) -> pd.DataFrame:
+    """Compute mean abundance change per species per site (Construction - Baseline).
+
+    Matches R logic:
+        macrospecies %>% group_by(Site, Phase, Species) %>% summarise(mean_Tally) %>%
+        pivot_wider(Phase) %>% mutate(Change = Construction - Baseline)
+
+    Args:
+        macrospecies_df: Long-format MacroSpecies with
+            Site, Phase, Species, Tally columns.
+        baseline_phase: Label for the baseline phase.
+        construction_phase: Label for the construction phase.
+
+    Returns:
+        DataFrame with columns: Site, Species, Baseline,
+            Construction (or actual phase names), Change.
+    """
+    ms = macrospecies_df.copy()
+    ms.columns = [c.strip() for c in ms.columns]
+
+    grouped = (
+        ms.groupby(["Site", "Phase", "Species"], observed=True)["Tally"]
+        .mean()
+        .reset_index()
+    )
+    pivoted = grouped.pivot_table(
+        index=["Site", "Species"],
+        columns="Phase",
+        values="Tally",
+        fill_value=0,
+    ).reset_index()
+    pivoted.columns.name = None
+
+    if baseline_phase in pivoted.columns and construction_phase in pivoted.columns:
+        pivoted["Change"] = pivoted[construction_phase] - pivoted[baseline_phase]
+    elif construction_phase in pivoted.columns:
+        pivoted["Change"] = pivoted[construction_phase]
+    else:
+        pivoted["Change"] = 0.0
+
+    return pivoted.sort_values("Change", key=lambda s: s.abs(), ascending=False)

@@ -55,23 +55,30 @@ def _plot_metric_axes(
         period = site_df[site_df["Date"] == dt]["Period"].iloc[0]
         color = PERIOD_COLORS.get(period, "gray")
 
-        yerr_lower = (
-            summary.mean - summary.ci_lower if not pd.isna(summary.ci_lower) else 0
-        )
-        yerr_upper = (
-            summary.ci_upper - summary.mean if not pd.isna(summary.ci_upper) else 0
-        )
+        # Only show error bars when n >= 2 (matching R: n==1 shows point only)
+        if summary.n >= 2 and not pd.isna(summary.ci_lower):
+            yerr_lower = summary.mean - summary.ci_lower
+            yerr_upper = summary.ci_upper - summary.mean
 
-        ax.errorbar(
-            dt,
-            summary.mean,
-            yerr=[[yerr_lower], [yerr_upper]],
-            fmt="o",
-            color=color,
-            capsize=3,
-            markersize=5,
-            zorder=3,
-        )
+            ax.errorbar(
+                dt,
+                summary.mean,
+                yerr=[[yerr_lower], [yerr_upper]],
+                fmt="o",
+                color=color,
+                capsize=3,
+                markersize=5,
+                zorder=3,
+            )
+        else:
+            ax.plot(
+                dt,
+                summary.mean,
+                "o",
+                color=color,
+                markersize=5,
+                zorder=3,
+            )
 
     if trigger_value is not None:
         ax.axhline(

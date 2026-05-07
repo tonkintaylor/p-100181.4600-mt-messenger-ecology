@@ -49,14 +49,20 @@ class TestPlotSedimentTimeseries:
     """Structural tests for SAM time-series plots."""
 
     def test_returns_file_paths(self, tmp_path: Path, sediment_df) -> None:
-        triggers = {"EM1": 86.25, "EM2": 63.25}
+        triggers = {
+            "EM1": {"SAM1": 86.25, "SAM3": 70.0},
+            "EM2": {"SAM1": 63.25, "SAM3": 55.0},
+        }
         paths = plot_sediment_timeseries(sediment_df, triggers, tmp_path)
         assert len(paths) > 0
         for p in paths:
             assert p.exists()
 
     def test_creates_png_and_pdf_per_site(self, tmp_path: Path, sediment_df) -> None:
-        triggers = {"EM1": 86.25, "EM2": 63.25}
+        triggers = {
+            "EM1": {"SAM1": 86.25, "SAM3": 70.0},
+            "EM2": {"SAM1": 63.25, "SAM3": 55.0},
+        }
         paths = plot_sediment_timeseries(sediment_df, triggers, tmp_path)
         png_paths = [p for p in paths if p.suffix == ".png"]
         pdf_paths = [p for p in paths if p.suffix == ".pdf"]
