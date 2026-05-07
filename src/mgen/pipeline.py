@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass, field
 
 from mgen.config import PipelineConfig
+from mgen.domain.clarity import process_clarity_domain
 from mgen.domain.macro import process_macro_domain
 from mgen.domain.macro_species import process_macro_species_domain
 from mgen.domain.sediment import process_sediment_domain
@@ -53,6 +54,9 @@ def run_pipeline(config: PipelineConfig) -> PipelineResult:
 
     logger.info("Running sediment size domain...")
     results.append(process_sediment_size_domain(config.aquatic_monitoring_db))
+
+    logger.info("Running clarity domain...")
+    results.append(process_clarity_domain(config.aquatic_monitoring_db))
 
     all_errors: list[ValidationError] = []
     for result in results:

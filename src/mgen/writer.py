@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from mgen.shared.schemas import (
+    CLARITY_COLUMNS,
     MACRO1_COLUMNS,
     MACRO_COLUMNS,
     MACRO_SPECIES_COLUMNS,
@@ -23,7 +24,7 @@ __all__ = ["SHEET_ORDER", "write_data_xlsx"]
 
 logger = logging.getLogger(__name__)
 
-SHEET_ORDER = ["Macro", "Macro1", "MacroSpecies", "Sediment", "SedimentSize"]
+SHEET_ORDER = ["Macro", "Macro1", "MacroSpecies", "Sediment", "SedimentSize", "Clarity"]
 
 _SCHEMA_MAP: dict[str, list[str]] = {
     "Macro": MACRO_COLUMNS,
@@ -31,6 +32,7 @@ _SCHEMA_MAP: dict[str, list[str]] = {
     "MacroSpecies": MACRO_SPECIES_COLUMNS,
     "Sediment": SEDIMENT_COLUMNS,
     "SedimentSize": SEDIMENT_SIZE_COLUMNS,
+    "Clarity": CLARITY_COLUMNS,
 }
 
 

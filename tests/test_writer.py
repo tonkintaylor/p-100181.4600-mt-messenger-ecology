@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from mgen.domain.clarity import process_clarity_domain
 from mgen.domain.macro import process_macro_domain
 from mgen.domain.macro_species import process_macro_species_domain
 from mgen.domain.sediment import process_sediment_domain
@@ -84,6 +85,20 @@ def sample_data() -> dict[str, pd.DataFrame]:
                 "Bedrock": [4.4],
             }
         ),
+        "Clarity": pd.DataFrame(
+            {
+                "Site": ["CM1"],
+                "Date": pd.to_datetime(["2024-01-25"]),
+                "NTU-Fieldmeter": [3.5],
+                "NTU-Continuous Sensor": [2.1],
+                "NTU-Lab": [1.9],
+                "pH-Fieldmeter": [7.2],
+                "pH-Lab": [7.1],
+                "TSS-Lab": [5.0],
+                "Clarity (mm)": [1200.0],
+                "Comments": [None],
+            }
+        ),
     }
 
 
@@ -99,7 +114,7 @@ class TestWriteDataXlsx:
 
         assert output_path.exists()
 
-    def test_xlsx_has_five_sheets_in_order(
+    def test_xlsx_has_all_sheets_in_order(
         self, tmp_path: Path, sample_data: dict[str, pd.DataFrame]
     ) -> None:
         output_path = tmp_path / "Data.xlsx"
@@ -209,17 +224,20 @@ class TestGoldenFileComparison:
         species_result = process_macro_species_domain(example_macro_db)
         sed_result = process_sediment_domain(example_aquatic_db)
         sed_size_result = process_sediment_size_domain(example_aquatic_db)
+        clarity_result = process_clarity_domain(example_aquatic_db)
 
         assert macro_result.ok, macro_result.errors
         assert species_result.ok, species_result.errors
         assert sed_result.ok, sed_result.errors
         assert sed_size_result.ok, sed_size_result.errors
+        assert clarity_result.ok, clarity_result.errors
 
         data: dict[str, pd.DataFrame] = {}
         data.update(macro_result.data)
         data.update(species_result.data)
         data.update(sed_result.data)
         data.update(sed_size_result.data)
+        data.update(clarity_result.data)
         return data
 
     def test_all_sheets_produced(self, pipeline_data: dict[str, pd.DataFrame]) -> None:
