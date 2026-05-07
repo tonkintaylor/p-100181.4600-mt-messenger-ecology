@@ -67,13 +67,18 @@ message("  Loaded sheets: ", paste(names(data), collapse = ", "))
 message("")
 
 # --- Sediment ---
+# EM2, EM4, EM8 not required for 2024-2025 report (per Mike)
+SEDIMENT_EXCLUDE <- c("EM2", "EM4", "EM8")
+
 message("--- Sediment Plots ---")
 if (!is.null(data$SedimentSize)) {
-  plot_sediment_size_distribution(data$SedimentSize, output_dir)
+  plot_sediment_size_distribution(data$SedimentSize, output_dir,
+                                  exclude_sites = SEDIMENT_EXCLUDE)
 }
 if (!is.null(data$Sediment)) {
   sed_triggers <- compute_sediment_triggers(data$Sediment)
-  plot_sediment_timeseries(data$Sediment, sed_triggers, output_dir)
+  plot_sediment_timeseries(data$Sediment, sed_triggers, output_dir,
+                           exclude_sites = SEDIMENT_EXCLUDE)
 }
 message("")
 

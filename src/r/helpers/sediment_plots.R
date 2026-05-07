@@ -16,7 +16,9 @@ library(lubridate)
 #'
 #' @param sed_size_df SedimentSize data frame with Date, Site, Period, and size fraction columns.
 #' @param output_dir Output directory for saved plots.
-plot_sediment_size_distribution <- function(sed_size_df, output_dir) {
+#' @param exclude_sites Character vector of site codes to skip.
+plot_sediment_size_distribution <- function(sed_size_df, output_dir,
+                                            exclude_sites = character(0)) {
   # Identify size fraction columns (everything after Site, Date, Period metadata)
   meta_cols <- c("Date", "Site", "Period", "Phase", "Season")
   size_cols <- setdiff(names(sed_size_df), meta_cols)
@@ -28,6 +30,7 @@ plot_sediment_size_distribution <- function(sed_size_df, output_dir) {
   }
 
   sites <- sort(unique(sed_size_df$Site))
+  sites <- setdiff(sites, exclude_sites)
 
   for (site in sites) {
     site_df <- sed_size_df |>
@@ -86,8 +89,11 @@ plot_sediment_size_distribution <- function(sed_size_df, output_dir) {
 #' @param sed_df Sediment data frame with Date, Site, Period, SAM1, SAM3.
 #' @param triggers Named vector of site -> SAM1 trigger value.
 #' @param output_dir Output directory.
-plot_sediment_timeseries <- function(sed_df, triggers, output_dir) {
+#' @param exclude_sites Character vector of site codes to skip.
+plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
+                                     exclude_sites = character(0)) {
   sites <- sort(unique(sed_df$Site))
+  sites <- setdiff(sites, exclude_sites)
 
   for (site in sites) {
     site_df <- sed_df |>
