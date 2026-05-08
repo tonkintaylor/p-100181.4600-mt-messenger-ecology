@@ -271,11 +271,13 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
 #' Run indicator species analysis and produce bar plots + xlsx.
 #'
 #' @param community_df Wide-format community data.
-#' @param output_dir Output directory.
+#' @param output_dir Output directory for figures.
 #' @param group_col Column to group by (default "Period").
 #' @param scope_label Label for filenames (e.g., "all", "Mangapepeke_Sites").
+#' @param tables_dir Output directory for tables (defaults to output_dir).
 plot_indicator_species <- function(community_df, output_dir,
-                                   group_col = "Period", scope_label = "all") {
+                                   group_col = "Period", scope_label = "all",
+                                   tables_dir = output_dir) {
   library(indicspecies)
 
   meta_cols <- c("Site", "Date", "Period")
@@ -329,7 +331,7 @@ plot_indicator_species <- function(community_df, output_dir,
 
   # Export xlsx
   write.xlsx(summary_df,
-             file.path(output_dir, paste0("indicator_species_", scope_label, ".xlsx")))
+             file.path(tables_dir, paste0("indicator_species_", scope_label, ".xlsx")))
   message("  Exported indicator species xlsx: ", scope_label)
 
   invisible(summary_df)

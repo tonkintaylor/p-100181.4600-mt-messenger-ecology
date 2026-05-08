@@ -2,11 +2,12 @@
 # run_all.R — Mt Messenger Ecology Figure Generation Pipeline
 #
 # Usage:
-#   Rscript src/r/run_all.R [path/to/Data.xlsx] [output_dir]
+#   Rscript src/r/run_all.R [path/to/Data.xlsx] [figures_dir] [tables_dir]
 #
 # Defaults:
-#   Data.xlsx: ref/Data.xlsx
-#   output_dir: src/r/outputs/
+#   Data.xlsx:   ref/Data.xlsx
+#   figures_dir: src/r/outputs/
+#   tables_dir:  same as figures_dir
 
 # --- Setup ---
 suppressPackageStartupMessages({
@@ -50,15 +51,18 @@ source(file.path(helpers_dir, "clarity_plots.R"))
 args <- commandArgs(trailingOnly = TRUE)
 xlsx_path <- if (length(args) >= 1) args[1] else file.path(project_root, "ref", "Data.xlsx")
 output_dir <- if (length(args) >= 2) args[2] else file.path(project_root, "src", "r", "outputs")
+tables_dir <- if (length(args) >= 3) args[3] else output_dir
 
 if (!file.exists(xlsx_path)) {
   stop("Data.xlsx not found at: ", xlsx_path)
 }
 
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(tables_dir, showWarnings = FALSE, recursive = TRUE)
 message("=== Mt Messenger Ecology Figure Pipeline ===")
-message("Input:  ", xlsx_path)
-message("Output: ", output_dir)
+message("Input:   ", xlsx_path)
+message("Figures: ", output_dir)
+message("Tables:  ", tables_dir)
 message("")
 
 # --- Load data ---
@@ -164,7 +168,8 @@ if (!is.null(data$Community)) {
   # Indicator species analysis
   message("Indicator species analysis...")
   # All sites
-  plot_indicator_species(community_df, output_dir, group_col = "Period", scope_label = "all")
+  plot_indicator_species(community_df, output_dir, group_col = "Period",
+                         scope_label = "all", tables_dir = tables_dir)
   # Per catchment
   for (catchment_name in names(catchments)) {
     subset_sites <- catchments[[catchment_name]]
@@ -174,7 +179,8 @@ if (!is.null(data$Community)) {
     if (nrow(subset_df) > 3 && length(unique(subset_df$Period)) >= 2) {
       safe_name <- gsub("[^A-Za-z0-9_-]", "_", catchment_name)
       plot_indicator_species(subset_df, output_dir, group_col = "Period",
-                             scope_label = paste0(safe_name, "_Sites"))
+                             scope_label = paste0(safe_name, "_Sites"),
+                             tables_dir = tables_dir)
     }
   }
   # Per site
@@ -182,13 +188,14 @@ if (!is.null(data$Community)) {
     site_df <- community_df |> filter(Site == site)
     if (length(unique(site_df$Period)) >= 2 && nrow(site_df) > 3) {
       plot_indicator_species(site_df, output_dir, group_col = "Period",
-                             scope_label = gsub(" ", "_", site))
+                             scope_label = gsub(" ", "_", site),
+                             tables_dir = tables_dir)
     }
   }
 
   # Species drivers (envfit)
   message("Species drivers (envfit)...")
-  export_species_drivers(community_df, output_dir, scope_label = "all")
+  export_species_drivers(community_df, tables_dir, scope_label = "all")
   for (catchment_name in names(catchments)) {
     subset_sites <- catchments[[catchment_name]]
     subset_display <- ifelse(subset_sites %in% names(display_names),
@@ -196,36 +203,36 @@ if (!is.null(data$Community)) {
     subset_df <- community_df |> filter(Site %in% subset_display)
     if (nrow(subset_df) > 3) {
       safe_name <- gsub("[^A-Za-z0-9_-]", "_", catchment_name)
-      export_species_drivers(subset_df, output_dir,
+      export_species_drivers(subset_df, tables_dir,
                              scope_label = paste0(safe_name, "_Sites"))
     }
   }
   for (site in unique(community_df$Site)) {
     site_df <- community_df |> filter(Site == site)
     if (nrow(site_df) > 3) {
-      export_species_drivers(site_df, output_dir, scope_label = gsub(" ", "_", site))
+      export_species_drivers(site_df, tables_dir, scope_label = gsub(" ", "_", site))
     }
   }
 
   # Dissimilarity table
   message("Dissimilarity table...")
-  export_dissimilarity_table(community_df, file.path(output_dir, "Dissimilarity_Table.xlsx"))
+  export_dissimilarity_table(community_df, file.path(tables_dir, "Dissimilarity_Table.xlsx"))
 
   # Combined indicator species (multi-sheet workbook)
   message("Combined indicator species workbook...")
-  export_indicator_species_combined(community_df, output_dir)
+  export_indicator_species_combined(community_df, tables_dir)
 
   # Indicator species by catchment (baseline vs construction)
   message("Indicator species by catchment...")
-  export_indicator_species_by_catchment(community_df, catchments, output_dir)
+  export_indicator_species_by_catchment(community_df, catchments, tables_dir)
 
   # Combined species drivers with catchment labels
   message("Combined species drivers...")
-  export_species_drivers_combined(community_df, catchments, output_dir)
+  export_species_drivers_combined(community_df, catchments, tables_dir)
 
   # Top species with abundance change per site
   message("Top species with abundance change...")
-  export_topspecies_with_abundance(community_df, output_dir)
+  export_topspecies_with_abundance(community_df, tables_dir)
 }
 
 message("")
@@ -242,5 +249,9 @@ if (!is.null(data$Clarity)) {
 
 message("")
 message("=== Pipeline Complete ===")
-n_files <- length(list.files(output_dir, recursive = TRUE))
-message("Total files generated: ", n_files)
+n_figures <- length(list.files(output_dir, recursive = TRUE))
+message("Figures generated: ", n_figures, " (", output_dir, ")")
+if (tables_dir != output_dir) {
+  n_tables <- length(list.files(tables_dir, recursive = TRUE))
+  message("Tables generated:  ", n_tables, " (", tables_dir, ")")
+}
