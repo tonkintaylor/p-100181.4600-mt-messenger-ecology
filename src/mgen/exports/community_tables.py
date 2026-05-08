@@ -126,8 +126,9 @@ def export_topspecies_individualsites(
         output_path: Path for the output xlsx file.
     """
     merged = drivers_sig.merge(abundance_change, on=["Site", "Species"], how="left")
-    merged = merged.sort_values(
-        ["Site", "Change"], key=lambda s: s.abs(), ascending=[True, False]
+    merged["_abs_change"] = merged["Change"].abs()
+    merged = merged.sort_values(["Site", "_abs_change"], ascending=[True, False]).drop(
+        columns=["_abs_change"]
     )
     merged.to_excel(output_path, index=False, sheet_name="Top Species")
 
