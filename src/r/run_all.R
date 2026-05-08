@@ -210,6 +210,22 @@ if (!is.null(data$Community)) {
   # Dissimilarity table
   message("Dissimilarity table...")
   export_dissimilarity_table(community_df, file.path(output_dir, "Dissimilarity_Table.xlsx"))
+
+  # Combined indicator species (multi-sheet workbook)
+  message("Combined indicator species workbook...")
+  export_indicator_species_combined(community_df, output_dir)
+
+  # Indicator species by catchment (baseline vs construction)
+  message("Indicator species by catchment...")
+  export_indicator_species_by_catchment(community_df, catchments, output_dir)
+
+  # Combined species drivers with catchment labels
+  message("Combined species drivers...")
+  export_species_drivers_combined(community_df, catchments, output_dir)
+
+  # Top species with abundance change per site
+  message("Top species with abundance change...")
+  export_topspecies_with_abundance(community_df, output_dir)
 }
 
 message("")
