@@ -258,7 +258,7 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
             colour = "Sampling Date"
           )
 
-        fname <- paste0(gsub(" ", "_", site), "_NMDS_with_species.jpeg")
+        fname <- paste0(gsub(" ", "_", site), "_nmds_species.jpeg")
         save_plot(p, file.path(output_dir, fname))
       }
     }, error = function(e) {

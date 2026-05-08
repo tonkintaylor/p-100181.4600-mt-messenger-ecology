@@ -50,13 +50,15 @@ def generate_figures(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if only in ("all", "sediment"):
-        result.files_written.extend(_generate_sediment(data, output_dir))
+        result.files_written.extend(_generate_sediment(data, output_dir / "Sediment"))
 
     if only in ("all", "macro"):
-        result.files_written.extend(_generate_macro(data, output_dir))
+        result.files_written.extend(_generate_macro(data, output_dir / "Macro"))
 
     if only in ("all", "community"):
-        result.files_written.extend(_generate_community(data, output_dir, result))
+        result.files_written.extend(
+            _generate_community(data, output_dir / "NMDS", result)
+        )
 
     return result
 

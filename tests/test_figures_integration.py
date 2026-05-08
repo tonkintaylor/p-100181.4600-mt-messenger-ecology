@@ -123,8 +123,8 @@ class TestEndToEndFigureGeneration:
     ) -> None:
         result = generate_figures(synthetic_data, tmp_path, only="sediment")
         assert result.success
-        png_files = list(tmp_path.glob("*.png"))
-        pdf_files = list(tmp_path.glob("*.pdf"))
+        png_files = list(tmp_path.glob("**/*.png"))
+        pdf_files = list(tmp_path.glob("**/*.pdf"))
         assert len(png_files) > 0
         assert len(pdf_files) > 0
 
@@ -133,7 +133,7 @@ class TestEndToEndFigureGeneration:
     ) -> None:
         result = generate_figures(synthetic_data, tmp_path, only="macro")
         assert result.success
-        png_files = list(tmp_path.glob("*.png"))
+        png_files = list(tmp_path.glob("**/*.png"))
         assert len(png_files) > 0
 
     def test_generates_community_outputs(
@@ -142,8 +142,8 @@ class TestEndToEndFigureGeneration:
         result = generate_figures(synthetic_data, tmp_path, only="community")
         assert result.success
         # Should produce NMDS plots + Excel tables
-        png_files = list(tmp_path.glob("*.png"))
-        xlsx_files = list(tmp_path.glob("*.xlsx"))
+        png_files = list(tmp_path.glob("**/*.png"))
+        xlsx_files = list(tmp_path.glob("**/*.xlsx"))
         assert len(png_files) > 0
         assert len(xlsx_files) > 0
 
