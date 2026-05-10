@@ -630,11 +630,11 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
     write.xlsx(all_results, file.path(output_dir, "topspecies_individualsites.xlsx"))
     message("  Exported top species with abundance: ", nrow(all_results), " rows")
 
-    # Also produce NMDS_stats_basleline_construction.xlsx (subset of columns)
+    # Also produce NMDS_stats_baseline_construction.xlsx (subset of columns)
     nmds_stats <- all_results |>
       select(Species, NMDS1, NMDS2, r, p, Site, Baseline, `Routine Construction`,
              Incident, `Actual Change`)
-    write.xlsx(nmds_stats, file.path(output_dir, "NMDS_stats_basleline_construction.xlsx"))
+    write.xlsx(nmds_stats, file.path(output_dir, "NMDS_stats_baseline_construction.xlsx"))
     message("  Exported NMDS stats baseline/construction: ", nrow(nmds_stats), " rows")
   }
 }
