@@ -8,6 +8,7 @@ from unittest.mock import patch
 from click.testing import CliRunner
 
 from mgen.cli import main
+from mgen.pipeline import PipelineResult
 
 
 def _write_valid_config(tmp_path: Path) -> Path:
@@ -165,3 +166,49 @@ class TestFiguresCommand:
         assert result.exit_code == 0
         call_args = mock_run.call_args
         assert str(custom_data) in call_args[0][0]
+
+
+class TestAllCommand:
+    def test_all_command_exists(self) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["all", "--help"])
+        assert result.exit_code == 0
+        assert "data" in result.output.lower()
+        assert "figures" in result.output.lower()
+
+    def test_all_missing_config(self) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["all", "nonexistent.toml"])
+        assert result.exit_code == 2
+        assert "Config error" in result.output
+
+    def test_all_stops_on_data_failure(self, tmp_path: Path) -> None:
+        config_file = _write_valid_config(tmp_path)
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["all", str(config_file)])
+
+        # Data pipeline fails (empty input files) → should not attempt figures
+        assert result.exit_code == 1
+        assert "Pipeline failed" in result.output
+
+    def test_all_runs_figures_after_data(self, tmp_path: Path) -> None:
+        config_file = _write_valid_config(tmp_path)
+        runner = CliRunner()
+
+        with (
+            patch("mgen.cli.run_pipeline") as mock_pipeline,
+            patch("shutil.which", return_value="/usr/bin/Rscript"),
+            patch("subprocess.run") as mock_subprocess,
+        ):
+            mock_result = PipelineResult(success=True, errors=[])
+            mock_pipeline.return_value = mock_result
+            # Create the data xlsx so the figures step finds it
+            (tmp_path / "Data.xlsx").touch()
+            mock_subprocess.return_value.returncode = 0
+
+            result = runner.invoke(main, ["all", str(config_file)])
+
+        assert result.exit_code == 0
+        mock_pipeline.assert_called_once()
+        mock_subprocess.assert_called_once()

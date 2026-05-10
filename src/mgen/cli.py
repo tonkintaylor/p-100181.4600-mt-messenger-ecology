@@ -120,3 +120,33 @@ def figures(config_path: str, data_override: str | None) -> None:
         sys.exit(1)
 
     _run_r_figures(xlsx_path, config.figures_dir, config.tables_dir)
+
+
+@main.command(name="all")
+@click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
+def all_command(config_path: str) -> None:
+    """Run data pipeline then R figures back-to-back."""
+    try:
+        config = load_config(Path(config_path))
+    except ConfigError as e:
+        click.echo(f"❌ Config error: {e}", err=True)
+        sys.exit(2)
+
+    pipeline_result = run_pipeline(config)
+
+    if pipeline_result.errors:
+        click.echo("", err=True)
+        for error in pipeline_result.errors:
+            click.echo(f"  {error}", err=True)
+        click.echo("", err=True)
+
+    if not pipeline_result.success:
+        error_count = sum(1 for e in pipeline_result.errors if e.severity == "error")
+        click.echo(
+            f"❌ Pipeline failed: {error_count} error(s) across domains", err=True
+        )
+        sys.exit(1)
+
+    click.echo(f"✅ Wrote {config.data_xlsx}")
+
+    _run_r_figures(config.data_xlsx, config.figures_dir, config.tables_dir)
