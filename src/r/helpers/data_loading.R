@@ -10,7 +10,7 @@ library(tidyr)
 #' Load all sheets from Data.xlsx and clean them for analysis.
 #'
 #' @param xlsx_path Path to the Data.xlsx file.
-#' @return Named list: Macro, Macro1, Sediment, SedimentSize, MacroSpecies, Community
+#' @return Named list: Macro, Macro1, Sediment, SedimentSize, MacroSpecies, Community, Clarity
 load_all_data <- function(xlsx_path) {
   stopifnot(file.exists(xlsx_path))
 
@@ -53,6 +53,13 @@ load_all_data <- function(xlsx_path) {
       clean_colnames() |>
       mutate(Date = as.Date(Date)) |>
       filter(!grepl("^MMA", Site))
+  }
+
+  # --- Clarity (water clarity monitoring) ---
+  if ("Clarity" %in% sheets) {
+    data$Clarity <- read_excel(xlsx_path, sheet = "Clarity") |>
+      clean_colnames() |>
+      mutate(Date = as.Date(Date))
   }
 
   # --- Community (wide-format species matrix, derived from MacroSpecies) ---

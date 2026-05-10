@@ -1,4 +1,4 @@
-"""Write assembled DataFrames to the 5-sheet Data.xlsx output.
+"""Write assembled DataFrames to the Data.xlsx output.
 
 This is infrastructure — it knows about Excel format details but not
 about domain logic. It receives validated DataFrames and writes them.
@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from mgen.shared.schemas import (
+    CLARITY_COLUMNS,
     MACRO1_COLUMNS,
     MACRO_COLUMNS,
     MACRO_SPECIES_COLUMNS,
@@ -23,7 +24,7 @@ __all__ = ["SHEET_ORDER", "write_data_xlsx"]
 
 logger = logging.getLogger(__name__)
 
-SHEET_ORDER = ["Macro", "Macro1", "MacroSpecies", "Sediment", "SedimentSize"]
+SHEET_ORDER = ["Macro", "Macro1", "MacroSpecies", "Sediment", "SedimentSize", "Clarity"]
 
 _SCHEMA_MAP: dict[str, list[str]] = {
     "Macro": MACRO_COLUMNS,
@@ -31,6 +32,7 @@ _SCHEMA_MAP: dict[str, list[str]] = {
     "MacroSpecies": MACRO_SPECIES_COLUMNS,
     "Sediment": SEDIMENT_COLUMNS,
     "SedimentSize": SEDIMENT_SIZE_COLUMNS,
+    "Clarity": CLARITY_COLUMNS,
 }
 
 
@@ -38,7 +40,8 @@ def write_data_xlsx(data: dict[str, pd.DataFrame], output_path: Path) -> None:
     """Write all domain outputs to a single Data.xlsx file.
 
     Args:
-        data: Mapping of sheet_name → DataFrame. Must contain all 5 sheets.
+        data: Mapping of sheet_name → DataFrame. Must contain all sheets
+            listed in SHEET_ORDER.
         output_path: Where to write the xlsx file.
 
     Raises:

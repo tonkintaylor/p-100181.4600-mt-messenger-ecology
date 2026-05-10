@@ -46,6 +46,32 @@ SEDIMENT_DTYPES = {
     "Season": "object",
 }
 
+# Clarity sheet: water clarity monitoring data.
+CLARITY_COLUMNS = [
+    "Site",
+    "Date",
+    "NTU-Fieldmeter",
+    "NTU-Continuous Sensor",
+    "NTU-Lab",
+    "pH-Fieldmeter",
+    "pH-Lab",
+    "TSS-Lab",
+    "Clarity (mm)",
+    "Comments",
+]
+CLARITY_DTYPES = {
+    "Site": "object",
+    "Date": _DATETIME,
+    "NTU-Fieldmeter": "float64",
+    "NTU-Continuous Sensor": "float64",
+    "NTU-Lab": "float64",
+    "pH-Fieldmeter": "float64",
+    "pH-Lab": "float64",
+    "TSS-Lab": "float64",
+    "Clarity (mm)": "float64",
+    "Comments": "object",
+}
+
 # SedimentSize sheet: grain-size distribution (Wentworth scale).
 # The 10 size-class columns pass through with their original source names.
 # A future phase may aggregate bins (e.g. split Clay/silt, sum Fines);
