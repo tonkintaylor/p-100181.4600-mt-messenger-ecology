@@ -37,10 +37,10 @@ class TestCli:
         assert result.exit_code == 0
         assert "Mt Messenger" in result.output
 
-    def test_run_missing_config(self) -> None:
+    def test_data_missing_config(self) -> None:
         runner = CliRunner()
 
-        result = runner.invoke(main, ["run", "nonexistent.toml"])
+        result = runner.invoke(main, ["data", "nonexistent.toml"])
 
         assert result.exit_code == 2
         assert "Config error" in result.output
@@ -53,11 +53,11 @@ class TestCli:
         assert result.exit_code == 2
         assert "Config error" in result.output
 
-    def test_run_valid_config(self, tmp_path: Path) -> None:
+    def test_data_valid_config(self, tmp_path: Path) -> None:
         config_file = _write_valid_config(tmp_path)
         runner = CliRunner()
 
-        result = runner.invoke(main, ["run", str(config_file)])
+        result = runner.invoke(main, ["data", str(config_file)])
 
         # With empty input files, the pipeline will fail at domain level (exit 1)
         assert result.exit_code == 1

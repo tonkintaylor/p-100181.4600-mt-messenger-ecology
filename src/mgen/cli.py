@@ -18,8 +18,8 @@ def main() -> None:
 
 @main.command()
 @click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
-def run(config_path: str) -> None:
-    """Run the pipeline using the specified cycle.toml config."""
+def data(config_path: str) -> None:
+    """Process input spreadsheets and write MtMessengerEcologyData.xlsx."""
     try:
         config = load_config(Path(config_path))
     except ConfigError as e:
