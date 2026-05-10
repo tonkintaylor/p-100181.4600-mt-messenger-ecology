@@ -95,3 +95,43 @@ class TestFiguresDir:
 
         config = load_config(config_path)
         assert config.figures_dir == tmp_path / "Figures"
+
+
+class TestTablesDir:
+    """Tests for tables_dir configuration."""
+
+    def test_tables_dir_from_config(self, tmp_path: Path) -> None:
+        config_content = (
+            "[input]\n"
+            f'macroinvertebrate_db = "{(tmp_path / "macro.xlsx").as_posix()}"\n'
+            f'aquatic_monitoring_db = "{(tmp_path / "aquatic.xlsx").as_posix()}"\n'
+            "\n"
+            "[output]\n"
+            f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+            f'tables_dir = "{(tmp_path / "Tables").as_posix()}"\n'
+        )
+        (tmp_path / "macro.xlsx").touch()
+        (tmp_path / "aquatic.xlsx").touch()
+        config_path = tmp_path / "cycle.toml"
+        config_path.write_text(config_content)
+
+        config = load_config(config_path)
+        assert config.tables_dir == tmp_path / "Tables"
+
+    def test_tables_dir_defaults_to_tables_subdir(self, tmp_path: Path) -> None:
+        config_content = (
+            "[input]\n"
+            f'macroinvertebrate_db = "{(tmp_path / "macro.xlsx").as_posix()}"\n'
+            f'aquatic_monitoring_db = "{(tmp_path / "aquatic.xlsx").as_posix()}"\n'
+            "\n"
+            "[output]\n"
+            f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+            f'figures_dir = "{(tmp_path / "Figures").as_posix()}"\n'
+        )
+        (tmp_path / "macro.xlsx").touch()
+        (tmp_path / "aquatic.xlsx").touch()
+        config_path = tmp_path / "cycle.toml"
+        config_path.write_text(config_content)
+
+        config = load_config(config_path)
+        assert config.tables_dir == tmp_path / "Figures" / "Tables"

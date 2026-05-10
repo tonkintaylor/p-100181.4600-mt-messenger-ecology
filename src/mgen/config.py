@@ -19,6 +19,7 @@ class PipelineConfig:
     aquatic_monitoring_db: Path
     data_xlsx: Path
     figures_dir: Path
+    tables_dir: Path
 
 
 def load_config(config_path: Path) -> PipelineConfig:
@@ -58,6 +59,12 @@ def load_config(config_path: Path) -> PipelineConfig:
     else:
         figures_dir = data_xlsx.parent / "Figures"
 
+    # Get tables_dir from config or default to figures_dir / "Tables"
+    if "tables_dir" in output_section:
+        tables_dir = Path(output_section["tables_dir"])
+    else:
+        tables_dir = figures_dir / "Tables"
+
     # Validate input files exist
     for path in [macro_db, aquatic_db]:
         if not path.exists():
@@ -69,4 +76,5 @@ def load_config(config_path: Path) -> PipelineConfig:
         aquatic_monitoring_db=aquatic_db,
         data_xlsx=data_xlsx,
         figures_dir=figures_dir,
+        tables_dir=tables_dir,
     )
