@@ -1,4 +1,4 @@
-"""Write assembled DataFrames to the 5-sheet Data.xlsx output.
+"""Write assembled DataFrames to the Data.xlsx output.
 
 This is infrastructure — it knows about Excel format details but not
 about domain logic. It receives validated DataFrames and writes them.
@@ -40,7 +40,8 @@ def write_data_xlsx(data: dict[str, pd.DataFrame], output_path: Path) -> None:
     """Write all domain outputs to a single Data.xlsx file.
 
     Args:
-        data: Mapping of sheet_name → DataFrame. Must contain all 5 sheets.
+        data: Mapping of sheet_name → DataFrame. Must contain all sheets
+            listed in SHEET_ORDER.
         output_path: Where to write the xlsx file.
 
     Raises:

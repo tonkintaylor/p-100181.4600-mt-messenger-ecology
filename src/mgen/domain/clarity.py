@@ -61,26 +61,30 @@ def process_clarity_domain(path: Path) -> DomainResult:
     # Build output DataFrame with expected schema.
     output = pd.DataFrame()
     for col in CLARITY_COLUMNS:
-        if col == "Date":
-            output[col] = pd.to_datetime(df[col]).astype("datetime64[ns]")
-        elif col in df.columns:
-            dtype = CLARITY_DTYPES[col]
-            if dtype == "float64":
-                output[col] = pd.to_numeric(df[col], errors="coerce").astype("float64")
-            else:
-                output[col] = df[col].astype(dtype)
-        else:
-            # Optional column not present — fill with appropriate NA.
-            dtype = CLARITY_DTYPES[col]
-            if dtype == "float64":
-                output[col] = pd.Series([float("nan")] * len(df), dtype="float64")
-            else:
-                output[col] = pd.Series([None] * len(df), dtype="object")
+        output[col] = _coerce_column(df, col)
 
     output = output.reset_index(drop=True)
 
     logger.info("Clarity domain: %d rows produced", len(output))
     return DomainResult(data={"Clarity": output})
+
+
+def _coerce_column(df: pd.DataFrame, col: str) -> pd.Series:
+    """Coerce a single column to its expected dtype, or fill with NA."""
+    dtype = CLARITY_DTYPES[col]
+
+    if col == "Date":
+        return pd.to_datetime(df[col]).astype("datetime64[ns]")
+
+    if col in df.columns:
+        if dtype == "float64":
+            return pd.to_numeric(df[col], errors="coerce").astype("float64")
+        return df[col].astype(dtype)
+
+    # Optional column not present — fill with appropriate NA.
+    if dtype == "float64":
+        return pd.Series([float("nan")] * len(df), dtype="float64")
+    return pd.Series([None] * len(df), dtype="object")
 
 
 def _make_error(path: Path, message: str) -> DomainResult:

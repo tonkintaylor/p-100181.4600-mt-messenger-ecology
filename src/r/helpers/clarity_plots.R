@@ -188,12 +188,12 @@ plot_clarity_timeseries <- function(clarity_df, output_dir) {
       colour = "grey25",
       size = 2
     ) +
-    facet_wrap(~ Site, ncol = 2, scales = "free_y") +
+    facet_wrap(~ Site, ncol = 2) +
     scale_y_continuous(
-      limits = c(300, 1300),
       breaks = seq(300, 1300, 150),
       expand = c(0, 0)
     ) +
+    coord_cartesian(ylim = c(300, 1300)) +
     scale_fill_manual(
       values = c("A" = "green", "B" = "yellow", "C" = "orange", "D" = "red"),
       guide = "none"
