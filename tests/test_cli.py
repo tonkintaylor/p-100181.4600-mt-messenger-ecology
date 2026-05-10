@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
@@ -26,6 +27,27 @@ def _write_valid_config(tmp_path: Path) -> Path:
         f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
     )
     return config_file
+
+
+def _write_figures_config(tmp_path: Path) -> tuple[Path, Path]:
+    """Write a config with existing data xlsx for figures tests."""
+    macro_file = tmp_path / "macro.xlsx"
+    aquatic_file = tmp_path / "aquatic.xlsx"
+    data_file = tmp_path / "Data.xlsx"
+    macro_file.touch()
+    aquatic_file.touch()
+    data_file.touch()
+
+    config_file = tmp_path / "cycle.toml"
+    config_file.write_text(
+        "[input]\n"
+        f'macroinvertebrate_db = "{macro_file.as_posix()}"\n'
+        f'aquatic_monitoring_db = "{aquatic_file.as_posix()}"\n'
+        "\n"
+        "[output]\n"
+        f'data_xlsx = "{data_file.as_posix()}"\n'
+    )
+    return config_file, data_file
 
 
 class TestCli:
@@ -73,21 +95,21 @@ class TestCli:
         assert "Config valid" in result.output
 
 
-class TestPlotCommand:
-    def test_plot_command_exists(self) -> None:
+class TestFiguresCommand:
+    def test_figures_command_exists(self) -> None:
         runner = CliRunner()
-        result = runner.invoke(main, ["plot", "--help"])
+        result = runner.invoke(main, ["figures", "--help"])
         assert result.exit_code == 0
-        assert "Generate" in result.output
+        assert "R figure pipeline" in result.output
 
-    def test_plot_requires_data_xlsx(self, tmp_path: Path) -> None:
+    def test_figures_missing_data_xlsx(self, tmp_path: Path) -> None:
         config_content = (
             "[input]\n"
             f'macroinvertebrate_db = "{(tmp_path / "macro.xlsx").as_posix()}"\n'
             f'aquatic_monitoring_db = "{(tmp_path / "aquatic.xlsx").as_posix()}"\n'
             "\n"
             "[output]\n"
-            f'data_xlsx = "{(tmp_path / "nonexistent_Data.xlsx").as_posix()}"\n'
+            f'data_xlsx = "{(tmp_path / "nonexistent.xlsx").as_posix()}"\n'
         )
         (tmp_path / "macro.xlsx").touch()
         (tmp_path / "aquatic.xlsx").touch()
@@ -95,6 +117,51 @@ class TestPlotCommand:
         config_path.write_text(config_content)
 
         runner = CliRunner()
-        result = runner.invoke(main, ["plot", str(config_path)])
-        assert result.exit_code != 0
-        assert "Data.xlsx not found" in result.output
+        result = runner.invoke(main, ["figures", str(config_path)])
+        assert result.exit_code == 1
+        assert "not found" in result.output
+
+    def test_figures_missing_rscript(self, tmp_path: Path) -> None:
+        config_path, _data_path = _write_figures_config(tmp_path)
+
+        runner = CliRunner()
+        with patch("shutil.which", return_value=None):
+            result = runner.invoke(main, ["figures", str(config_path)])
+        assert result.exit_code == 1
+        assert "Rscript" in result.output
+
+    def test_figures_runs_rscript(self, tmp_path: Path) -> None:
+        config_path, data_path = _write_figures_config(tmp_path)
+
+        runner = CliRunner()
+        with (
+            patch("shutil.which", return_value="/usr/bin/Rscript"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.return_value.returncode = 0
+            result = runner.invoke(main, ["figures", str(config_path)])
+
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        assert call_args[0][0][0] == "Rscript"
+        assert str(data_path) in call_args[0][0]
+
+    def test_figures_data_override(self, tmp_path: Path) -> None:
+        config_path, _ = _write_figures_config(tmp_path)
+        custom_data = tmp_path / "custom.xlsx"
+        custom_data.touch()
+
+        runner = CliRunner()
+        with (
+            patch("shutil.which", return_value="/usr/bin/Rscript"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.return_value.returncode = 0
+            result = runner.invoke(
+                main, ["figures", str(config_path), "--data", str(custom_data)]
+            )
+
+        assert result.exit_code == 0
+        call_args = mock_run.call_args
+        assert str(custom_data) in call_args[0][0]
