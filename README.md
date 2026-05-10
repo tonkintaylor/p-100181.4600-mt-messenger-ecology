@@ -60,7 +60,7 @@ flowchart TD
         WriteXlsx["write_data_xlsx()"]
     end
 
-    Writer --> Output[/"Data.xlsx\n5 sheets"/]
+    Writer --> Output[/"MtMessengerEcologyData.xlsx\n6 sheets"/]
     Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
 ```
 
