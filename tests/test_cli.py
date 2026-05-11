@@ -126,7 +126,7 @@ class TestFiguresCommand:
         config_path, _data_path = _write_figures_config(tmp_path)
 
         runner = CliRunner()
-        with patch("shutil.which", return_value=None):
+        with patch("mgen.cli.shutil.which", return_value=None):
             result = runner.invoke(main, ["figures", str(config_path)])
         assert result.exit_code == 1
         assert "Rscript" in result.output
@@ -136,8 +136,8 @@ class TestFiguresCommand:
 
         runner = CliRunner()
         with (
-            patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("subprocess.run") as mock_run,
+            patch("mgen.cli.shutil.which", return_value="/usr/bin/Rscript"),
+            patch("mgen.cli.subprocess.run") as mock_run,
         ):
             mock_run.return_value.returncode = 0
             result = runner.invoke(main, ["figures", str(config_path)])
@@ -155,8 +155,8 @@ class TestFiguresCommand:
 
         runner = CliRunner()
         with (
-            patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("subprocess.run") as mock_run,
+            patch("mgen.cli.shutil.which", return_value="/usr/bin/Rscript"),
+            patch("mgen.cli.subprocess.run") as mock_run,
         ):
             mock_run.return_value.returncode = 0
             result = runner.invoke(
@@ -198,8 +198,8 @@ class TestAllCommand:
 
         with (
             patch("mgen.cli.run_pipeline") as mock_pipeline,
-            patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("subprocess.run") as mock_subprocess,
+            patch("mgen.cli.shutil.which", return_value="/usr/bin/Rscript"),
+            patch("mgen.cli.subprocess.run") as mock_subprocess,
         ):
             mock_result = PipelineResult(success=True, errors=[])
             mock_pipeline.return_value = mock_result
