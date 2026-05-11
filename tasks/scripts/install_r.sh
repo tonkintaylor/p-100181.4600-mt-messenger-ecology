@@ -2,6 +2,12 @@
 
 echo "Ensuring R is installed..."
 
+# Check default Windows install path first (Git Bash often lacks R on PATH)
+r_bin=$(ls -d /c/Program\ Files/R/R-*/bin 2>/dev/null | tail -1)
+if [ -n "$r_bin" ] && [ -x "$r_bin/Rscript.exe" ]; then
+    export PATH="$PATH:$r_bin"
+fi
+
 if command -v Rscript &> /dev/null; then
     r_version=$(Rscript --version 2>&1 | head -1)
     echo "  R already installed: $r_version"
@@ -15,7 +21,6 @@ else
                 echo "Please install R manually from https://cran.r-project.org/"
                 exit 1
             fi
-            # Refresh PATH to pick up new R installation
             r_bin=$(ls -d /c/Program\ Files/R/R-*/bin 2>/dev/null | tail -1)
             if [ -n "$r_bin" ]; then
                 export PATH="$PATH:$r_bin"
