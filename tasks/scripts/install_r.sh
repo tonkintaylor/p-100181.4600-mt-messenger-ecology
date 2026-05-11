@@ -36,17 +36,9 @@ else
 fi
 
 echo "Ensuring R packages are installed..."
-Rscript -e "
-required <- c('readxl', 'dplyr', 'tidyr', 'ggplot2', 'vegan', 'indicspecies',
-              'ggrepel', 'zoo', 'patchwork', 'openxlsx', 'lubridate')
-missing <- required[!required %in% installed.packages()[, 'Package']]
-if (length(missing) > 0) {
-  cat('  Installing:', paste(missing, collapse=', '), '\n')
-  install.packages(missing, repos='https://cloud.r-project.org/', quiet=TRUE)
-} else {
-  cat('  All R packages already installed.\n')
-}
-"
+# Run from a script file — multi-line 'Rscript -e' segfaults through Git Bash on Windows.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+Rscript --vanilla "$SCRIPT_DIR/install_r_packages.R"
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to install R packages."
