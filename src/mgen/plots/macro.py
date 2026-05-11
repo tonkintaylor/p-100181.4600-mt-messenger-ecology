@@ -176,7 +176,7 @@ def plot_macro_metrics(
             if trigger_val is not None:
                 ax_single.legend(loc="upper right", fontsize=9)
             fig_single.tight_layout()
-            paths = save_figure(fig_single, output_dir / f"{site}_{metric}_DRAFT")
+            paths = save_figure(fig_single, output_dir / f"{site}_{metric}")
             all_paths.extend(paths)
 
     return all_paths

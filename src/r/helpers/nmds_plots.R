@@ -7,6 +7,10 @@
 #   plot_indicator_species(community_df, grouping, output_dir)
 #   export_species_drivers(community_df, grouping, output_dir)
 #   export_dissimilarity_table(community_df, output_path)
+#   export_indicator_species_combined(community_df, output_dir, sites)
+#   export_indicator_species_by_catchment(community_df, catchments, output_dir)
+#   export_species_drivers_combined(community_df, catchments, output_dir)
+#   export_topspecies_with_abundance(community_df, output_dir)
 
 library(vegan)
 library(ggplot2)
@@ -254,7 +258,7 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
             colour = "Sampling Date"
           )
 
-        fname <- paste0(gsub(" ", "_", site), "_NMDS_with_species.jpeg")
+        fname <- paste0(gsub(" ", "_", site), "_nmds_species.jpeg")
         save_plot(p, file.path(output_dir, fname))
       }
     }, error = function(e) {
@@ -267,11 +271,13 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
 #' Run indicator species analysis and produce bar plots + xlsx.
 #'
 #' @param community_df Wide-format community data.
-#' @param output_dir Output directory.
+#' @param output_dir Output directory for figures.
 #' @param group_col Column to group by (default "Period").
 #' @param scope_label Label for filenames (e.g., "all", "Mangapepeke_Sites").
+#' @param tables_dir Output directory for tables (defaults to output_dir).
 plot_indicator_species <- function(community_df, output_dir,
-                                   group_col = "Period", scope_label = "all") {
+                                   group_col = "Period", scope_label = "all",
+                                   tables_dir = output_dir) {
   library(indicspecies)
 
   meta_cols <- c("Site", "Date", "Period")
@@ -325,7 +331,7 @@ plot_indicator_species <- function(community_df, output_dir,
 
   # Export xlsx
   write.xlsx(summary_df,
-             file.path(output_dir, paste0("indicator_species_", scope_label, ".xlsx")))
+             file.path(tables_dir, paste0("indicator_species_", scope_label, ".xlsx")))
   message("  Exported indicator species xlsx: ", scope_label)
 
   invisible(summary_df)
@@ -388,4 +394,247 @@ export_dissimilarity_table <- function(community_df, output_path) {
 
   write.xlsx(as.data.frame(dm), output_path, rowNames = TRUE)
   message("  Exported dissimilarity table: ", output_path)
+}
+
+
+#' Combine per-site indicator species results into a single multi-sheet workbook.
+#'
+#' @param community_df Wide-format community data.
+#' @param output_dir Output directory.
+#' @param sites Character vector of sites to include.
+export_indicator_species_combined <- function(community_df, output_dir, sites = NULL) {
+  library(indicspecies)
+
+  if (is.null(sites)) sites <- unique(community_df$Site)
+
+  wb <- createWorkbook()
+  meta_cols <- c("Site", "Date", "Period")
+  species_cols <- setdiff(names(community_df), meta_cols)
+
+  for (site in sites) {
+    site_df <- community_df |> filter(Site == site)
+    if (nrow(site_df) <= 3 || length(unique(site_df$Period)) < 2) next
+
+    species_data <- site_df[, species_cols]
+    col_sums <- colSums(species_data, na.rm = TRUE)
+    species_data <- species_data[, col_sums > 0, drop = FALSE]
+    if (ncol(species_data) < 2) next
+
+    groups <- site_df$Period
+    set.seed(42)
+    tryCatch({
+      indval <- multipatt(species_data, groups, func = "IndVal.g",
+                          control = how(nperm = 999))
+      summary_df <- indval$sign |>
+        tibble::rownames_to_column("Species") |>
+        pivot_longer(cols = starts_with("s."), names_to = "Phase",
+                     values_to = "presence") |>
+        mutate(Phase = gsub("^s\\.", "", Phase)) |>
+        select(Species, Phase, stat, p.value, presence)
+
+      sheet_name <- substr(gsub("[^A-Za-z0-9_]", "", site), 1, 31)
+      addWorksheet(wb, sheet_name)
+      writeData(wb, sheet_name, summary_df)
+    }, error = function(e) {
+      message("  Skipping ISA for site ", site, ": ", e$message)
+    })
+  }
+
+  out_path <- file.path(output_dir, "indicator_species_all_sites.xlsx")
+  if (length(wb$sheet_names) > 0) {
+    saveWorkbook(wb, out_path, overwrite = TRUE)
+    message("  Exported combined indicator species: ", out_path)
+  }
+}
+
+
+#' Indicator species analysis grouped by catchment (baseline vs construction).
+#'
+#' @param community_df Wide-format community data.
+#' @param catchments Named list of site vectors per catchment.
+#' @param output_dir Output directory.
+export_indicator_species_by_catchment <- function(community_df, catchments, output_dir) {
+  library(indicspecies)
+
+  meta_cols <- c("Site", "Date", "Period")
+  species_cols <- setdiff(names(community_df), meta_cols)
+  all_results <- data.frame()
+
+  for (catchment_name in names(catchments)) {
+    subset_sites <- catchments[[catchment_name]]
+    subset_df <- community_df |> filter(Site %in% subset_sites)
+    if (nrow(subset_df) <= 3 || length(unique(subset_df$Period)) < 2) next
+
+    species_data <- subset_df[, species_cols]
+    col_sums <- colSums(species_data, na.rm = TRUE)
+    species_data <- species_data[, col_sums > 0, drop = FALSE]
+    if (ncol(species_data) < 2) next
+
+    groups <- subset_df$Period
+    set.seed(42)
+    tryCatch({
+      indval <- multipatt(species_data, groups, func = "IndVal.g",
+                          control = how(nperm = 999))
+      group_levels <- sort(unique(groups))
+      sig_df <- indval$sign |>
+        tibble::rownames_to_column("Species") |>
+        filter(p.value <= 0.05) |>
+        mutate(
+          Phase = sapply(index, function(i) {
+            paste(group_levels[as.logical(intToBits(i)[seq_along(group_levels)])],
+                  collapse = "+")
+          }),
+          Catchment = catchment_name
+        ) |>
+        select(Species, Phase, stat, p.value, Catchment)
+      all_results <- rbind(all_results, sig_df)
+    }, error = function(e) {
+      message("  Skipping catchment ISA for ", catchment_name, ": ", e$message)
+    })
+  }
+
+  if (nrow(all_results) > 0) {
+    out_path <- file.path(output_dir,
+                          "indicator_species_baseline_vs_construction_by_catchment.xlsx")
+    write.xlsx(all_results, out_path)
+    message("  Exported ISA by catchment: ", out_path)
+  }
+}
+
+
+#' Export combined envfit drivers with catchment labels.
+#'
+#' @param community_df Wide-format community data.
+#' @param catchments Named list of site vectors per catchment.
+#' @param output_dir Output directory.
+#' @param p_threshold Significance threshold.
+export_species_drivers_combined <- function(community_df, catchments, output_dir,
+                                            p_threshold = 0.05) {
+  meta_cols <- c("Site", "Date", "Period")
+  species_cols <- setdiff(names(community_df), meta_cols)
+  all_drivers <- data.frame()
+
+  for (catchment_name in names(catchments)) {
+    subset_sites <- catchments[[catchment_name]]
+    subset_df <- community_df |> filter(Site %in% subset_sites)
+    if (nrow(subset_df) <= 3) next
+
+    species_data <- subset_df[, species_cols]
+    col_sums <- colSums(species_data, na.rm = TRUE)
+    species_data <- species_data[, col_sums > 0, drop = FALSE]
+    if (ncol(species_data) < 2) next
+
+    nmds_data <- run_site_nmds(subset_df)
+    if (is.null(nmds_data)) next
+
+    set.seed(42)
+    ef <- envfit(nmds_data$nmds, species_data, permutations = 999)
+    vectors <- as.data.frame(scores(ef, display = "vectors"))
+    vectors$Species <- rownames(vectors)
+    vectors$r <- ef$vectors$r
+    vectors$p <- ef$vectors$pvals
+    vectors$Catchment <- catchment_name
+
+    sig <- vectors |> filter(p <= p_threshold)
+    all_drivers <- rbind(all_drivers, sig)
+  }
+
+  if (nrow(all_drivers) > 0) {
+    out <- all_drivers |>
+      select(Species, NMDS1, NMDS2, r, p, Catchment) |>
+      arrange(p)
+    write.xlsx(out, file.path(output_dir, "species_drivers_sig.xlsx"))
+    message("  Exported combined species drivers: ", nrow(out), " significant")
+  }
+}
+
+
+#' Export envfit drivers joined with abundance change per site.
+#'
+#' @param community_df Wide-format community data.
+#' @param output_dir Output directory.
+#' @param p_threshold Significance threshold.
+export_topspecies_with_abundance <- function(community_df, output_dir,
+                                             p_threshold = 0.05) {
+  meta_cols <- c("Site", "Date", "Period")
+  species_cols <- setdiff(names(community_df), meta_cols)
+  all_results <- data.frame()
+
+  for (site in unique(community_df$Site)) {
+    site_df <- community_df |> filter(Site == site)
+    if (nrow(site_df) <= 3) next
+
+    species_data <- site_df[, species_cols]
+    col_sums <- colSums(species_data, na.rm = TRUE)
+    species_data <- species_data[, col_sums > 0, drop = FALSE]
+    if (ncol(species_data) < 2) next
+
+    nmds_data <- run_site_nmds(site_df)
+    if (is.null(nmds_data)) next
+
+    set.seed(42)
+    ef <- envfit(nmds_data$nmds, species_data, permutations = 999)
+    vectors <- as.data.frame(scores(ef, display = "vectors"))
+    vectors$Species <- rownames(vectors)
+    vectors$r <- ef$vectors$r
+    vectors$p <- ef$vectors$pvals
+
+    sig <- vectors |> filter(p <= p_threshold)
+    if (nrow(sig) == 0) next
+
+    # Compute abundance change across periods
+    baseline_means <- site_df |>
+      filter(Period == "Baseline") |>
+      select(all_of(species_cols)) |>
+      colMeans(na.rm = TRUE)
+    construction_means <- site_df |>
+      filter(Period == "Routine Construction") |>
+      select(all_of(species_cols)) |>
+      colMeans(na.rm = TRUE)
+    incident_df <- site_df |> filter(Period == "Incident")
+    if (nrow(incident_df) > 0) {
+      incident_means <- incident_df |>
+        select(all_of(species_cols)) |>
+        colMeans(na.rm = TRUE)
+    } else {
+      incident_means <- rep(NA_real_, length(species_cols))
+      names(incident_means) <- species_cols
+    }
+
+    abundance_change <- data.frame(
+      Species = names(baseline_means),
+      Baseline = baseline_means,
+      `Routine Construction` = construction_means,
+      Incident = incident_means,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ) |>
+      mutate(
+        `Actual Change` = `Routine Construction` - Baseline,
+        `Percentage Change` = ifelse(
+          Baseline > 0,
+          round((`Routine Construction` - Baseline) / Baseline * 100, 1),
+          NA_real_
+        )
+      )
+
+    site_result <- sig |>
+      select(Species, NMDS1, NMDS2, r, p) |>
+      mutate(Site = site) |>
+      left_join(abundance_change, by = "Species")
+    all_results <- rbind(all_results, site_result)
+  }
+
+  if (nrow(all_results) > 0) {
+    all_results <- all_results |> arrange(Site, p)
+    write.xlsx(all_results, file.path(output_dir, "topspecies_individualsites.xlsx"))
+    message("  Exported top species with abundance: ", nrow(all_results), " rows")
+
+    # Also produce NMDS_stats_baseline_construction.xlsx (subset of columns)
+    nmds_stats <- all_results |>
+      select(Species, NMDS1, NMDS2, r, p, Site, Baseline, `Routine Construction`,
+             Incident, `Actual Change`)
+    write.xlsx(nmds_stats, file.path(output_dir, "NMDS_stats_baseline_construction.xlsx"))
+    message("  Exported NMDS stats baseline/construction: ", nrow(nmds_stats), " rows")
+  }
 }
