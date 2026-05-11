@@ -9,6 +9,20 @@ library(dplyr)
 library(lubridate)
 library(patchwork)
 
+VALID_PERIODS <- c("Baseline", "Routine Construction", "Incident")
+
+#' Normalise Period column: trim whitespace and convert to factor.
+#' Warns on unexpected values.
+normalise_period <- function(df) {
+  df$Period <- trimws(as.character(df$Period))
+  unexpected <- setdiff(unique(df$Period), VALID_PERIODS)
+  if (length(unexpected) > 0) {
+    warning("Unexpected Period values: ", paste(unexpected, collapse = ", "))
+  }
+  df$Period <- factor(df$Period, levels = VALID_PERIODS)
+  df
+}
+
 # Y-axis limits matching legacy R scripts
 MACRO_YLIMS <- list(
   QMCI = c(0, 8),
@@ -31,22 +45,23 @@ PANEL_LABELS <- c("a)", "b)", "c)")
 #' @param metric Column name.
 #' @return Data frame with Date, Mean, CI_lower, CI_upper, Period.
 compute_metric_summary <- function(site_df, metric) {
+  cap <- ifelse(metric == "QMCI", 8, 100)
+
   site_df |>
     group_by(Date, Period) |>
     summarise(
       Mean = mean(.data[[metric]], na.rm = TRUE),
       SD = sd(.data[[metric]], na.rm = TRUE),
       N = n(),
-      SE = SD / sqrt(N),
-      CI_lower = pmax(Mean - qt(0.975, df = N - 1) * SE, 0),
-      CI_upper = pmin(Mean + qt(0.975, df = N - 1) * SE,
-                      ifelse(metric == "QMCI", 8, 100)),
       .groups = "drop"
     ) |>
     mutate(
-      CI_lower = ifelse(is.na(CI_lower), Mean, CI_lower),
-      CI_upper = ifelse(is.na(CI_upper), Mean, CI_upper)
-    )
+      SE = dplyr::if_else(N > 1L, SD / sqrt(N), 0),
+      t_crit = dplyr::if_else(N > 1L, qt(0.975, df = N - 1), NA_real_),
+      CI_lower = dplyr::if_else(N > 1L, pmax(Mean - t_crit * SE, 0), Mean),
+      CI_upper = dplyr::if_else(N > 1L, pmin(Mean + t_crit * SE, cap), Mean)
+    ) |>
+    select(-t_crit)
 }
 
 
@@ -137,22 +152,21 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Colour scale with trigger in legend
   p <- p + build_colour_scale(has_incident = has_incident)
 
-  # Baseline vline — mapped to alpha legend for "Baseline \nMonitoring End"
+  # Baseline vline — mapped to linetype legend for "Baseline \nMonitoring End"
   p <- p +
     geom_vline(
       aes(xintercept = as.numeric(BASELINE_END),
-          alpha = "Baseline \nMonitoring End"),
-      linetype = "dashed", linewidth = 0.8
+          linetype = "Baseline \nMonitoring End"),
+      colour = "black", linewidth = 0.8
     ) +
-    scale_alpha_manual(
+    scale_linetype_manual(
       name = NULL,
-      values = c(1),
-      breaks = c("Baseline \nMonitoring End"),
+      values = c("Baseline \nMonitoring End" = "dashed"),
       guide = guide_legend(
         label.hjust = 0,
         label.theme = element_text(size = 9),
         label.position = "right",
-        override.aes = list(linetype = "dashed", colour = "black")
+        override.aes = list(colour = "black", linewidth = 0.8)
       )
     )
 
@@ -183,12 +197,13 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
 #' @param triggers_df Data frame from compute_macro_triggers().
 #' @param output_dir Output directory.
 plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
+  macro1_df <- normalise_period(macro1_df)
   metrics <- c("QMCI", "EPTrich", "EPTabun")
   sites <- sort(unique(macro1_df$Site))
 
   for (site in sites) {
     site_df <- macro1_df |> filter(Site == site)
-    has_incident <- "Incident" %in% unique(site_df$Period)
+    has_incident <- "Incident" %in% as.character(site_df$Period)
     panels <- list()
 
     for (i in seq_along(metrics)) {
@@ -232,13 +247,14 @@ plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
 #' @param triggers_df Data frame from compute_macro_triggers().
 #' @param output_dir Output directory.
 plot_macro_individual <- function(macro1_df, triggers_df, output_dir) {
+  macro1_df <- normalise_period(macro1_df)
   metrics <- c("QMCI", "EPTrich", "EPTabun")
   metric_filenames <- c(QMCI = "qmci", EPTrich = "ept_rich", EPTabun = "ept_abun")
   sites <- sort(unique(macro1_df$Site))
 
   for (site in sites) {
     site_df <- macro1_df |> filter(Site == site)
-    has_incident <- "Incident" %in% unique(site_df$Period)
+    has_incident <- "Incident" %in% as.character(site_df$Period)
     safe_site <- gsub(" ", "_", site)
 
     for (metric in metrics) {
