@@ -1,18 +1,18 @@
-# Mt Messenger Ecology Figure Pipeline
+# Mt Messenger Ecology Pipeline
 
 <!-- badges: start -->
-![Python Version](<https://img.shields.io/badge/python-3.13.2-green>)
-[![Confluence](<https://img.shields.io/badge/Not_Configured-Confluence-lightgrey>)](<https://tonkintaylor.atlassian.net/wiki/home>)
+![Python Version](<https://img.shields.io/badge/python-3.13-green>)
+![R Version](<https://img.shields.io/badge/R-4.5-blue>)
 ![Licence](<https://img.shields.io/badge/licence-proprietary-red>)
 [![Ruff](<https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json>)](<https://github.com/astral-sh/ruff>)
-[![Jira](<https://img.shields.io/badge/Not_Configured-Jira-lightgrey>)](<https://tonkintaylor.atlassian.net/jira/projects>)
 <!-- badges: end -->
 
-## Introduction
+Automated data processing and figure generation for Mt Messenger aquatic
+ecology monitoring reports.
 
-Automated figure generation for regular reporting on Mt Messenger.
+**Job number:** 100181.4600
 
-Job number: 100181.4600
+**For usage instructions see [docs/usage.md](docs/usage.md).**
 
 ## Pipeline Architecture
 
@@ -20,7 +20,7 @@ Job number: 100181.4600
 flowchart TD
     Config[/"cycle.toml"/] --> CLI
 
-    subgraph CLI ["cli.py"]
+    subgraph CLI ["mgen CLI"]
         DataCmd["mgen data"]
         FigCmd["mgen figures"]
         AllCmd["mgen all"]
@@ -30,7 +30,7 @@ flowchart TD
     AllCmd --> Pipeline
     AllCmd --> RFigures
 
-    subgraph Pipeline ["pipeline.py"]
+    subgraph Pipeline ["Python data pipeline"]
         RunPipeline["run_pipeline()"]
     end
 
@@ -43,103 +43,85 @@ flowchart TD
     MacroDB --> MacroSpecies
     AquaticDB --> Sediment
     AquaticDB --> SedimentSize
+    AquaticDB --> Clarity
 
-    subgraph Domains ["domain/"]
-        Macro["process_macro_domain()\nmacro.py"]
-        MacroSpecies["process_macro_species_domain()\nmacro_species.py"]
-        Sediment["process_sediment_domain()\nsediment.py"]
-        SedimentSize["process_sediment_size_domain()\nsediment_size.py"]
+    subgraph Domains ["Domain processors"]
+        Macro["Macroinvertebrate metrics"]
+        MacroSpecies["Species data"]
+        Sediment["Sediment"]
+        SedimentSize["Grain size"]
+        Clarity["Water clarity"]
     end
 
     Macro --> Merge
     MacroSpecies --> Merge
     Sediment --> Merge
     SedimentSize --> Merge
+    Clarity --> Merge
 
     Merge{All OK?}
     Merge -->|yes| Writer
     Merge -->|no| Errors
 
-    subgraph Writer ["writer.py"]
-        WriteXlsx["write_data_xlsx()"]
-    end
-
-    Writer --> DataOutput[/"MtMessengerEcologyData.xlsx\n6 sheets"/]
-    Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
+    Writer["Write xlsx"] --> DataOutput[/"MtMessengerEcologyData.xlsx"/]
+    Errors --> ErrReport["Error summary\nexit code 1"]
 
     FigCmd --> RFigures
     DataOutput --> RFigures
 
-    subgraph RFigures ["R pipeline (src/r/run_all.R)"]
-        Rscript["Rscript via subprocess"]
+    subgraph RFigures ["R figure pipeline"]
+        Rscript["Rscript run_all.R"]
     end
 
-    RFigures --> Figures[/"figures/\nPNG plots"/]
-    RFigures --> Tables[/"tables/\nXLSX tables"/]
+    RFigures --> Figures[/"Figures/\nPNG plots"/]
+    RFigures --> Tables[/"Tables/\nXLSX reference tables"/]
 ```
-
-## Running the Pipeline
-
-After setup, three commands are available:
-
-```Powershell
-# Process input spreadsheets → MtMessengerEcologyData.xlsx
-mgen data
-
-# Generate figures from the data xlsx (runs R pipeline)
-mgen figures
-
-# Generate figures from a manually edited copy
-mgen figures --data ./my-edited-copy.xlsx
-
-# Run data processing + figures back-to-back
-mgen all
-
-# Validate config without running anything
-mgen validate
-```
-
-All commands accept an optional path to `cycle.toml` (defaults to `./cycle.toml`).
 
 ## Getting Started
 
-### One-time setup
+### Pipeline users
 
-Run the following command in Windows PowerShell to install Python, R, all
-dependencies, and configure VS Code (your current directory should be the root
-of the repo):
+See [docs/usage.md](docs/usage.md) for installation and usage instructions.
 
-```Powershell
+### Developers
+
+Full developer setup with linters, test tools, pre-commit hooks, and
+VS Code configuration:
+
+```powershell
 ./tasks/dev_sync.ps1
 ```
 
-## Other Development Tasks
+## Development
 
-### Adding a dependency (or regenerating the requirements files.)
+### Running tests
 
-Add a lowercase name of the package to the [project].dependencies section of the
-`pyproject.toml` file. You will then need to re-generate the requirements files and
-install the package via:
+```powershell
+uv run pytest
+```
 
-```Powershell
+### Adding a dependency
+
+Add the package to `[project].dependencies` in `pyproject.toml`, then:
+
+```powershell
 ./tasks/dev_sync.ps1
 ```
 
-### Releasing a package version
+### Releasing a version
 
-Run the following command in Windows Powershell to release a new version of the package:
-
-```Powershell
+```powershell
 ./tasks/release.ps1
 ```
 
-The branch will be automatically created and pushed to the cloud, ready for a PR to be
-created.
+The branch will be automatically created and pushed, ready for a PR.
 
-## Adding to changelog
+### Changelog
 
-Add a new file at `doc/whatsnew/{issue_num}.{entry_type}.md` where `{issue_num}` is
-the JIRA issue number being worked on, and `{entry_type}` is one of `feature`, `bugfix`,
-`doc`, `removal`, `newhome`, `test`, or `devconfig`.
+Add a new file at `doc/whatsnew/{issue_num}.{entry_type}.md` where
+`{entry_type}` is one of `feature`, `bugfix`, `doc`, `removal`,
+`newhome`, `test`, or `devconfig`.
 
-In the file provide a description of the change that will appear in the changelog.
+## Licence
+
+[Proprietary](LICENSE.txt) — Tonkin & Taylor Limited

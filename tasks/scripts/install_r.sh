@@ -2,6 +2,12 @@
 
 echo "Ensuring R is installed..."
 
+# Check default Windows install path first (Git Bash often lacks R on PATH)
+r_bin=$(ls -d /c/Program\ Files/R/R-*/bin 2>/dev/null | tail -1)
+if [ -n "$r_bin" ] && [ -x "$r_bin/Rscript.exe" ]; then
+    export PATH="$PATH:$r_bin"
+fi
+
 if command -v Rscript &> /dev/null; then
     r_version=$(Rscript --version 2>&1 | head -1)
     echo "  R already installed: $r_version"
@@ -15,7 +21,6 @@ else
                 echo "Please install R manually from https://cran.r-project.org/"
                 exit 1
             fi
-            # Refresh PATH to pick up new R installation
             r_bin=$(ls -d /c/Program\ Files/R/R-*/bin 2>/dev/null | tail -1)
             if [ -n "$r_bin" ]; then
                 export PATH="$PATH:$r_bin"
@@ -31,17 +36,9 @@ else
 fi
 
 echo "Ensuring R packages are installed..."
-Rscript -e "
-required <- c('readxl', 'dplyr', 'tidyr', 'ggplot2', 'vegan', 'indicspecies',
-              'ggrepel', 'zoo', 'patchwork', 'openxlsx', 'lubridate')
-missing <- required[!required %in% installed.packages()[, 'Package']]
-if (length(missing) > 0) {
-  cat('  Installing:', paste(missing, collapse=', '), '\n')
-  install.packages(missing, repos='https://cloud.r-project.org/', quiet=TRUE)
-} else {
-  cat('  All R packages already installed.\n')
-}
-"
+# Run from a script file — multi-line 'Rscript -e' segfaults through Git Bash on Windows.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+Rscript --vanilla "$SCRIPT_DIR/install_r_packages.R"
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to install R packages."
