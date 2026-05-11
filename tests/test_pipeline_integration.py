@@ -27,7 +27,7 @@ def pipeline_config(
     return PipelineConfig(
         macroinvertebrate_db=example_macro_db,
         aquatic_monitoring_db=example_aquatic_db,
-        data_xlsx=out_dir / "Data.xlsx",
+        data_xlsx=out_dir / "MtMessengerEcologyData.xlsx",
         figures_dir=out_dir / "Figures",
         tables_dir=out_dir / "Tables",
     )
@@ -73,7 +73,7 @@ class TestPipelineErrorHandling:
         config = PipelineConfig(
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
-            data_xlsx=tmp_path / "Data.xlsx",
+            data_xlsx=tmp_path / "MtMessengerEcologyData.xlsx",
             figures_dir=tmp_path / "Figures",
             tables_dir=tmp_path / "Tables",
         )
@@ -103,7 +103,7 @@ class TestPipelineErrorHandling:
         config = PipelineConfig(
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
-            data_xlsx=tmp_path / "Data.xlsx",
+            data_xlsx=tmp_path / "MtMessengerEcologyData.xlsx",
             figures_dir=tmp_path / "Figures",
             tables_dir=tmp_path / "Tables",
         )
@@ -132,7 +132,7 @@ class TestPipelineErrorHandling:
         config = PipelineConfig(
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
-            data_xlsx=tmp_path / "Data.xlsx",
+            data_xlsx=tmp_path / "MtMessengerEcologyData.xlsx",
             figures_dir=tmp_path / "Figures",
             tables_dir=tmp_path / "Tables",
         )
@@ -186,7 +186,7 @@ class TestCliIntegration:
             f'aquatic_monitoring_db = "{aquatic_db.as_posix()}"\n'
             "\n"
             "[output]\n"
-            f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+            f'data_xlsx = "{(tmp_path / "MtMessengerEcologyData.xlsx").as_posix()}"\n'
             f'figures_dir = "{(tmp_path / "Figures").as_posix()}"\n'
             f'tables_dir = "{(tmp_path / "Tables").as_posix()}"\n'
         )

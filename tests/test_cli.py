@@ -25,7 +25,7 @@ def _write_valid_config(tmp_path: Path) -> Path:
         f'aquatic_monitoring_db = "{aquatic_file.as_posix()}"\n'
         "\n"
         "[output]\n"
-        f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+        f'data_xlsx = "{(tmp_path / "MtMessengerEcologyData.xlsx").as_posix()}"\n'
     )
     return config_file
 
@@ -34,7 +34,7 @@ def _write_figures_config(tmp_path: Path) -> tuple[Path, Path]:
     """Write a config with existing data xlsx for figures tests."""
     macro_file = tmp_path / "macro.xlsx"
     aquatic_file = tmp_path / "aquatic.xlsx"
-    data_file = tmp_path / "Data.xlsx"
+    data_file = tmp_path / "MtMessengerEcologyData.xlsx"
     macro_file.touch()
     aquatic_file.touch()
     data_file.touch()
@@ -49,6 +49,9 @@ def _write_figures_config(tmp_path: Path) -> tuple[Path, Path]:
         f'data_xlsx = "{data_file.as_posix()}"\n'
     )
     return config_file, data_file
+
+
+_DATA_XLSX_NAME = "MtMessengerEcologyData.xlsx"
 
 
 class TestCli:
@@ -94,6 +97,25 @@ class TestCli:
 
         assert result.exit_code == 0
         assert "Config valid" in result.output
+
+    def test_validate_shows_figures_and_tables_dirs(self, tmp_path: Path) -> None:
+        config_file = _write_valid_config(tmp_path)
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["validate", str(config_file)])
+
+        assert result.exit_code == 0
+        assert "Figures" in result.output
+        assert "Tables" in result.output
+
+    def test_quiet_flag_suppresses_status(self, tmp_path: Path) -> None:
+        config_file = _write_valid_config(tmp_path)
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["--quiet", "validate", str(config_file)])
+
+        assert result.exit_code == 0
+        assert result.output == ""
 
 
 class TestFiguresCommand:
@@ -147,6 +169,24 @@ class TestFiguresCommand:
         call_args = mock_run.call_args
         assert call_args[0][0][0] == "Rscript"
         assert str(data_path) in call_args[0][0]
+
+    def test_figures_missing_r_script(self, tmp_path: Path) -> None:
+        config_path, _data_path = _write_figures_config(tmp_path)
+        original_exists = Path.exists
+
+        def _exists_except_r_script(self: Path) -> bool:
+            if "run_all.R" in str(self):
+                return False
+            return original_exists(self)
+
+        runner = CliRunner()
+        with (
+            patch("mgen.cli.shutil.which", return_value="/usr/bin/Rscript"),
+            patch.object(Path, "exists", _exists_except_r_script),
+        ):
+            result = runner.invoke(main, ["figures", str(config_path)])
+        assert result.exit_code == 1
+        assert "R script not found" in result.output
 
     def test_figures_data_override(self, tmp_path: Path) -> None:
         config_path, _ = _write_figures_config(tmp_path)
@@ -204,7 +244,7 @@ class TestAllCommand:
             mock_result = PipelineResult(success=True, errors=[])
             mock_pipeline.return_value = mock_result
             # Create the data xlsx so the figures step finds it
-            (tmp_path / "Data.xlsx").touch()
+            (tmp_path / _DATA_XLSX_NAME).touch()
             mock_subprocess.return_value.returncode = 0
 
             result = runner.invoke(main, ["all", str(config_file)])

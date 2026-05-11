@@ -16,7 +16,10 @@ else
                 exit 1
             fi
             # Refresh PATH to pick up new R installation
-            export PATH="$PATH:/c/Program Files/R/R-*/bin"
+            r_bin=$(ls -d /c/Program\ Files/R/R-*/bin 2>/dev/null | tail -1)
+            if [ -n "$r_bin" ]; then
+                export PATH="$PATH:$r_bin"
+            fi
         else
             echo "Error: winget not available. Please install R manually from https://cran.r-project.org/"
             exit 1
