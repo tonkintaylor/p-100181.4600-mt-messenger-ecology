@@ -95,6 +95,7 @@ dir.create(macro_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("--- Macro Metric Plots ---")
 if (!is.null(data$Macro1)) {
+  data$Macro1 <- ensure_ept_percentage(data$Macro1)
   macro_triggers <- compute_macro_triggers(data$Macro1)
   plot_macro_combined(data$Macro1, macro_triggers, macro_fig_dir)
   plot_macro_individual(data$Macro1, macro_triggers, macro_fig_dir)

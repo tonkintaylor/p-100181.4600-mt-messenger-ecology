@@ -10,6 +10,7 @@ library(lubridate)
 library(patchwork)
 
 VALID_PERIODS <- c("Baseline", "Routine Construction", "Incident")
+EPT_COLS <- c("EPTrich", "EPTabun")
 
 #' Normalise Period column: trim whitespace and convert to factor.
 #' Warns on unexpected values.
@@ -20,6 +21,25 @@ normalise_period <- function(df) {
     warning("Unexpected Period values: ", paste(unexpected, collapse = ", "))
   }
   df$Period <- factor(df$Period, levels = VALID_PERIODS)
+  df
+}
+
+#' Convert EPT columns from proportions (0-1) to percentages (0-100).
+#'
+#' Detects whether values are proportions by checking if the max value
+#' across all EPT columns is <= 1. If so, multiplies by 100.
+ensure_ept_percentage <- function(df) {
+  present <- intersect(EPT_COLS, names(df))
+  if (length(present) == 0) return(df)
+
+  max_val <- max(unlist(df[present]), na.rm = TRUE)
+  if (max_val <= 1) {
+    message("EPT values appear to be proportions (max=", round(max_val, 4),
+            "); converting to percentages")
+    for (col in present) {
+      df[[col]] <- df[[col]] * 100
+    }
+  }
   df
 }
 

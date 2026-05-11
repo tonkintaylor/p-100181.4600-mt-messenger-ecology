@@ -29,6 +29,7 @@ xlsx_path <- gsub('.*"([^"]+)".*', "\\1", data_line)
 message("Using Data.xlsx from cycle.toml: ", xlsx_path)
 data <- load_all_data(xlsx_path)
 
+data$Macro1 <- ensure_ept_percentage(data$Macro1)
 macro_triggers <- compute_macro_triggers(data$Macro1)
 
 # Only generate EM3 and EM7
