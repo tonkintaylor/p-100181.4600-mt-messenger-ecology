@@ -64,12 +64,36 @@ flowchart TD
     Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
 ```
 
-## Getting Started on Development
+## Running the Pipeline
 
-### Installing the Python environment and Configuring VS Code
+After setup, three commands are available:
 
-Run the following command in Windows Powershell to configure the environment and
-your VS Code settings (your current directory should be the root of the repo):
+```Powershell
+# Process input spreadsheets → MtMessengerEcologyData.xlsx
+mgen data
+
+# Generate figures from the data xlsx (runs R pipeline)
+mgen figures
+
+# Generate figures from a manually edited copy
+mgen figures --data ./my-edited-copy.xlsx
+
+# Run data processing + figures back-to-back
+mgen all
+
+# Validate config without running anything
+mgen validate
+```
+
+All commands accept an optional path to `cycle.toml` (defaults to `./cycle.toml`).
+
+## Getting Started
+
+### One-time setup
+
+Run the following command in Windows PowerShell to install Python, R, all
+dependencies, and configure VS Code (your current directory should be the root
+of the repo):
 
 ```Powershell
 ./tasks/dev_sync.ps1
