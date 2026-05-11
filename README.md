@@ -103,11 +103,20 @@ All commands accept an optional path to `cycle.toml` (defaults to `./cycle.toml`
 
 ## Getting Started
 
-### One-time setup
+### Quick install (pipeline users)
 
-Run the following command in Windows PowerShell to install Python, R, all
-dependencies, and configure VS Code (your current directory should be the root
-of the repo):
+Run this in Windows PowerShell from the repo root to install Python, R, and
+the `mgen` command — no developer tools required:
+
+```Powershell
+./tasks/install.ps1
+```
+
+Then edit `cycle.toml` with your input/output paths and run `mgen all`.
+
+### Full developer setup
+
+Includes linters, test tools, pre-commit hooks, and VS Code configuration:
 
 ```Powershell
 ./tasks/dev_sync.ps1
