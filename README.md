@@ -1,18 +1,18 @@
-# Mt Messenger Ecology Figure Pipeline
+# Mt Messenger Ecology Pipeline
 
 <!-- badges: start -->
-![Python Version](<https://img.shields.io/badge/python-3.13.2-green>)
-[![Confluence](<https://img.shields.io/badge/Not_Configured-Confluence-lightgrey>)](<https://tonkintaylor.atlassian.net/wiki/home>)
+![Python Version](<https://img.shields.io/badge/python-3.13-green>)
+![R Version](<https://img.shields.io/badge/R-4.5-blue>)
 ![Licence](<https://img.shields.io/badge/licence-proprietary-red>)
 [![Ruff](<https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json>)](<https://github.com/astral-sh/ruff>)
-[![Jira](<https://img.shields.io/badge/Not_Configured-Jira-lightgrey>)](<https://tonkintaylor.atlassian.net/jira/projects>)
 <!-- badges: end -->
 
-## Introduction
+Automated data processing and figure generation for Mt Messenger aquatic
+ecology monitoring reports.
 
-Automated figure generation for regular reporting on Mt Messenger.
+**Job number:** 100181.4600
 
-Job number: 100181.4600
+**For usage instructions see [docs/usage.md](docs/usage.md).**
 
 ## Pipeline Architecture
 
@@ -20,13 +20,17 @@ Job number: 100181.4600
 flowchart TD
     Config[/"cycle.toml"/] --> CLI
 
-    subgraph CLI ["cli.py"]
-        LoadConfig["load_config()"]
+    subgraph CLI ["mgen CLI"]
+        DataCmd["mgen data"]
+        FigCmd["mgen figures"]
+        AllCmd["mgen all"]
     end
 
-    CLI --> Pipeline
+    DataCmd --> Pipeline
+    AllCmd --> Pipeline
+    AllCmd --> RFigures
 
-    subgraph Pipeline ["pipeline.py"]
+    subgraph Pipeline ["Python data pipeline"]
         RunPipeline["run_pipeline()"]
     end
 
@@ -39,69 +43,85 @@ flowchart TD
     MacroDB --> MacroSpecies
     AquaticDB --> Sediment
     AquaticDB --> SedimentSize
+    AquaticDB --> Clarity
 
-    subgraph Domains ["Domain Processors"]
-        Macro["process_macro_domain()\nmacro.py"]
-        MacroSpecies["process_macro_species_domain()\nmacro_species.py"]
-        Sediment["process_sediment_domain()\nsediment.py"]
-        SedimentSize["process_sediment_size_domain()\nsediment_size.py"]
+    subgraph Domains ["Domain processors"]
+        Macro["Macroinvertebrate metrics"]
+        MacroSpecies["Species data"]
+        Sediment["Sediment"]
+        SedimentSize["Grain size"]
+        Clarity["Water clarity"]
     end
 
     Macro --> Merge
     MacroSpecies --> Merge
     Sediment --> Merge
     SedimentSize --> Merge
+    Clarity --> Merge
 
     Merge{All OK?}
     Merge -->|yes| Writer
     Merge -->|no| Errors
 
-    subgraph Writer ["writer.py"]
-        WriteXlsx["write_data_xlsx()"]
+    Writer["Write xlsx"] --> DataOutput[/"MtMessengerEcologyData.xlsx"/]
+    Errors --> ErrReport["Error summary\nexit code 1"]
+
+    FigCmd --> RFigures
+    DataOutput --> RFigures
+
+    subgraph RFigures ["R figure pipeline"]
+        Rscript["Rscript run_all.R"]
     end
 
-    Writer --> Output[/"Data.xlsx\n5 sheets"/]
-    Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
+    RFigures --> Figures[/"Figures/\nPNG plots"/]
+    RFigures --> Tables[/"Tables/\nXLSX reference tables"/]
 ```
 
-## Getting Started on Development
+## Getting Started
 
-### Installing the Python environment and Configuring VS Code
+### Pipeline users
 
-Run the following command in Windows Powershell to configure the environment and
-your VS Code settings (your current directory should be the root of the repo):
+See [docs/usage.md](docs/usage.md) for installation and usage instructions.
 
-```Powershell
+### Developers
+
+Full developer setup with linters, test tools, pre-commit hooks, and
+VS Code configuration:
+
+```powershell
 ./tasks/dev_sync.ps1
 ```
 
-## Other Development Tasks
+## Development
 
-### Adding a dependency (or regenerating the requirements files.)
+### Running tests
 
-Add a lowercase name of the package to the [project].dependencies section of the
-`pyproject.toml` file. You will then need to re-generate the requirements files and
-install the package via:
+```powershell
+uv run pytest
+```
 
-```Powershell
+### Adding a dependency
+
+Add the package to `[project].dependencies` in `pyproject.toml`, then:
+
+```powershell
 ./tasks/dev_sync.ps1
 ```
 
-### Releasing a package version
+### Releasing a version
 
-Run the following command in Windows Powershell to release a new version of the package:
-
-```Powershell
+```powershell
 ./tasks/release.ps1
 ```
 
-The branch will be automatically created and pushed to the cloud, ready for a PR to be
-created.
+The branch will be automatically created and pushed, ready for a PR.
 
-## Adding to changelog
+### Changelog
 
-Add a new file at `doc/whatsnew/{issue_num}.{entry_type}.md` where `{issue_num}` is
-the JIRA issue number being worked on, and `{entry_type}` is one of `feature`, `bugfix`,
-`doc`, `removal`, `newhome`, `test`, or `devconfig`.
+Add a new file at `doc/whatsnew/{issue_num}.{entry_type}.md` where
+`{entry_type}` is one of `feature`, `bugfix`, `doc`, `removal`,
+`newhome`, `test`, or `devconfig`.
 
-In the file provide a description of the change that will appear in the changelog.
+## Licence
+
+[Proprietary](LICENSE.txt) — Tonkin & Taylor Limited

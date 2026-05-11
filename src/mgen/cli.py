@@ -2,32 +2,42 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 import click
 
-from mgen.config import ConfigError, load_config
-from mgen.pipeline import run_pipeline
+from mgen.config import ConfigError, PipelineConfig, load_config
+from mgen.pipeline import PipelineResult, run_pipeline
 
 
 @click.group()
-def main() -> None:
+@click.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    default=False,
+    help="Suppress status messages (only show errors).",
+)
+@click.pass_context
+def main(ctx: click.Context, *, quiet: bool) -> None:
     """Mt Messenger ecology data pipeline."""
+    ctx.ensure_object(dict)
+    ctx.obj["quiet"] = quiet
 
 
-@main.command()
-@click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
-def run(config_path: str) -> None:
-    """Run the pipeline using the specified cycle.toml config."""
-    try:
-        config = load_config(Path(config_path))
-    except ConfigError as e:
-        click.echo(f"❌ Config error: {e}", err=True)
-        sys.exit(2)
+def _echo(message: str, ctx: click.Context, *, err: bool = False) -> None:
+    """Print *message* unless ``--quiet`` is active (errors always print)."""
+    if err or not ctx.obj.get("quiet"):
+        click.echo(message, err=err)
 
-    result = run_pipeline(config)
 
+def _handle_pipeline_result(
+    result: PipelineResult, config: PipelineConfig, ctx: click.Context
+) -> None:
+    """Display pipeline errors and exit on failure."""
     if result.errors:
         click.echo("", err=True)
         for error in result.errors:
@@ -41,12 +51,28 @@ def run(config_path: str) -> None:
         )
         sys.exit(1)
 
-    click.echo(f"✅ Wrote {config.data_xlsx}")
+    _echo(f"✅ Wrote {config.data_xlsx}", ctx)
 
 
 @main.command()
 @click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
-def validate(config_path: str) -> None:
+@click.pass_context
+def data(ctx: click.Context, config_path: str) -> None:
+    """Process input spreadsheets and write MtMessengerEcologyData.xlsx."""
+    try:
+        config = load_config(Path(config_path))
+    except ConfigError as e:
+        click.echo(f"❌ Config error: {e}", err=True)
+        sys.exit(2)
+
+    result = run_pipeline(config)
+    _handle_pipeline_result(result, config, ctx)
+
+
+@main.command()
+@click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
+@click.pass_context
+def validate(ctx: click.Context, config_path: str) -> None:
     """Validate inputs without writing output."""
     try:
         config = load_config(Path(config_path))
@@ -54,56 +80,91 @@ def validate(config_path: str) -> None:
         click.echo(f"❌ Config error: {e}", err=True)
         sys.exit(2)
 
-    click.echo("✅ Config valid. Inputs found:")
-    click.echo(f"   Macro DB: {config.macroinvertebrate_db}")
-    click.echo(f"   Aquatic DB: {config.aquatic_monitoring_db}")
-    click.echo(f"   Output: {config.data_xlsx}")
+    _echo("✅ Config valid. Inputs found:", ctx)
+    _echo(f"   Macro DB: {config.macroinvertebrate_db}", ctx)
+    _echo(f"   Aquatic DB: {config.aquatic_monitoring_db}", ctx)
+    _echo(f"   Output: {config.data_xlsx}", ctx)
+    _echo(f"   Figures: {config.figures_dir}", ctx)
+    _echo(f"   Tables: {config.tables_dir}", ctx)
+
+
+def _run_r_figures(
+    xlsx_path: Path, figures_dir: Path, tables_dir: Path, ctx: click.Context
+) -> None:
+    """Run the R figure pipeline via Rscript.
+
+    Exits the process on failure (Rscript not found, R script missing,
+    or non-zero exit code).
+    """
+    if shutil.which("Rscript") is None:
+        click.echo(
+            "❌ Rscript not found on PATH. Run ./tasks/dev_sync.ps1 to install R.",
+            err=True,
+        )
+        sys.exit(1)
+
+    # Resolved relative to source tree — requires a dev checkout (not pip install).
+    r_script = Path(__file__).resolve().parent.parent / "r" / "run_all.R"
+    if not r_script.exists():
+        click.echo(f"❌ R script not found: {r_script}", err=True)
+        sys.exit(1)
+
+    cmd = [
+        "Rscript",
+        str(r_script),
+        str(xlsx_path),
+        str(figures_dir),
+        str(tables_dir),
+    ]
+    _echo(f"Running R figures: {xlsx_path}", ctx)
+    # stdout/stderr pass through to the terminal so R progress is visible.
+    result = subprocess.run(cmd, check=False)
+
+    if result.returncode != 0:
+        click.echo("❌ R figure pipeline failed", err=True)
+        sys.exit(1)
+
+    _echo(f"✅ Figures written to {figures_dir}", ctx)
 
 
 @main.command()
 @click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
 @click.option(
-    "--only",
-    type=click.Choice(["sediment", "macro", "community", "all"]),
-    default="all",
-)
-@click.option(
-    "--data-xlsx",
+    "--data",
+    "data_override",
     type=click.Path(),
     default=None,
-    help="Override Data.xlsx path",
+    help="Override data xlsx path (use manually edited data).",
 )
-def plot(config_path: str, only: str, data_xlsx: str | None) -> None:
-    """Generate monitoring figures from Data.xlsx."""
+@click.pass_context
+def figures(ctx: click.Context, config_path: str, data_override: str | None) -> None:
+    """Run the R figure pipeline from the data xlsx."""
     try:
         config = load_config(Path(config_path))
     except ConfigError as e:
         click.echo(f"❌ Config error: {e}", err=True)
         sys.exit(2)
 
-    xlsx_path = Path(data_xlsx) if data_xlsx else config.data_xlsx
+    xlsx_path = Path(data_override) if data_override else config.data_xlsx
     if not xlsx_path.exists():
-        click.echo(f"❌ Data.xlsx not found: {xlsx_path}", err=True)
+        click.echo(f"❌ Data xlsx not found: {xlsx_path}", err=True)
         sys.exit(1)
 
-    import pandas as pd  # noqa: PLC0415
+    _run_r_figures(xlsx_path, config.figures_dir, config.tables_dir, ctx)
 
-    data: dict[str, pd.DataFrame] = {}
-    with pd.ExcelFile(xlsx_path) as xls:
-        for sheet in xls.sheet_names:
-            data[sheet] = pd.read_excel(xls, sheet_name=sheet)
 
-    from mgen.figures import generate_figures  # noqa: PLC0415
+@main.command(name="all")
+@click.argument("config_path", default="cycle.toml", type=click.Path(exists=False))
+@click.pass_context
+def all_command(ctx: click.Context, config_path: str) -> None:
+    """Run data pipeline then R figures back-to-back."""
+    try:
+        config = load_config(Path(config_path))
+    except ConfigError as e:
+        click.echo(f"❌ Config error: {e}", err=True)
+        sys.exit(2)
 
-    fig_result = generate_figures(data, config.figures_dir, only=only)
+    pipeline_result = run_pipeline(config)
+    _handle_pipeline_result(pipeline_result, config, ctx)
 
-    if fig_result.warnings:
-        for warning in fig_result.warnings:
-            click.echo(f"⚠️  {warning}", err=True)
-
-    if fig_result.success:
-        file_count = len(fig_result.files_written)
-        click.echo(f"✅ Wrote {file_count} files to {config.figures_dir}")
-    else:
-        click.echo("❌ No figures generated", err=True)
-        sys.exit(1)
+    _run_r_figures(config.data_xlsx, config.figures_dir, config.tables_dir, ctx)

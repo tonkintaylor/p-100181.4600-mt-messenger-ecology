@@ -5,5 +5,6 @@ source ./tasks/shims/install_venv
 source ./tasks/shims/activate_venv
 source ./tasks/shims/sync_requirements
 source ./tasks/shims/configure_project
+source ./tasks/shims/install_r
 
 echo Done!

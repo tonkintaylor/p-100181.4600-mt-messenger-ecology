@@ -27,8 +27,9 @@ def pipeline_config(
     return PipelineConfig(
         macroinvertebrate_db=example_macro_db,
         aquatic_monitoring_db=example_aquatic_db,
-        data_xlsx=out_dir / "Data.xlsx",
+        data_xlsx=out_dir / "MtMessengerEcologyData.xlsx",
         figures_dir=out_dir / "Figures",
+        tables_dir=out_dir / "Tables",
     )
 
 
@@ -72,8 +73,9 @@ class TestPipelineErrorHandling:
         config = PipelineConfig(
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
-            data_xlsx=tmp_path / "Data.xlsx",
+            data_xlsx=tmp_path / "MtMessengerEcologyData.xlsx",
             figures_dir=tmp_path / "Figures",
+            tables_dir=tmp_path / "Tables",
         )
         failed_result = DomainResult(
             data=None,
@@ -101,8 +103,9 @@ class TestPipelineErrorHandling:
         config = PipelineConfig(
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
-            data_xlsx=tmp_path / "Data.xlsx",
+            data_xlsx=tmp_path / "MtMessengerEcologyData.xlsx",
             figures_dir=tmp_path / "Figures",
+            tables_dir=tmp_path / "Tables",
         )
         failed_result = DomainResult(
             data=None,
@@ -129,8 +132,9 @@ class TestPipelineErrorHandling:
         config = PipelineConfig(
             macroinvertebrate_db=example_macro_db,
             aquatic_monitoring_db=example_aquatic_db,
-            data_xlsx=tmp_path / "Data.xlsx",
+            data_xlsx=tmp_path / "MtMessengerEcologyData.xlsx",
             figures_dir=tmp_path / "Figures",
+            tables_dir=tmp_path / "Tables",
         )
         macro_fail = DomainResult(
             data=None,
@@ -182,7 +186,9 @@ class TestCliIntegration:
             f'aquatic_monitoring_db = "{aquatic_db.as_posix()}"\n'
             "\n"
             "[output]\n"
-            f'data_xlsx = "{(tmp_path / "Data.xlsx").as_posix()}"\n'
+            f'data_xlsx = "{(tmp_path / "MtMessengerEcologyData.xlsx").as_posix()}"\n'
+            f'figures_dir = "{(tmp_path / "Figures").as_posix()}"\n'
+            f'tables_dir = "{(tmp_path / "Tables").as_posix()}"\n'
         )
         return config_file
 
@@ -192,7 +198,7 @@ class TestCliIntegration:
         config_file = self._write_config(tmp_path, example_macro_db, example_aquatic_db)
         runner = CliRunner()
 
-        result = runner.invoke(main, ["run", str(config_file)])
+        result = runner.invoke(main, ["data", str(config_file)])
 
         assert result.exit_code == 0
         assert "Wrote" in result.output
@@ -217,7 +223,7 @@ class TestCliIntegration:
             ],
         )
         with patch("mgen.pipeline.process_macro_domain", return_value=failed_result):
-            result = runner.invoke(main, ["run", str(config_file)])
+            result = runner.invoke(main, ["data", str(config_file)])
 
         assert result.exit_code == 1
         assert "Pipeline failed" in result.output
@@ -225,7 +231,7 @@ class TestCliIntegration:
     def test_exit_code_2_on_config_error(self) -> None:
         runner = CliRunner()
 
-        result = runner.invoke(main, ["run", "nonexistent.toml"])
+        result = runner.invoke(main, ["data", "nonexistent.toml"])
 
         assert result.exit_code == 2
         assert "Config error" in result.output
@@ -250,7 +256,7 @@ class TestCliIntegration:
             ],
         )
         with patch("mgen.pipeline.process_sediment_domain", return_value=failed_result):
-            result = runner.invoke(main, ["run", str(config_file)])
+            result = runner.invoke(main, ["data", str(config_file)])
 
         assert "Missing required column: SAM1" in result.output
         assert "sediment" in result.output.lower() or "SedData" in result.output
