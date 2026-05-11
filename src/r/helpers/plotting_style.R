@@ -74,7 +74,7 @@ site_shapes <- function() {
 save_plot <- function(p, path, width = 8, height = 6, dpi = 300) {
   dir.create(dirname(path), showWarnings = FALSE, recursive = TRUE)
   ggsave(path, plot = p, width = width, height = height, dpi = dpi,
-         device = "jpeg", bg = "white")
+         device = "jpeg", bg = "white", create.dir = TRUE)
   message("  Saved: ", path)
 }
 
@@ -84,7 +84,7 @@ save_plot_both <- function(p, base_path, width = 8, height = 6, dpi = 300) {
   save_plot(p, paste0(base_path, ".jpeg"), width = width, height = height, dpi = dpi)
   dir.create(dirname(base_path), showWarnings = FALSE, recursive = TRUE)
   ggsave(paste0(base_path, ".pdf"), plot = p, width = width, height = height,
-         device = "pdf", bg = "white")
+         device = "pdf", bg = "white", create.dir = TRUE)
 }
 
 

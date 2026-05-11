@@ -219,7 +219,8 @@ plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
       plot_layout(guides = "collect") &
       theme(plot.tag = element_text(size = 12, face = "plain"))
 
-    save_plot(combined, file.path(output_dir, paste0(site, "DRAFT.jpg")),
+    safe_site <- gsub(" ", "_", site)
+    save_plot(combined, file.path(output_dir, paste0(safe_site, "_combined.jpg")),
               width = 9, height = 12)
   }
 }
@@ -232,16 +233,13 @@ plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
 #' @param output_dir Output directory.
 plot_macro_individual <- function(macro1_df, triggers_df, output_dir) {
   metrics <- c("QMCI", "EPTrich", "EPTabun")
-  metric_filenames <- c(QMCI = "qmci", EPTrich = "rich", EPTabun = "abun")
+  metric_filenames <- c(QMCI = "qmci", EPTrich = "ept_rich", EPTabun = "ept_abun")
   sites <- sort(unique(macro1_df$Site))
-
-  # Create subdirectory for DRAFT versions
-  draft_dir <- file.path(output_dir, "metric_plots_jpeg")
-  dir.create(draft_dir, showWarnings = FALSE, recursive = TRUE)
 
   for (site in sites) {
     site_df <- macro1_df |> filter(Site == site)
     has_incident <- "Incident" %in% unique(site_df$Period)
+    safe_site <- gsub(" ", "_", site)
 
     for (metric in metrics) {
       summary_df <- compute_metric_summary(site_df, metric)
@@ -258,12 +256,8 @@ plot_macro_individual <- function(macro1_df, triggers_df, output_dir) {
         labs(title = paste(site, "\u2014", MACRO_LABELS[[metric]])) +
         theme(plot.title = element_text(face = "bold", size = 14))
 
-      # Save with both naming conventions
-      fname_short <- paste0(site, "_", metric_filenames[[metric]], ".jpg")
-      fname_draft <- paste0(site, "_", metric, "_DRAFT.jpg")
-
-      save_plot(p, file.path(output_dir, fname_short))
-      save_plot(p, file.path(draft_dir, fname_draft))
+      fname <- paste0(safe_site, "_", metric_filenames[[metric]], ".jpg")
+      save_plot(p, file.path(output_dir, fname))
     }
   }
 }

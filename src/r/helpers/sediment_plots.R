@@ -78,7 +78,7 @@ plot_sediment_size_distribution <- function(sed_size_df, output_dir,
                  vjust = -0.5, hjust = 0.5, size = 3.5)
     }
 
-    save_plot(p, file.path(output_dir, paste0("SedimentSize_", site, "_A3.png")),
+    save_plot(p, file.path(output_dir, paste0("sediment_size_", site, ".png")),
               width = 12, height = 8)
   }
 }
