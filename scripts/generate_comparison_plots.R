@@ -23,7 +23,10 @@ source(file.path(helpers_dir, "data_loading.R"))
 source(file.path(helpers_dir, "triggers.R"))
 source(file.path(helpers_dir, "macro_plots.R"))
 
-xlsx_path <- file.path(project_root, "ref", "Data.xlsx")
+toml_lines <- readLines(file.path(project_root, "cycle.toml"))
+data_line <- grep("^data_xlsx", toml_lines, value = TRUE)
+xlsx_path <- gsub('.*"([^"]+)".*', "\\1", data_line)
+message("Using Data.xlsx from cycle.toml: ", xlsx_path)
 data <- load_all_data(xlsx_path)
 
 macro_triggers <- compute_macro_triggers(data$Macro1)
