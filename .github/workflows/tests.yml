@@ -72,9 +72,12 @@ jobs:
                   cache-suffix: sonarqube
 
             - name: Create SonarQube properties
-              run: uvx usethis@0.21.0 show sonarqube --project-key=$SONAR_PROJECT_KEY --output-file=sonar-project.properties
+              run: uvx usethis@0.22.0 show sonarqube --project-key=$SONAR_PROJECT_KEY --output-file=sonar-project.properties
               env:
                   SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+
+            - name: Generate Ruff report
+              run: uv run --frozen ruff check --output-format=json --output-file=ruff-report.json . || true
 
             - name: Download coverage reports
               uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
