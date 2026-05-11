@@ -21,10 +21,14 @@ flowchart TD
     Config[/"cycle.toml"/] --> CLI
 
     subgraph CLI ["cli.py"]
-        LoadConfig["load_config()"]
+        DataCmd["mgen data"]
+        FigCmd["mgen figures"]
+        AllCmd["mgen all"]
     end
 
-    CLI --> Pipeline
+    DataCmd --> Pipeline
+    AllCmd --> Pipeline
+    AllCmd --> RFigures
 
     subgraph Pipeline ["pipeline.py"]
         RunPipeline["run_pipeline()"]
@@ -40,7 +44,7 @@ flowchart TD
     AquaticDB --> Sediment
     AquaticDB --> SedimentSize
 
-    subgraph Domains ["Domain Processors"]
+    subgraph Domains ["domain/"]
         Macro["process_macro_domain()\nmacro.py"]
         MacroSpecies["process_macro_species_domain()\nmacro_species.py"]
         Sediment["process_sediment_domain()\nsediment.py"]
@@ -60,8 +64,18 @@ flowchart TD
         WriteXlsx["write_data_xlsx()"]
     end
 
-    Writer --> Output[/"MtMessengerEcologyData.xlsx\n6 sheets"/]
+    Writer --> DataOutput[/"MtMessengerEcologyData.xlsx\n6 sheets"/]
     Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
+
+    FigCmd --> RFigures
+    DataOutput --> RFigures
+
+    subgraph RFigures ["R pipeline (src/r/run_all.R)"]
+        Rscript["Rscript via subprocess"]
+    end
+
+    RFigures --> Figures[/"figures/\nPNG plots"/]
+    RFigures --> Tables[/"tables/\nXLSX tables"/]
 ```
 
 ## Running the Pipeline
