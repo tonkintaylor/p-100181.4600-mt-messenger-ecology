@@ -23,9 +23,6 @@ dependencies = [
     "pandas>=2.2",
     "openpyxl>=3.1",
     "click>=8.1",
-    "matplotlib>=3.10",
-    "scipy>=1.14",
-    "scikit-learn>=1.5",
 ]
 
 [dependency-groups]
@@ -46,7 +43,6 @@ dev = [
 ]
 test = [
     "coverage[toml]>=7.9.1",
-    "pillow>=11",
     "pytest>=8.4.0",
     "pytest-cov>=6.1.1",
 ]
@@ -222,9 +218,7 @@ addopts = [
   "--doctest-modules",
 ]
 console_output_style = "progress"
-markers = [
-  "golden: marks tests as golden image comparison tests (deselect with '-m \"not golden\"')",
-]
+markers = []
 filterwarnings = [ "error" ]
 xfail_strict = true
 log_cli_level = "INFO"
