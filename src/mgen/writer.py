@@ -1,4 +1,4 @@
-"""Write assembled DataFrames to the Data.xlsx output.
+"""Write assembled DataFrames to the output xlsx.
 
 This is infrastructure — it knows about Excel format details but not
 about domain logic. It receives validated DataFrames and writes them.
@@ -37,7 +37,7 @@ _SCHEMA_MAP: dict[str, list[str]] = {
 
 
 def write_data_xlsx(data: dict[str, pd.DataFrame], output_path: Path) -> None:
-    """Write all domain outputs to a single Data.xlsx file.
+    """Write all domain outputs to a single xlsx file.
 
     Args:
         data: Mapping of sheet_name → DataFrame. Must contain all sheets
@@ -74,4 +74,4 @@ def write_data_xlsx(data: dict[str, pd.DataFrame], output_path: Path) -> None:
             df = data[sheet_name]
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    logger.info("Wrote Data.xlsx to %s (%d sheets)", output_path, len(SHEET_ORDER))
+    logger.info("Wrote %s (%d sheets)", output_path, len(SHEET_ORDER))

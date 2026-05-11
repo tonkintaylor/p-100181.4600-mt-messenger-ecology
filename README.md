@@ -21,10 +21,14 @@ flowchart TD
     Config[/"cycle.toml"/] --> CLI
 
     subgraph CLI ["cli.py"]
-        LoadConfig["load_config()"]
+        DataCmd["mgen data"]
+        FigCmd["mgen figures"]
+        AllCmd["mgen all"]
     end
 
-    CLI --> Pipeline
+    DataCmd --> Pipeline
+    AllCmd --> Pipeline
+    AllCmd --> RFigures
 
     subgraph Pipeline ["pipeline.py"]
         RunPipeline["run_pipeline()"]
@@ -40,7 +44,7 @@ flowchart TD
     AquaticDB --> Sediment
     AquaticDB --> SedimentSize
 
-    subgraph Domains ["Domain Processors"]
+    subgraph Domains ["domain/"]
         Macro["process_macro_domain()\nmacro.py"]
         MacroSpecies["process_macro_species_domain()\nmacro_species.py"]
         Sediment["process_sediment_domain()\nsediment.py"]
@@ -60,16 +64,50 @@ flowchart TD
         WriteXlsx["write_data_xlsx()"]
     end
 
-    Writer --> Output[/"Data.xlsx\n5 sheets"/]
+    Writer --> DataOutput[/"MtMessengerEcologyData.xlsx\n6 sheets"/]
     Errors --> ErrReport["Human-readable\nerror summary\nexit code 1"]
+
+    FigCmd --> RFigures
+    DataOutput --> RFigures
+
+    subgraph RFigures ["R pipeline (src/r/run_all.R)"]
+        Rscript["Rscript via subprocess"]
+    end
+
+    RFigures --> Figures[/"figures/\nPNG plots"/]
+    RFigures --> Tables[/"tables/\nXLSX tables"/]
 ```
 
-## Getting Started on Development
+## Running the Pipeline
 
-### Installing the Python environment and Configuring VS Code
+After setup, three commands are available:
 
-Run the following command in Windows Powershell to configure the environment and
-your VS Code settings (your current directory should be the root of the repo):
+```Powershell
+# Process input spreadsheets → MtMessengerEcologyData.xlsx
+mgen data
+
+# Generate figures from the data xlsx (runs R pipeline)
+mgen figures
+
+# Generate figures from a manually edited copy
+mgen figures --data ./my-edited-copy.xlsx
+
+# Run data processing + figures back-to-back
+mgen all
+
+# Validate config without running anything
+mgen validate
+```
+
+All commands accept an optional path to `cycle.toml` (defaults to `./cycle.toml`).
+
+## Getting Started
+
+### One-time setup
+
+Run the following command in Windows PowerShell to install Python, R, all
+dependencies, and configure VS Code (your current directory should be the root
+of the repo):
 
 ```Powershell
 ./tasks/dev_sync.ps1
