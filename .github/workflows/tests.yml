@@ -72,7 +72,7 @@ jobs:
                   cache-suffix: sonarqube
 
             - name: Create SonarQube properties
-              run: uvx usethis@0.22.0 show sonarqube --project-key=$SONAR_PROJECT_KEY --output-file=sonar-project.properties
+              run: uvx usethis@0.22.0 show sonarqube --output-file=sonar-project.properties
               env:
                   SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
 
