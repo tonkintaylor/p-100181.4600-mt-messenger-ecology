@@ -125,8 +125,11 @@ versions locked in `uv.lock`.
 
 **Adding a package:**
 
-1. Add the package to `[project].dependencies` in `pyproject.toml`
-2. Run `./tasks/dev_sync.ps1` (updates `uv.lock` and installs)
+```powershell
+uv add newpackage
+```
+
+This updates both `pyproject.toml` and `uv.lock` automatically.
 
 **Restoring after a pull:**
 
