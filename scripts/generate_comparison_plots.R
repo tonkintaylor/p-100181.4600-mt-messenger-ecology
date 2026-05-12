@@ -23,13 +23,21 @@ source(file.path(helpers_dir, "data_loading.R"))
 source(file.path(helpers_dir, "triggers.R"))
 source(file.path(helpers_dir, "macro_plots.R"))
 
-toml_lines <- readLines(file.path(project_root, "cycle.toml"))
-data_line <- grep("^data_xlsx", toml_lines, value = TRUE)
-xlsx_path <- gsub('.*"([^"]+)".*', "\\1", data_line)
+cycle_path <- file.path(project_root, "cycle.toml")
+toml_lines <- readLines(cycle_path, warn = FALSE)
+data_lines <- grep("^data_xlsx\\s*=", toml_lines, value = TRUE)
+if (length(data_lines) != 1) {
+  stop("Expected exactly one data_xlsx entry in cycle.toml, found ", length(data_lines))
+}
+xlsx_path <- gsub('.*"([^"]+)".*', "\\1", data_lines[[1]])
+if (!file.exists(xlsx_path)) {
+  stop("Data.xlsx from cycle.toml not found at: ", xlsx_path)
+}
 message("Using Data.xlsx from cycle.toml: ", xlsx_path)
 data <- load_all_data(xlsx_path)
 
 data$Macro1 <- ensure_ept_percentage(data$Macro1)
+data$Macro1 <- normalise_period(data$Macro1)
 macro_triggers <- compute_macro_triggers(data$Macro1)
 
 # Only generate EM3 and EM7

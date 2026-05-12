@@ -72,14 +72,15 @@ compute_metric_summary <- function(site_df, metric) {
     summarise(
       Mean = mean(.data[[metric]], na.rm = TRUE),
       SD = sd(.data[[metric]], na.rm = TRUE),
-      N = n(),
+      N_non_na = sum(!is.na(.data[[metric]])),
       .groups = "drop"
     ) |>
     mutate(
-      SE = dplyr::if_else(N > 1L, SD / sqrt(N), 0),
-      t_crit = dplyr::if_else(N > 1L, qt(0.975, df = N - 1), NA_real_),
-      CI_lower = dplyr::if_else(N > 1L, pmax(Mean - t_crit * SE, 0), Mean),
-      CI_upper = dplyr::if_else(N > 1L, pmin(Mean + t_crit * SE, cap), Mean)
+      Mean = dplyr::if_else(is.nan(Mean), NA_real_, Mean),
+      SE = dplyr::if_else(N_non_na > 1L & !is.na(SD), SD / sqrt(N_non_na), 0),
+      t_crit = dplyr::if_else(N_non_na > 1L, qt(0.975, df = N_non_na - 1), NA_real_),
+      CI_lower = dplyr::if_else(N_non_na > 1L, pmax(Mean - t_crit * SE, 0), Mean),
+      CI_upper = dplyr::if_else(N_non_na > 1L, pmin(Mean + t_crit * SE, cap), Mean)
     ) |>
     select(-t_crit)
 }
@@ -174,12 +175,14 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
 
   # Custom key glyph: vertical dotted line matching the plot element
   draw_key_vdotted <- function(data, params, size) {
+    key_col <- if (is.null(data$colour) || is.na(data$colour)) "black" else data$colour
+    key_lwd <- if (is.null(data$linewidth) || is.na(data$linewidth)) 0.5 else data$linewidth
     grid::linesGrob(
       x = c(0.5, 0.5),
       y = c(0.1, 0.9),
       gp = grid::gpar(
-        col = data$colour %||% "black",
-        lwd = (data$linewidth %||% 0.5) * ggplot2::.pt,
+        col = key_col,
+        lwd = key_lwd * ggplot2::.pt,
         lty = "dotted"
       )
     )
