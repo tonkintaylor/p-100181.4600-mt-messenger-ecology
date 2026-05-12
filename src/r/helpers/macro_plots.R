@@ -172,24 +172,33 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Colour scale with trigger in legend
   p <- p + build_colour_scale(has_incident = has_incident)
 
-  # Baseline vline — solid grey to distinguish from black trigger line.
-  # Uses key_glyph = "path" for a clean horizontal line in the legend.
+  # Baseline vline — dotted line with custom legend glyph that draws visible dots.
+  draw_key_dotted <- function(data, params, size) {
+    n <- 5
+    grid::pointsGrob(
+      x = seq(0.1, 0.9, length.out = n),
+      y = rep(0.5, n),
+      pch = 20,
+      size = grid::unit(3, "pt"),
+      gp = grid::gpar(col = data$colour %||% "black")
+    )
+  }
+
   p <- p +
     geom_vline(
       aes(xintercept = as.numeric(BASELINE_END),
           linetype = "Baseline \nMonitoring End"),
-      colour = "grey50", linewidth = 0.8,
-      key_glyph = "path"
+      colour = "black", linewidth = 0.8,
+      key_glyph = draw_key_dotted
     ) +
     scale_linetype_manual(
       name = NULL,
-      values = c("Baseline \nMonitoring End" = "solid"),
+      values = c("Baseline \nMonitoring End" = "dotted"),
       guide = guide_legend(
-        keywidth = unit(1.2, "cm"),
         label.hjust = 0,
         label.theme = element_text(size = 9),
         label.position = "right",
-        override.aes = list(colour = "grey50", linewidth = 1.0)
+        override.aes = list(colour = "black")
       )
     )
 
