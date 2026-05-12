@@ -5,7 +5,7 @@
 #   Rscript src/r/run_all.R [path/to/Data.xlsx] [figures_dir] [tables_dir]
 #
 # Defaults:
-#   Data.xlsx:   ref/Data.xlsx
+#   Data.xlsx:   cycle.toml data_xlsx (fallback ref/Data.xlsx)
 #   figures_dir: src/r/outputs/
 #   tables_dir:  same as figures_dir
 
