@@ -177,3 +177,12 @@ comparison_r_output/
 
 # Git worktrees
 .worktrees/
+
+# renv (project-local R library — only lockfile and bootstrap are tracked)
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/

@@ -1,0 +1,22 @@
+# Only scan R source files under src/r/
+.venv/
+.git/
+.github/
+.agents/
+.vscode/
+.worktrees/
+__pycache__/
+build/
+dist/
+docs/
+output/
+comparison_output/
+comparison_r_output/
+ref/
+scripts/
+tasks/
+tests/
+src/mgen/
+src/archive/
+src/notebooks/
+src/scripts/

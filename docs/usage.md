@@ -187,13 +187,12 @@ Activate the virtual environment first:
 
 ### R package installation fails
 
-If `./tasks/install.ps1` fails during R setup, install packages manually
-in R:
+If `./tasks/install.ps1` fails during R setup, restore packages manually
+in R from the project root:
 
 ```r
-install.packages(c("readxl", "dplyr", "tidyr", "ggplot2", "vegan",
-                    "indicspecies", "ggrepel", "zoo", "patchwork",
-                    "openxlsx", "lubridate"))
+source("renv/activate.R")
+renv::restore()
 ```
 
 ### Input file not found
@@ -210,3 +209,32 @@ cd R:\BEKA\mt_messenger
 git pull
 ./tasks/install.ps1
 ```
+
+## R Package Management
+
+R packages are managed by [renv](https://rstudio.github.io/renv/) for
+reproducibility. The lockfile (`renv.lock`) pins exact versions so every
+developer gets the same R environment.
+
+### Adding an R package
+
+```r
+# In R, from the project root:
+renv::install("newpackage")
+```
+
+Then add it to the `Imports` field in `DESCRIPTION` and update the lockfile:
+
+```r
+renv::snapshot()
+```
+
+Commit both `DESCRIPTION` and `renv.lock`.
+
+### Restoring packages after a pull
+
+```r
+renv::restore()
+```
+
+Or just re-run `./tasks/install.ps1` or `./tasks/dev_sync.ps1`.
