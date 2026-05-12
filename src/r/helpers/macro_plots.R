@@ -199,12 +199,8 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
       key_glyph = draw_key_vdotted
     )
 
-  shift_events <- get_site_shift_events(site)
-  if (nrow(shift_events) > 0) {
-    shift_events <- shift_events |>
-      mutate(Y = MACRO_YLIMS[[metric]][2] * 0.95)
-    p <- add_site_shift_layer(p, shift_events)
-  }
+  p <- add_site_shift_annotations(p, site, summary_df,
+                                    y_col = "CI_upper", y_nudge = 0)
 
   # Summer shading
   year_min <- min(year(summary_df$Date), na.rm = TRUE)
