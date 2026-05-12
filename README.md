@@ -100,13 +100,43 @@ VS Code configuration:
 uv run pytest
 ```
 
-### Adding a dependency
+### Managing Python packages
 
-Add the package to `[project].dependencies` in `pyproject.toml`, then:
+Python dependencies are managed by [uv](https://docs.astral.sh/uv/) with
+versions locked in `uv.lock`.
+
+**Adding a package:**
+
+1. Add the package to `[project].dependencies` in `pyproject.toml`
+2. Run `./tasks/dev_sync.ps1` (updates `uv.lock` and installs)
+
+**Restoring after a pull:**
 
 ```powershell
 ./tasks/dev_sync.ps1
 ```
+
+### Managing R packages
+
+R dependencies are managed by [renv](https://rstudio.github.io/renv/) with
+versions locked in `renv.lock`. The `DESCRIPTION` file declares the direct
+R package dependencies.
+
+**Adding a package:**
+
+1. In R from the project root: `renv::install("newpackage")`
+2. Add the package to the `Imports` field in `DESCRIPTION`
+3. Update the lockfile: `renv::snapshot()`
+4. Commit both `DESCRIPTION` and `renv.lock`
+
+**Restoring after a pull:**
+
+```r
+renv::restore()
+```
+
+Or just re-run `./tasks/dev_sync.ps1` — it restores both Python and R
+packages automatically.
 
 ### Releasing a version
 
