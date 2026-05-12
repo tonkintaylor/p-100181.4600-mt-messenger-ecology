@@ -172,13 +172,26 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Colour scale with trigger in legend
   p <- p + build_colour_scale(has_incident = has_incident)
 
-  # Baseline vline — mapped to colour scale (same legend as Trigger Level).
-  # linetype = "dotted" is set directly; the legend inherits via override.aes.
+  # Custom key glyph: vertical dotted line matching the plot element
+  draw_key_vdotted <- function(data, params, size) {
+    grid::linesGrob(
+      x = c(0.5, 0.5),
+      y = c(0.1, 0.9),
+      gp = grid::gpar(
+        col = data$colour %||% "black",
+        lwd = (data$linewidth %||% 0.5) * ggplot2::.pt,
+        lty = "dotted"
+      )
+    )
+  }
+
+  # Baseline vline — mapped to colour scale with vertical dotted key glyph.
   p <- p +
     geom_vline(
       aes(xintercept = as.numeric(BASELINE_END),
           colour = "Baseline \nMonitoring End"),
-      linetype = "dotted", linewidth = 0.8
+      linetype = "dotted", linewidth = 0.8,
+      key_glyph = draw_key_vdotted
     )
 
   # Summer shading
