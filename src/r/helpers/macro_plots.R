@@ -172,23 +172,24 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Colour scale with trigger in legend
   p <- p + build_colour_scale(has_incident = has_incident)
 
-  # Baseline vline — visually distinct from Trigger Level via grey colour + dashed
+  # Baseline vline — solid grey to distinguish from black trigger line.
+  # Uses key_glyph = "path" for a clean horizontal line in the legend.
   p <- p +
     geom_vline(
       aes(xintercept = as.numeric(BASELINE_END),
           linetype = "Baseline \nMonitoring End"),
-      colour = "grey30", linewidth = 0.8,
+      colour = "grey50", linewidth = 0.8,
       key_glyph = "path"
     ) +
     scale_linetype_manual(
       name = NULL,
-      values = c("Baseline \nMonitoring End" = "dashed"),
+      values = c("Baseline \nMonitoring End" = "solid"),
       guide = guide_legend(
-        keywidth = unit(1.5, "cm"),
+        keywidth = unit(1.2, "cm"),
         label.hjust = 0,
         label.theme = element_text(size = 9),
         label.position = "right",
-        override.aes = list(colour = "grey30", linewidth = 1.2)
+        override.aes = list(colour = "grey50", linewidth = 1.0)
       )
     )
 
