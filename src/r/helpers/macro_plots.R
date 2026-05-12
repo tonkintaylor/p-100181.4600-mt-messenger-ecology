@@ -9,6 +9,40 @@ library(dplyr)
 library(lubridate)
 library(patchwork)
 
+VALID_PERIODS <- c("Baseline", "Routine Construction", "Incident")
+EPT_COLS <- c("EPTrich", "EPTabun")
+
+#' Normalise Period column: trim whitespace and convert to factor.
+#' Warns on unexpected values.
+normalise_period <- function(df) {
+  df$Period <- trimws(as.character(df$Period))
+  unexpected <- setdiff(unique(df$Period), VALID_PERIODS)
+  if (length(unexpected) > 0) {
+    warning("Unexpected Period values: ", paste(unexpected, collapse = ", "))
+  }
+  df$Period <- factor(df$Period, levels = VALID_PERIODS)
+  df
+}
+
+#' Convert EPT columns from proportions (0-1) to percentages (0-100).
+#'
+#' Detects whether values are proportions by checking if the max value
+#' across all EPT columns is <= 1. If so, multiplies by 100.
+ensure_ept_percentage <- function(df) {
+  present <- intersect(EPT_COLS, names(df))
+  if (length(present) == 0) return(df)
+
+  max_val <- max(unlist(df[present]), na.rm = TRUE)
+  if (max_val <= 1) {
+    message("EPT values appear to be proportions (max=", round(max_val, 4),
+            "); converting to percentages")
+    for (col in present) {
+      df[[col]] <- df[[col]] * 100
+    }
+  }
+  df
+}
+
 # Y-axis limits matching legacy R scripts
 MACRO_YLIMS <- list(
   QMCI = c(0, 8),
@@ -31,60 +65,62 @@ PANEL_LABELS <- c("a)", "b)", "c)")
 #' @param metric Column name.
 #' @return Data frame with Date, Mean, CI_lower, CI_upper, Period.
 compute_metric_summary <- function(site_df, metric) {
+  cap <- ifelse(metric == "QMCI", 8, 100)
+
   site_df |>
     group_by(Date, Period) |>
     summarise(
       Mean = mean(.data[[metric]], na.rm = TRUE),
       SD = sd(.data[[metric]], na.rm = TRUE),
-      N = n(),
-      SE = SD / sqrt(N),
-      CI_lower = pmax(Mean - qt(0.975, df = N - 1) * SE, 0),
-      CI_upper = pmin(Mean + qt(0.975, df = N - 1) * SE,
-                      ifelse(metric == "QMCI", 8, 100)),
+      N_non_na = sum(!is.na(.data[[metric]])),
       .groups = "drop"
     ) |>
     mutate(
-      CI_lower = ifelse(is.na(CI_lower), Mean, CI_lower),
-      CI_upper = ifelse(is.na(CI_upper), Mean, CI_upper)
-    )
+      Mean = dplyr::if_else(is.nan(Mean), NA_real_, Mean),
+      SE = dplyr::if_else(N_non_na > 1L & !is.na(SD), SD / sqrt(N_non_na), 0),
+      t_crit = dplyr::if_else(N_non_na > 1L, qt(0.975, df = N_non_na - 1), NA_real_),
+      CI_lower = dplyr::if_else(N_non_na > 1L, pmax(Mean - t_crit * SE, 0), Mean),
+      CI_upper = dplyr::if_else(N_non_na > 1L, pmin(Mean + t_crit * SE, cap), Mean)
+    ) |>
+    select(-t_crit)
 }
 
 
-#' Build the colour scale with Trigger Level in legend.
+#' Build the colour scale with Trigger Level and Baseline Monitoring End.
 #'
-#' Maps Period values + "Trigger Level" to colours. The legend shows
-#' points for period entries and a solid line for the trigger.
+#' Maps Period values + "Trigger Level" + "Baseline Monitoring End" to colours.
 #' Uses explicit breaks/limits so legend entries are always consistent.
 #' @param has_incident Whether to include Incident in the scale.
 #' @return A scale_colour_manual layer.
 build_colour_scale <- function(has_incident = FALSE) {
+  base_vals <- c(
+    "Baseline" = "#ff9f1c",
+    "Routine Construction" = "#2ec4b6"
+  )
+  base_brks <- c("Baseline", "Routine Construction")
+  base_lt <- c("blank", "blank")
+  base_shape <- c(16, 16)
+  base_lw <- c(NA, NA)
+
   if (has_incident) {
-    vals <- c(
-      "Baseline" = "#ff9f1c",
-      "Routine Construction" = "#2ec4b6",
-      "Incident" = "#e71d36",
-      "Trigger Level" = "black"
-    )
-    brks <- c("Baseline", "Routine Construction", "Incident",
-              "Trigger Level")
-    overrides <- list(
-      linetype = c("blank", "blank", "blank", "solid"),
-      shape = c(16, 16, 16, NA),
-      linewidth = c(NA, NA, NA, 0.8)
-    )
-  } else {
-    vals <- c(
-      "Baseline" = "#ff9f1c",
-      "Routine Construction" = "#2ec4b6",
-      "Trigger Level" = "black"
-    )
-    brks <- c("Baseline", "Routine Construction", "Trigger Level")
-    overrides <- list(
-      linetype = c("blank", "blank", "solid"),
-      shape = c(16, 16, NA),
-      linewidth = c(NA, NA, 0.8)
-    )
+    base_vals <- c(base_vals, "Incident" = "#e71d36")
+    base_brks <- c(base_brks, "Incident")
+    base_lt <- c(base_lt, "blank")
+    base_shape <- c(base_shape, 16)
+    base_lw <- c(base_lw, NA)
   }
+
+  vals <- c(base_vals,
+    "Trigger Level" = "black",
+    "Baseline \nMonitoring End" = "black"
+  )
+  brks <- c(base_brks, "Trigger Level", "Baseline \nMonitoring End")
+  overrides <- list(
+    linetype = c(base_lt, "solid", "blank"),
+    shape = c(base_shape, NA, NA),
+    linewidth = c(base_lw, 0.8, 0.8)
+  )
+
   scale_colour_manual(
     values = vals,
     breaks = brks,
@@ -137,23 +173,28 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Colour scale with trigger in legend
   p <- p + build_colour_scale(has_incident = has_incident)
 
-  # Baseline vline — mapped to alpha legend for "Baseline \nMonitoring End"
+  # Custom key glyph: vertical dotted line matching the plot element
+  draw_key_vdotted <- function(data, params, size) {
+    key_col <- if (is.null(data$colour) || is.na(data$colour)) "black" else data$colour
+    key_lwd <- if (is.null(data$linewidth) || is.na(data$linewidth)) 0.5 else data$linewidth
+    grid::linesGrob(
+      x = c(0.5, 0.5),
+      y = c(0.1, 0.9),
+      gp = grid::gpar(
+        col = key_col,
+        lwd = key_lwd * ggplot2::.pt,
+        lty = "dotted"
+      )
+    )
+  }
+
+  # Baseline vline — mapped to colour scale with vertical dotted key glyph.
   p <- p +
     geom_vline(
       aes(xintercept = as.numeric(BASELINE_END),
-          alpha = "Baseline \nMonitoring End"),
-      linetype = "dashed", linewidth = 0.8
-    ) +
-    scale_alpha_manual(
-      name = NULL,
-      values = c(1),
-      breaks = c("Baseline \nMonitoring End"),
-      guide = guide_legend(
-        label.hjust = 0,
-        label.theme = element_text(size = 9),
-        label.position = "right",
-        override.aes = list(linetype = "dashed", colour = "black")
-      )
+          colour = "Baseline \nMonitoring End"),
+      linetype = "dotted", linewidth = 0.8,
+      key_glyph = draw_key_vdotted
     )
 
   # Summer shading
@@ -183,12 +224,13 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
 #' @param triggers_df Data frame from compute_macro_triggers().
 #' @param output_dir Output directory.
 plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
+  macro1_df <- normalise_period(macro1_df)
   metrics <- c("QMCI", "EPTrich", "EPTabun")
   sites <- sort(unique(macro1_df$Site))
 
   for (site in sites) {
     site_df <- macro1_df |> filter(Site == site)
-    has_incident <- "Incident" %in% unique(site_df$Period)
+    has_incident <- "Incident" %in% as.character(site_df$Period)
     panels <- list()
 
     for (i in seq_along(metrics)) {
@@ -232,13 +274,14 @@ plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
 #' @param triggers_df Data frame from compute_macro_triggers().
 #' @param output_dir Output directory.
 plot_macro_individual <- function(macro1_df, triggers_df, output_dir) {
+  macro1_df <- normalise_period(macro1_df)
   metrics <- c("QMCI", "EPTrich", "EPTabun")
   metric_filenames <- c(QMCI = "qmci", EPTrich = "ept_rich", EPTabun = "ept_abun")
   sites <- sort(unique(macro1_df$Site))
 
   for (site in sites) {
     site_df <- macro1_df |> filter(Site == site)
-    has_incident <- "Incident" %in% unique(site_df$Period)
+    has_incident <- "Incident" %in% as.character(site_df$Period)
     safe_site <- gsub(" ", "_", site)
 
     for (metric in metrics) {

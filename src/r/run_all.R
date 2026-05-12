@@ -5,7 +5,7 @@
 #   Rscript src/r/run_all.R [path/to/Data.xlsx] [figures_dir] [tables_dir]
 #
 # Defaults:
-#   Data.xlsx:   ref/Data.xlsx
+#   Data.xlsx:   cycle.toml data_xlsx (fallback ref/Data.xlsx)
 #   figures_dir: src/r/outputs/
 #   tables_dir:  same as figures_dir
 
@@ -49,7 +49,24 @@ source(file.path(helpers_dir, "clarity_plots.R"))
 
 # --- Parse arguments ---
 args <- commandArgs(trailingOnly = TRUE)
-xlsx_path <- if (length(args) >= 1) args[1] else file.path(project_root, "ref", "Data.xlsx")
+
+resolve_default_xlsx <- function(project_root) {
+  cycle_path <- file.path(project_root, "cycle.toml")
+  if (file.exists(cycle_path)) {
+    toml_lines <- readLines(cycle_path, warn = FALSE)
+    data_lines <- grep("^data_xlsx\\s*=", toml_lines, value = TRUE)
+    if (length(data_lines) == 1) {
+      parsed <- gsub('.*"([^"]+)".*', "\\1", data_lines[[1]])
+      if (nzchar(parsed) && file.exists(parsed)) return(parsed)
+      warning("cycle.toml data_xlsx path not found on disk: ", parsed)
+    } else if (length(data_lines) > 1) {
+      warning("cycle.toml has multiple data_xlsx entries; using ref/Data.xlsx fallback")
+    }
+  }
+  file.path(project_root, "ref", "Data.xlsx")
+}
+
+xlsx_path <- if (length(args) >= 1) args[1] else resolve_default_xlsx(project_root)
 output_dir <- if (length(args) >= 2) args[2] else file.path(project_root, "src", "r", "outputs")
 tables_dir <- if (length(args) >= 3) args[3] else output_dir
 
@@ -95,6 +112,8 @@ dir.create(macro_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("--- Macro Metric Plots ---")
 if (!is.null(data$Macro1)) {
+  data$Macro1 <- ensure_ept_percentage(data$Macro1)
+  data$Macro1 <- normalise_period(data$Macro1)
   macro_triggers <- compute_macro_triggers(data$Macro1)
   plot_macro_combined(data$Macro1, macro_triggers, macro_fig_dir)
   plot_macro_individual(data$Macro1, macro_triggers, macro_fig_dir)
