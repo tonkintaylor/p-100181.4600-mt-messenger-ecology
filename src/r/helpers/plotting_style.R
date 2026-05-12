@@ -22,12 +22,12 @@ PERIOD_COLORS <- c(
 
 ALL_SITES <- c("EM1", "EM2", "EM3", "EM5", "EM4", "EM7", "EM8")
 
-SITE_SHIFT_SHAPE <- 17  # filled triangle for all shift markers
+SITE_SHIFT_SHAPE <- 8  # asterisk — less likely to be mistaken for a data point
 
 SITE_SHIFT_EVENTS <- data.frame(
   Site = c("EM2", "EM7", "EM7"),
   Date = as.Date(c("2020-11-01", "2023-11-01", "2025-11-01")),
-  Label = c("Site shift (Nov 2020)", "Site shift (Nov 2023)", "Site shift (Nov 2025)"),
+  Label = c("* Site shifted (Nov 2020)", "* Site shifted (Nov 2023)", "* Site shifted (Nov 2025)"),
   Period = c("Baseline", "Routine Construction", "Routine Construction"),
   stringsAsFactors = FALSE
 )
@@ -143,7 +143,7 @@ get_site_shift_events <- function(site) {
 }
 
 
-#' Add site-shift triangle markers and legend to a ggplot.
+#' Add site-shift asterisk markers and legend to a ggplot.
 #'
 #' @param p A ggplot object.
 #' @param shift_events Data frame from get_site_shift_events(), must include
@@ -162,8 +162,8 @@ add_site_shift_layer <- function(p, shift_events) {
       aes(x = Date, y = Y, shape = Label),
       inherit.aes = FALSE,
       colour = shift_events$Colour,
-      size = 2.8,
-      stroke = 0.8
+      size = 3.5,
+      stroke = 1.0
     ) +
     scale_shape_manual(
       values = shift_shapes,
