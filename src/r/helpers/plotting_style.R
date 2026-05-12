@@ -22,11 +22,7 @@ PERIOD_COLORS <- c(
 
 ALL_SITES <- c("EM1", "EM2", "EM3", "EM5", "EM4", "EM7", "EM8")
 
-SITE_SHIFT_SHAPES <- c(
-  "Site shift (Nov 2020)" = 17,
-  "Site shift (Nov 2023)" = 17,
-  "Site shift (Nov 2025)" = 17
-)
+SITE_SHIFT_SHAPE <- 17  # filled triangle for all shift markers
 
 SITE_SHIFT_EVENTS <- data.frame(
   Site = c("EM2", "EM7", "EM7"),
@@ -138,10 +134,47 @@ get_site_shift_events <- function(site) {
   events <- SITE_SHIFT_EVENTS |>
     dplyr::filter(Site == site) |>
     dplyr::mutate(
-      Shape = unname(SITE_SHIFT_SHAPES[Label]),
+      Shape = SITE_SHIFT_SHAPE,
       Colour = unname(PERIOD_COLORS[Period])
     ) |>
     dplyr::select(Date, Label, Shape, Colour)
 
   events
+}
+
+
+#' Add site-shift triangle markers and legend to a ggplot.
+#'
+#' @param p A ggplot object.
+#' @param shift_events Data frame from get_site_shift_events(), must include
+#'   Date, Label, Shape, Colour, and Y columns.
+#' @return The plot with shift markers added, or unchanged if no events.
+add_site_shift_layer <- function(p, shift_events) {
+  if (nrow(shift_events) == 0) return(p)
+
+  shift_shapes <- setNames(shift_events$Shape, shift_events$Label)
+  shift_labels <- unique(shift_events$Label)
+  shift_colours <- setNames(shift_events$Colour, shift_events$Label)
+
+  p +
+    geom_point(
+      data = shift_events,
+      aes(x = Date, y = Y, shape = Label),
+      inherit.aes = FALSE,
+      colour = shift_events$Colour,
+      size = 2.8,
+      stroke = 0.8
+    ) +
+    scale_shape_manual(
+      values = shift_shapes,
+      breaks = shift_labels,
+      limits = shift_labels,
+      name = NULL,
+      guide = guide_legend(
+        override.aes = list(
+          colour = unname(shift_colours[shift_labels]),
+          linetype = rep("blank", length(shift_labels))
+        )
+      )
+    )
 }

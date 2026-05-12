@@ -203,32 +203,7 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   if (nrow(shift_events) > 0) {
     shift_events <- shift_events |>
       mutate(Y = MACRO_YLIMS[[metric]][2] * 0.95)
-
-    shift_shapes <- setNames(shift_events$Shape, shift_events$Label)
-    shift_labels <- unique(shift_events$Label)
-    shift_colours <- setNames(shift_events$Colour, shift_events$Label)
-
-    p <- p +
-      geom_point(
-        data = shift_events,
-        aes(x = Date, y = Y, shape = Label),
-        inherit.aes = FALSE,
-        colour = shift_events$Colour,
-        size = 2.8,
-        stroke = 0.8
-      ) +
-      scale_shape_manual(
-        values = shift_shapes,
-        breaks = shift_labels,
-        limits = shift_labels,
-        name = NULL,
-        guide = guide_legend(
-          override.aes = list(
-            colour = unname(shift_colours[shift_labels]),
-            linetype = rep("blank", length(shift_labels))
-          )
-        )
-      )
+    p <- add_site_shift_layer(p, shift_events)
   }
 
   # Summer shading
