@@ -115,7 +115,7 @@ build_colour_scale <- function(has_incident = FALSE) {
   )
   brks <- c(base_brks, "Trigger Level", "Baseline \nMonitoring End")
   overrides <- list(
-    linetype = c(base_lt, "solid", "dotted"),
+    linetype = c(base_lt, "solid", "blank"),
     shape = c(base_shape, NA, NA),
     linewidth = c(base_lw, 0.8, 0.8)
   )
