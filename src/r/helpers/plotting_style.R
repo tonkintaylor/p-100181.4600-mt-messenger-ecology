@@ -167,7 +167,7 @@ add_site_shift_annotations <- function(p, site, plot_data, x_col = "Date",
     ann_y <- plot_data[[y_col]][nearest_idx] + y_nudge
 
     p <- p + annotate("text", x = ann_x, y = ann_y,
-                       label = "*", size = 8, vjust = -0.1,
+                       label = "*", size = 6, hjust = -0.3, vjust = 0.2,
                        colour = "black", fontface = "bold")
   }
   p
