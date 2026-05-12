@@ -85,41 +85,41 @@ compute_metric_summary <- function(site_df, metric) {
 }
 
 
-#' Build the colour scale with Trigger Level in legend.
+#' Build the colour scale with Trigger Level and Baseline Monitoring End.
 #'
-#' Maps Period values + "Trigger Level" to colours. The legend shows
-#' points for period entries and a solid line for the trigger.
+#' Maps Period values + "Trigger Level" + "Baseline Monitoring End" to colours.
 #' Uses explicit breaks/limits so legend entries are always consistent.
 #' @param has_incident Whether to include Incident in the scale.
 #' @return A scale_colour_manual layer.
 build_colour_scale <- function(has_incident = FALSE) {
+  base_vals <- c(
+    "Baseline" = "#ff9f1c",
+    "Routine Construction" = "#2ec4b6"
+  )
+  base_brks <- c("Baseline", "Routine Construction")
+  base_lt <- c("blank", "blank")
+  base_shape <- c(16, 16)
+  base_lw <- c(NA, NA)
+
   if (has_incident) {
-    vals <- c(
-      "Baseline" = "#ff9f1c",
-      "Routine Construction" = "#2ec4b6",
-      "Incident" = "#e71d36",
-      "Trigger Level" = "black"
-    )
-    brks <- c("Baseline", "Routine Construction", "Incident",
-              "Trigger Level")
-    overrides <- list(
-      linetype = c("blank", "blank", "blank", "solid"),
-      shape = c(16, 16, 16, NA),
-      linewidth = c(NA, NA, NA, 0.8)
-    )
-  } else {
-    vals <- c(
-      "Baseline" = "#ff9f1c",
-      "Routine Construction" = "#2ec4b6",
-      "Trigger Level" = "black"
-    )
-    brks <- c("Baseline", "Routine Construction", "Trigger Level")
-    overrides <- list(
-      linetype = c("blank", "blank", "solid"),
-      shape = c(16, 16, NA),
-      linewidth = c(NA, NA, 0.8)
-    )
+    base_vals <- c(base_vals, "Incident" = "#e71d36")
+    base_brks <- c(base_brks, "Incident")
+    base_lt <- c(base_lt, "blank")
+    base_shape <- c(base_shape, 16)
+    base_lw <- c(base_lw, NA)
   }
+
+  vals <- c(base_vals,
+    "Trigger Level" = "black",
+    "Baseline \nMonitoring End" = "black"
+  )
+  brks <- c(base_brks, "Trigger Level", "Baseline \nMonitoring End")
+  overrides <- list(
+    linetype = c(base_lt, "solid", "dotted"),
+    shape = c(base_shape, NA, NA),
+    linewidth = c(base_lw, 0.8, 0.8)
+  )
+
   scale_colour_manual(
     values = vals,
     breaks = brks,
@@ -172,34 +172,13 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Colour scale with trigger in legend
   p <- p + build_colour_scale(has_incident = has_incident)
 
-  # Baseline vline — dotted line with custom legend glyph that draws visible dots.
-  draw_key_dotted <- function(data, params, size) {
-    n <- 5
-    grid::pointsGrob(
-      x = seq(0.1, 0.9, length.out = n),
-      y = rep(0.5, n),
-      pch = 20,
-      size = grid::unit(3, "pt"),
-      gp = grid::gpar(col = data$colour %||% "black")
-    )
-  }
-
+  # Baseline vline — mapped to colour scale (same legend as Trigger Level).
+  # linetype = "dotted" is set directly; the legend inherits via override.aes.
   p <- p +
     geom_vline(
       aes(xintercept = as.numeric(BASELINE_END),
-          linetype = "Baseline \nMonitoring End"),
-      colour = "black", linewidth = 0.8,
-      key_glyph = draw_key_dotted
-    ) +
-    scale_linetype_manual(
-      name = NULL,
-      values = c("Baseline \nMonitoring End" = "dotted"),
-      guide = guide_legend(
-        label.hjust = 0,
-        label.theme = element_text(size = 9),
-        label.position = "right",
-        override.aes = list(colour = "black")
-      )
+          colour = "Baseline \nMonitoring End"),
+      linetype = "dotted", linewidth = 0.8
     )
 
   # Summer shading
