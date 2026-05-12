@@ -68,6 +68,38 @@ plot_sediment_size_distribution <- function(sed_size_df, output_dir,
         legend.title = element_text(size = 14)
       )
 
+    shift_events <- get_site_shift_events(site) |>
+      mutate(
+        Date = format(Date, "%d/%m/%Y"),
+        Date = factor(Date, levels = levels(long_df$Date)),
+        Y = 102
+      ) |>
+      filter(!is.na(Date))
+
+    if (nrow(shift_events) > 0) {
+      shift_shapes <- setNames(shift_events$Shape, shift_events$Label)
+      shift_labels <- unique(shift_events$Label)
+      shift_colours <- setNames(shift_events$Colour, shift_events$Label)
+      p <- p +
+        geom_point(
+          data = shift_events,
+          aes(x = Date, y = Y, shape = Label),
+          inherit.aes = FALSE,
+          colour = shift_events$Colour,
+          size = 2.8,
+          stroke = 0.8
+        ) +
+        scale_shape_manual(
+          values = shift_shapes,
+          breaks = shift_labels,
+          limits = shift_labels,
+          name = NULL,
+          guide = guide_legend(
+            override.aes = list(colour = unname(shift_colours[shift_labels]))
+          )
+        )
+    }
+
     # Add construction line if applicable
     if (!is.na(constr_idx) && constr_idx > 1) {
       p <- p +
@@ -123,6 +155,34 @@ plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
         ) +
         scale_x_date(date_breaks = "3 months", date_labels = "%b %y") +
         theme(axis.text.x = element_text(angle = 90, hjust = 0.5))
+
+      shift_events <- get_site_shift_events(site)
+      if (nrow(shift_events) > 0) {
+        shift_events <- shift_events |>
+          mutate(Y = 98)
+        shift_shapes <- setNames(shift_events$Shape, shift_events$Label)
+        shift_labels <- unique(shift_events$Label)
+        shift_colours <- setNames(shift_events$Colour, shift_events$Label)
+
+        p <- p +
+          geom_point(
+            data = shift_events,
+            aes(x = Date, y = Y, shape = Label),
+            inherit.aes = FALSE,
+            colour = shift_events$Colour,
+            size = 2.8,
+            stroke = 0.8
+          ) +
+          scale_shape_manual(
+            values = shift_shapes,
+            breaks = shift_labels,
+            limits = shift_labels,
+            name = NULL,
+            guide = guide_legend(
+              override.aes = list(colour = unname(shift_colours[shift_labels]))
+            )
+          )
+      }
 
       # Trigger level
       if (!is.na(trigger_val)) {

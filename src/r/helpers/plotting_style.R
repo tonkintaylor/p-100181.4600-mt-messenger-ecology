@@ -22,6 +22,20 @@ PERIOD_COLORS <- c(
 
 ALL_SITES <- c("EM1", "EM2", "EM3", "EM5", "EM4", "EM7", "EM8")
 
+SITE_SHIFT_SHAPES <- c(
+  "Site shift (Nov 2020)" = 17,
+  "Site shift (Nov 2023)" = 17,
+  "Site shift (Nov 2025)" = 17
+)
+
+SITE_SHIFT_EVENTS <- data.frame(
+  Site = c("EM2", "EM7", "EM7"),
+  Date = as.Date(c("2020-11-01", "2023-11-01", "2025-11-01")),
+  Label = c("Site shift (Nov 2020)", "Site shift (Nov 2023)", "Site shift (Nov 2025)"),
+  Period = c("Baseline", "Routine Construction", "Routine Construction"),
+  stringsAsFactors = FALSE
+)
+
 
 #' Minimal ecology theme matching the R scripts' theme_minimal(base_size=14).
 theme_ecology <- function(base_size = 14) {
@@ -113,4 +127,21 @@ add_baseline_vline <- function(p) {
     xintercept = as.numeric(BASELINE_END),
     linetype = "dashed", linewidth = 0.8, alpha = 0.7
   )
+}
+
+
+#' Return configured site shift events for a site.
+#'
+#' @param site Site code (e.g. EM2, EM7).
+#' @return Data frame with Date, Label, Shape, and Colour columns.
+get_site_shift_events <- function(site) {
+  events <- SITE_SHIFT_EVENTS |>
+    dplyr::filter(Site == site) |>
+    dplyr::mutate(
+      Shape = unname(SITE_SHIFT_SHAPES[Label]),
+      Colour = unname(PERIOD_COLORS[Period])
+    ) |>
+    dplyr::select(Date, Label, Shape, Colour)
+
+  events
 }

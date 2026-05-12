@@ -137,9 +137,11 @@ build_colour_scale <- function(has_incident = FALSE) {
 #' @param trigger_val Trigger level (or NA).
 #' @param has_incident Whether site has Incident period data.
 #' @param show_x_axis Whether to show x-axis labels.
+#' @param site Site code.
 #' @return ggplot object.
 make_metric_panel <- function(summary_df, metric, trigger_val = NA,
-                              has_incident = FALSE, show_x_axis = FALSE) {
+                              has_incident = FALSE, show_x_axis = FALSE,
+                              site = NA_character_) {
   # Build trigger data frame for legend-mapped geom_hline
   trigger_df <- if (!is.na(trigger_val)) {
     data.frame(yintercept = trigger_val, Lines = "Trigger Level")
@@ -197,6 +199,35 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
       key_glyph = draw_key_vdotted
     )
 
+  shift_events <- get_site_shift_events(site)
+  if (nrow(shift_events) > 0) {
+    shift_events <- shift_events |>
+      mutate(Y = MACRO_YLIMS[[metric]][2] * 0.95)
+
+    shift_shapes <- setNames(shift_events$Shape, shift_events$Label)
+    shift_labels <- unique(shift_events$Label)
+    shift_colours <- setNames(shift_events$Colour, shift_events$Label)
+
+    p <- p +
+      geom_point(
+        data = shift_events,
+        aes(x = Date, y = Y, shape = Label),
+        inherit.aes = FALSE,
+        colour = shift_events$Colour,
+        size = 2.8,
+        stroke = 0.8
+      ) +
+      scale_shape_manual(
+        values = shift_shapes,
+        breaks = shift_labels,
+        limits = shift_labels,
+        name = NULL,
+        guide = guide_legend(
+          override.aes = list(colour = unname(shift_colours[shift_labels]))
+        )
+      )
+  }
+
   # Summer shading
   year_min <- min(year(summary_df$Date), na.rm = TRUE)
   year_max <- max(year(summary_df$Date), na.rm = TRUE)
@@ -245,7 +276,7 @@ plot_macro_combined <- function(macro1_df, triggers_df, output_dir) {
       show_x <- (i == length(metrics))
       panels[[i]] <- make_metric_panel(
         summary_df, metric, trigger_val,
-        has_incident = has_incident, show_x_axis = show_x
+        has_incident = has_incident, show_x_axis = show_x, site = site
       )
     }
 
@@ -294,7 +325,7 @@ plot_macro_individual <- function(macro1_df, triggers_df, output_dir) {
 
       p <- make_metric_panel(
         summary_df, metric, trigger_val,
-        has_incident = has_incident, show_x_axis = TRUE
+        has_incident = has_incident, show_x_axis = TRUE, site = site
       ) +
         labs(title = paste(site, "\u2014", MACRO_LABELS[[metric]])) +
         theme(plot.title = element_text(face = "bold", size = 14))
