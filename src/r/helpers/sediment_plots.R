@@ -68,6 +68,20 @@ plot_sediment_size_distribution <- function(sed_size_df, output_dir,
         legend.title = element_text(size = 14)
       )
 
+    shift_events <- get_site_shift_events(site) |>
+      mutate(
+        Date = format(Date, "%d/%m/%Y"),
+        Date = factor(Date, levels = levels(long_df$Date)),
+        Y = 102
+      )
+    n_dropped <- sum(is.na(shift_events$Date))
+    if (n_dropped > 0) {
+      message("Note: ", n_dropped, " site shift event(s) for ", site,
+              " not shown - no matching sampling date in size distribution data")
+    }
+    shift_events <- shift_events |> filter(!is.na(Date))
+    p <- add_site_shift_layer(p, shift_events)
+
     # Add construction line if applicable
     if (!is.na(constr_idx) && constr_idx > 1) {
       p <- p +
@@ -123,6 +137,13 @@ plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
         ) +
         scale_x_date(date_breaks = "3 months", date_labels = "%b %y") +
         theme(axis.text.x = element_text(angle = 90, hjust = 0.5))
+
+      shift_events <- get_site_shift_events(site)
+      if (nrow(shift_events) > 0) {
+        shift_events <- shift_events |>
+          mutate(Y = 98)
+        p <- add_site_shift_layer(p, shift_events)
+      }
 
       # Trigger level
       if (!is.na(trigger_val)) {
