@@ -223,7 +223,10 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
         limits = shift_labels,
         name = NULL,
         guide = guide_legend(
-          override.aes = list(colour = unname(shift_colours[shift_labels]))
+          override.aes = list(
+            colour = unname(shift_colours[shift_labels]),
+            linetype = rep("blank", length(shift_labels))
+          )
         )
       )
   }

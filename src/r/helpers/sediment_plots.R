@@ -95,7 +95,10 @@ plot_sediment_size_distribution <- function(sed_size_df, output_dir,
           limits = shift_labels,
           name = NULL,
           guide = guide_legend(
-            override.aes = list(colour = unname(shift_colours[shift_labels]))
+            override.aes = list(
+              colour = unname(shift_colours[shift_labels]),
+              linetype = rep("blank", length(shift_labels))
+            )
           )
         )
     }
@@ -179,7 +182,10 @@ plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
             limits = shift_labels,
             name = NULL,
             guide = guide_legend(
-              override.aes = list(colour = unname(shift_colours[shift_labels]))
+              override.aes = list(
+                colour = unname(shift_colours[shift_labels]),
+                linetype = rep("blank", length(shift_labels))
+              )
             )
           )
       }
