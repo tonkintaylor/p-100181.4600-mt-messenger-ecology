@@ -94,6 +94,24 @@ VS Code configuration:
 
 ## Development
 
+### Running Python code
+
+Python code is run through uv to ensure the virtual environment is used:
+
+```powershell
+uv run python src/scripts/my_script.py
+uv run mgen data
+```
+
+### Running R code
+
+R scripts can be run directly with Rscript. The `.Rprofile` activates
+renv automatically:
+
+```powershell
+Rscript src/r/run_all.R
+```
+
 ### Running tests
 
 ```powershell
@@ -137,20 +155,6 @@ renv::restore()
 
 Or just re-run `./tasks/dev_sync.ps1` — it restores both Python and R
 packages automatically.
-
-### Releasing a version
-
-```powershell
-./tasks/release.ps1
-```
-
-The branch will be automatically created and pushed, ready for a PR.
-
-### Changelog
-
-Add a new file at `doc/whatsnew/{issue_num}.{entry_type}.md` where
-`{entry_type}` is one of `feature`, `bugfix`, `doc`, `removal`,
-`newhome`, `test`, or `devconfig`.
 
 ## Licence
 
