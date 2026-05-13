@@ -62,6 +62,20 @@ load_all_data <- function(xlsx_path) {
       mutate(Date = as.Date(Date))
   }
 
+  # --- RPD (residual pool depth summary) ---
+  if ("RPD" %in% sheets) {
+    data$RPD <- read_excel(xlsx_path, sheet = "RPD") |>
+      clean_colnames() |>
+      mutate(Date = as.Date(Date))
+  }
+
+  # --- LDV (low-flow depth variability, CV%) ---
+  if ("LDV" %in% sheets) {
+    data$LDV <- read_excel(xlsx_path, sheet = "LDV") |>
+      clean_colnames() |>
+      mutate(Date = as.Date(Date))
+  }
+
   # --- Community (wide-format species matrix, derived from MacroSpecies) ---
   if (!is.null(data$MacroSpecies)) {
     data$Community <- derive_community_matrix(data$MacroSpecies)

@@ -13,9 +13,11 @@ import pandas as pd
 
 from mgen.shared.schemas import (
     CLARITY_COLUMNS,
+    LDV_COLUMNS,
     MACRO1_COLUMNS,
     MACRO_COLUMNS,
     MACRO_SPECIES_COLUMNS,
+    RPD_COLUMNS,
     SEDIMENT_COLUMNS,
     SEDIMENT_SIZE_COLUMNS,
 )
@@ -24,7 +26,16 @@ __all__ = ["SHEET_ORDER", "write_data_xlsx"]
 
 logger = logging.getLogger(__name__)
 
-SHEET_ORDER = ["Macro", "Macro1", "MacroSpecies", "Sediment", "SedimentSize", "Clarity"]
+SHEET_ORDER = [
+    "Macro",
+    "Macro1",
+    "MacroSpecies",
+    "Sediment",
+    "SedimentSize",
+    "Clarity",
+    "RPD",
+    "LDV",
+]
 
 _SCHEMA_MAP: dict[str, list[str]] = {
     "Macro": MACRO_COLUMNS,
@@ -33,6 +44,8 @@ _SCHEMA_MAP: dict[str, list[str]] = {
     "Sediment": SEDIMENT_COLUMNS,
     "SedimentSize": SEDIMENT_SIZE_COLUMNS,
     "Clarity": CLARITY_COLUMNS,
+    "RPD": RPD_COLUMNS,
+    "LDV": LDV_COLUMNS,
 }
 
 

@@ -51,6 +51,7 @@ source(file.path(helpers_dir, "sediment_plots.R"))
 source(file.path(helpers_dir, "macro_plots.R"))
 source(file.path(helpers_dir, "nmds_plots.R"))
 source(file.path(helpers_dir, "clarity_plots.R"))
+source(file.path(helpers_dir, "habitat_plots.R"))
 
 # --- Parse arguments ---
 args <- commandArgs(trailingOnly = TRUE)
@@ -288,6 +289,25 @@ if (!is.null(data$Clarity)) {
   plot_clarity_ntu_relationship(data$Clarity, clarity_fig_dir)
 } else {
   message("  Skipped: no Clarity sheet found")
+}
+
+message("")
+
+# --- RPD & LDV (Habitat) ---
+habitat_fig_dir <- file.path(output_dir, "Habitat")
+dir.create(habitat_fig_dir, showWarnings = FALSE, recursive = TRUE)
+
+message("--- Habitat Plots (RPD & LDV) ---")
+if (!is.null(data$RPD)) {
+  plot_rpd_by_catchment(data$RPD, habitat_fig_dir)
+} else {
+  message("  Skipped: no RPD sheet found")
+}
+
+if (!is.null(data$LDV)) {
+  plot_ldv_by_catchment(data$LDV, habitat_fig_dir)
+} else {
+  message("  Skipped: no LDV sheet found")
 }
 
 message("")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import typing
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +10,10 @@ import pandas as pd
 import pytest
 
 from mgen.domain.clarity import process_clarity_domain
+from mgen.domain.ldv import process_ldv_domain
 from mgen.domain.macro import process_macro_domain
 from mgen.domain.macro_species import process_macro_species_domain
+from mgen.domain.rpd import process_rpd_domain
 from mgen.domain.sediment import process_sediment_domain
 from mgen.domain.sediment_size import process_sediment_size_domain
 from mgen.shared.schemas import (
@@ -97,6 +100,25 @@ def sample_data() -> dict[str, pd.DataFrame]:
                 "TSS-Lab": [5.0],
                 "Clarity (mm)": [1200.0],
                 "Comments": [None],
+            }
+        ),
+        "RPD": pd.DataFrame(
+            {
+                "Site": ["EM1"],
+                "Date": pd.to_datetime(["2024-11-06"]),
+                "Count": [3],
+                "Mean": [38.7],
+                "StdDev": [16.8],
+                "CI_Lower": [19.7],
+                "CI_Upper": [57.7],
+            }
+        ),
+        "LDV": pd.DataFrame(
+            {
+                "Site": ["EM1"],
+                "Date": pd.to_datetime(["2024-11-06"]),
+                "Season": ["Spring"],
+                "CV_pct": [58.38],
             }
         ),
     }
@@ -225,12 +247,16 @@ class TestGoldenFileComparison:
         sed_result = process_sediment_domain(example_aquatic_db)
         sed_size_result = process_sediment_size_domain(example_aquatic_db)
         clarity_result = process_clarity_domain(example_aquatic_db)
+        rpd_result = process_rpd_domain(example_aquatic_db)
+        ldv_result = process_ldv_domain(example_aquatic_db)
 
         assert macro_result.ok, macro_result.errors
         assert species_result.ok, species_result.errors
         assert sed_result.ok, sed_result.errors
         assert sed_size_result.ok, sed_size_result.errors
         assert clarity_result.ok, clarity_result.errors
+        assert rpd_result.ok, rpd_result.errors
+        assert ldv_result.ok, ldv_result.errors
 
         data: dict[str, pd.DataFrame] = {}
         data.update(macro_result.data)
@@ -238,6 +264,8 @@ class TestGoldenFileComparison:
         data.update(sed_result.data)
         data.update(sed_size_result.data)
         data.update(clarity_result.data)
+        data.update(rpd_result.data)
+        data.update(ldv_result.data)
         return data
 
     def test_all_sheets_produced(self, pipeline_data: dict[str, pd.DataFrame]) -> None:
@@ -252,9 +280,15 @@ class TestGoldenFileComparison:
         write_data_xlsx(pipeline_data, output_path)
         assert output_path.exists()
 
+    # Sheets present in the golden file — new sheets (RPD, LDV) are excluded
+    # until the golden file is updated in a follow-up commit.
+    _GOLDEN_SHEETS: typing.ClassVar[list[str]] = [
+        s for s in SHEET_ORDER if s not in ("RPD", "LDV")
+    ]
+
     @pytest.mark.parametrize(
         "sheet_name",
-        SHEET_ORDER,
+        _GOLDEN_SHEETS,
     )
     def test_sheet_matches_golden_file(
         self,
