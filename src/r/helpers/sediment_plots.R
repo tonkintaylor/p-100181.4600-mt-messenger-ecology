@@ -104,7 +104,7 @@ plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
 
     for (metric in c("SAM1", "SAM3")) {
       p <- ggplot(site_df, aes(x = Date, y = .data[[metric]], colour = Period)) +
-        geom_point(size = 2.5) +
+        geom_point(size = 2.5, key_glyph = draw_key_coloured_bg) +
         scale_colour_manual(values = c(
           "Baseline" = "#ff9f1c",
           "Routine Construction" = "#2ec4b6",
@@ -114,11 +114,13 @@ plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
         labs(
           title = paste(site, "\u2014", metric),
           x = "",
-          y = paste0(metric, " Mean Sediment Cover (%)")
+          y = paste0(metric, " Mean Sediment Cover (%)"),
+          colour = NULL
         ) +
         theme_minimal(base_size = 14) +
         theme(
           legend.position = "right",
+          legend.key.size = unit(0.9, "cm"),
           axis.title = element_text(face = "bold")
         ) +
         scale_x_date(date_breaks = "3 months", date_labels = "%b %y") +

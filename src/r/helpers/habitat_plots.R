@@ -20,17 +20,6 @@ SITE_COLOURS <- c(
   "EM8" = "#a6761d"
 )
 
-# Custom legend key glyph: coloured background rectangle with solid black symbol.
-draw_key_site <- function(data, params, size) {
-  bg_col <- if (!is.null(data$colour) && !is.na(data$colour)) data$colour else "grey80"
-  grid::grobTree(
-    grid::rectGrob(gp = grid::gpar(fill = bg_col, col = NA)),
-    grid::pointsGrob(0.5, 0.5, pch = 16,
-                     gp = grid::gpar(col = "black"),
-                     size = unit(0.8, "char"))
-  )
-}
-
 
 #' Plot mean RPD per catchment with 95% CI error bars.
 #'
@@ -58,7 +47,7 @@ plot_rpd_by_catchment <- function(rpd_df, output_dir) {
         width = 16, linewidth = 0.4, alpha = 0.6, show.legend = FALSE
       ) +
       geom_line(linewidth = 0.6, alpha = 0.7, show.legend = FALSE) +
-      geom_point(size = 2.5, key_glyph = draw_key_site) +
+      geom_point(size = 2.5, key_glyph = draw_key_coloured_bg) +
       scale_colour_manual(values = SITE_COLOURS) +
       labs(
         title = paste(catchment_name, "\u2014 Mean Residual Pool Depth"),
@@ -109,7 +98,7 @@ plot_ldv_by_catchment <- function(ldv_df, output_dir) {
 
     p <- ggplot(catch_df, aes(x = Date, y = CV_pct, colour = Site)) +
       geom_line(linewidth = 0.6, alpha = 0.7, show.legend = FALSE) +
-      geom_point(size = 2.5, key_glyph = draw_key_site) +
+      geom_point(size = 2.5, key_glyph = draw_key_coloured_bg) +
       scale_colour_manual(values = SITE_COLOURS) +
       labs(
         title = paste(catchment_name, "\u2014 Low-flow Depth Variability"),

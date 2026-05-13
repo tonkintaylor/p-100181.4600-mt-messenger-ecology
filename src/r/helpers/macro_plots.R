@@ -152,15 +152,16 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   p <- ggplot(summary_df, aes(x = Date, y = Mean, colour = Period)) +
     geom_errorbar(
       aes(ymin = CI_lower, ymax = CI_upper),
-      width = 16, linewidth = 0.5
+      width = 16, linewidth = 0.5, show.legend = FALSE
     ) +
-    geom_point(size = 2.5) +
+    geom_point(size = 2.5, key_glyph = draw_key_coloured_bg) +
     coord_cartesian(ylim = MACRO_YLIMS[[metric]]) +
     labs(y = MACRO_LABELS[[metric]], x = "") +
     theme_light(base_size = 12) +
     theme(
       legend.title = element_blank(),
       legend.text = element_text(size = 9),
+      legend.key.size = unit(0.9, "cm"),
       legend.position = "right"
     )
 

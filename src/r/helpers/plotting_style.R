@@ -33,6 +33,23 @@ SITE_SHIFT_EVENTS <- data.frame(
 )
 
 
+#' Custom legend key glyph: coloured background with solid black symbol.
+#'
+#' Draws a filled rectangle using the mapped colour as background, then a
+#' solid black point on top. If shape is NA (e.g. for Trigger Level entries)
+#' draws only a line instead.
+draw_key_coloured_bg <- function(data, params, size) {
+  bg_col <- if (!is.null(data$colour) && !is.na(data$colour)) data$colour else "grey80"
+  shp <- if (!is.null(data$shape) && !is.na(data$shape)) data$shape else 16
+  grid::grobTree(
+    grid::rectGrob(gp = grid::gpar(fill = bg_col, col = NA)),
+    grid::pointsGrob(0.5, 0.5, pch = shp,
+                     gp = grid::gpar(col = "black", fill = "black"),
+                     size = unit(0.8, "char"))
+  )
+}
+
+
 #' Minimal ecology theme matching the R scripts' theme_minimal(base_size=14).
 theme_ecology <- function(base_size = 14) {
   theme_minimal(base_size = base_size) +
