@@ -41,14 +41,17 @@ plot_rpd_by_catchment <- function(rpd_df, output_dir) {
       next
     }
 
-    p <- ggplot(catch_df, aes(x = Date, y = Mean, colour = Site)) +
+    p <- ggplot(catch_df, aes(x = Date, y = Mean, fill = Site)) +
       geom_errorbar(
         aes(ymin = CI_Lower, ymax = CI_Upper),
-        width = 16, linewidth = 0.4, alpha = 0.6
+        width = 16, linewidth = 0.4, alpha = 0.6, colour = "black"
       ) +
-      geom_line(linewidth = 0.6, alpha = 0.7) +
-      geom_point(size = 2.5) +
+      geom_line(aes(group = Site, colour = Site), linewidth = 0.6, alpha = 0.7,
+                show.legend = FALSE) +
+      geom_point(shape = 21, size = 3, colour = "black", stroke = 0.5) +
+      scale_fill_manual(values = SITE_COLOURS) +
       scale_colour_manual(values = SITE_COLOURS) +
+      guides(fill = guide_legend(override.aes = list(shape = 21, size = 4))) +
       labs(
         title = paste(catchment_name, "\u2014 Mean Residual Pool Depth"),
         x = "",
@@ -95,10 +98,13 @@ plot_ldv_by_catchment <- function(ldv_df, output_dir) {
       next
     }
 
-    p <- ggplot(catch_df, aes(x = Date, y = CV_pct, colour = Site)) +
-      geom_line(linewidth = 0.6, alpha = 0.7) +
-      geom_point(size = 2.5) +
+    p <- ggplot(catch_df, aes(x = Date, y = CV_pct, fill = Site)) +
+      geom_line(aes(group = Site, colour = Site), linewidth = 0.6, alpha = 0.7,
+                show.legend = FALSE) +
+      geom_point(shape = 21, size = 3, colour = "black", stroke = 0.5) +
+      scale_fill_manual(values = SITE_COLOURS) +
       scale_colour_manual(values = SITE_COLOURS) +
+      guides(fill = guide_legend(override.aes = list(shape = 21, size = 4))) +
       labs(
         title = paste(catchment_name, "\u2014 Low-flow Depth Variability"),
         x = "",
