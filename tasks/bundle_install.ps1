@@ -1,5 +1,5 @@
 # Mt Messenger Ecology Pipeline — Install from Bundle
-# Installs mgen without needing to clone the git repository.
+# Installs mgen globally via uv tool install — no venv activation needed.
 #
 # Usage:  Right-click → Run with PowerShell
 #         Or in PowerShell: .\install.ps1
@@ -21,24 +21,24 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     Write-Host "uv already installed."
 }
 
-# --- 2. Create venv and install mgen wheel ---
-Write-Host "Creating Python environment..."
-$venvDir = "$bundleDir\.venv"
-if (Test-Path $venvDir) { Remove-Item $venvDir -Recurse -Force }
-uv venv "$venvDir" --python 3.13
-if ($LASTEXITCODE -ne 0) { throw "Failed to create virtual environment" }
-
-Write-Host "Installing mgen..."
+# --- 2. Install mgen globally via uv tool install ---
+Write-Host "Installing mgen CLI tool..."
 $whl = Get-ChildItem "$bundleDir\mgen-*.whl" | Select-Object -First 1
 if (-not $whl) { throw "No mgen wheel found in bundle" }
-uv pip install $whl.FullName --python "$venvDir\Scripts\python.exe"
-if ($LASTEXITCODE -ne 0) { throw "Failed to install mgen wheel" }
+uv tool install $whl.FullName --force --python 3.13
+if ($LASTEXITCODE -ne 0) { throw "Failed to install mgen" }
+
+# Ensure uv tool bin is on PATH for this session
+$toolBin = & uv tool dir 2>$null | Split-Path -Parent
+$uvBin = "$env:USERPROFILE\.local\bin"
+if ($env:PATH -notlike "*$uvBin*") {
+    $env:PATH = "$uvBin;$env:PATH"
+}
 
 # --- 3. Install R + renv packages ---
 Write-Host ""
 Write-Host "Setting up R environment..."
 
-# Find R
 $rBin = Get-ChildItem "C:\Program Files\R" -Directory -ErrorAction SilentlyContinue |
     Sort-Object Name | Select-Object -Last 1
 if ($rBin) {
@@ -74,10 +74,9 @@ Write-Host "=== Installation Complete! ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "To use:"
 Write-Host "  1. Edit cycle.toml with your input/output paths"
-Write-Host "  2. Activate the environment:  .\.venv\Scripts\activate.ps1"
+Write-Host "  2. cd to this folder:  cd $bundleDir"
 Write-Host "  3. Run:  mgen all"
 Write-Host ""
-Write-Host "To generate figures only (R):  mgen figures"
-Write-Host "To process data only (Python): mgen data"
+Write-Host "No virtual environment activation needed — mgen is on your PATH."
 Write-Host ""
 Read-Host "Press Enter to exit"

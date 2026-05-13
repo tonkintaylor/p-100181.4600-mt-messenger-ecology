@@ -27,21 +27,24 @@ $whl = Get-ChildItem "dist\mgen-*.whl" | Sort-Object LastWriteTime | Select-Obje
 Write-Host "  Built: $($whl.Name)"
 
 # 2. Prepare output directory
-if (Test-Path $OutputDir) { Remove-Item $OutputDir -Recurse -Force }
-New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+if (Test-Path $OutputDir) {
+    # Clean files individually — avoids lock issues on network drives
+    Get-ChildItem $OutputDir -File | Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem $OutputDir -Directory | Where-Object { $_.Name -ne "renv" } |
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    # For renv dir, keep library/ (slow to recreate) but refresh config files
+    if (Test-Path "$OutputDir\renv") {
+        Get-ChildItem "$OutputDir\renv" -File | Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+} else {
+    New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+}
 New-Item -ItemType Directory -Path "$OutputDir\renv" -Force | Out-Null
 
 # 3. Copy wheel
 Copy-Item $whl.FullName "$OutputDir\" -Force
 
-# 4. Copy R code
-Write-Host "Copying R code..."
-Copy-Item "src\r" "$OutputDir\r" -Recurse -Force
-# Remove R test files and outputs from bundle
-Remove-Item "$OutputDir\r\tests" -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item "$OutputDir\r\outputs" -Recurse -Force -ErrorAction SilentlyContinue
-
-# 5. Copy renv infrastructure
+# 4. Copy renv infrastructure
 Write-Host "Copying renv lockfile..."
 Copy-Item "renv.lock" "$OutputDir\" -Force
 Copy-Item ".Rprofile" "$OutputDir\" -Force
@@ -49,10 +52,10 @@ Copy-Item "DESCRIPTION" "$OutputDir\" -Force
 Copy-Item "renv\activate.R" "$OutputDir\renv\" -Force
 Copy-Item "renv\settings.json" "$OutputDir\renv\" -Force
 
-# 6. Copy config template
+# 5. Copy config template
 Copy-Item "cycle.example.toml" "$OutputDir\" -Force
 
-# 7. Copy the install script
+# 6. Copy the install script
 Copy-Item "tasks\bundle_install.ps1" "$OutputDir\install.ps1" -Force
 
 Write-Host ""

@@ -103,8 +103,11 @@ def _run_r_figures(
         )
         sys.exit(1)
 
-    # Resolved relative to source tree — requires a dev checkout (not pip install).
-    r_script = Path(__file__).resolve().parent.parent / "r" / "run_all.R"
+    # Look for R code inside the installed package first, then fall back to
+    # the dev source layout (src/r/).
+    pkg_r = Path(__file__).resolve().parent / "r" / "run_all.R"
+    dev_r = Path(__file__).resolve().parent.parent / "r" / "run_all.R"
+    r_script = pkg_r if pkg_r.exists() else dev_r
     if not r_script.exists():
         click.echo(f"❌ R script not found: {r_script}", err=True)
         sys.exit(1)

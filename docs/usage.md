@@ -50,14 +50,14 @@ The install script will:
 
 [uv]: https://docs.astral.sh/uv/
 
-### Activating the environment
+### Using `mgen` after install
 
-In each new terminal session, activate the virtual environment before
-running `mgen`:
+After running `install.ps1`, the `mgen` command is available globally —
+no virtual environment activation needed:
 
 ```powershell
 cd R:\BEKA\mt_messenger
-.\.venv\Scripts\activate.ps1
+mgen all
 ```
 
 ## Configuration
@@ -179,7 +179,13 @@ Tables/
 
 ### `mgen` command not found
 
-Activate the virtual environment first:
+Re-run the install script to register `mgen` on your PATH:
+
+```powershell
+./tasks/install.ps1
+```
+
+If using a developer checkout, activate the virtual environment:
 
 ```powershell
 .\.venv\Scripts\activate.ps1

@@ -37,8 +37,13 @@ if (grepl("src[/\\\\]r$", script_dir)) {
   project_root <- getwd()
 }
 
-# Source helper modules
-helpers_dir <- file.path(project_root, "src", "r", "helpers")
+# Source helper modules — look relative to this script's location first
+# (works for both dev layout and installed-package layout), fall back
+# to the legacy project_root/src/r/helpers path.
+helpers_dir <- file.path(script_dir, "helpers")
+if (!dir.exists(helpers_dir)) {
+  helpers_dir <- file.path(project_root, "src", "r", "helpers")
+}
 source(file.path(helpers_dir, "data_loading.R"))
 source(file.path(helpers_dir, "plotting_style.R"))
 source(file.path(helpers_dir, "triggers.R"))

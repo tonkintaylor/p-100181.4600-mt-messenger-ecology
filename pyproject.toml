@@ -61,6 +61,10 @@ version-file = "src/mgen/_version.py"
 [tool.hatch.build.targets.wheel]
 sources = [ "src" ]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/r/run_all.R" = "mgen/r/run_all.R"
+"src/r/helpers" = "mgen/r/helpers"
+
 [tool.uv]
 default-groups = ["dev", "test", "doc"]
 required-version = ">=0.10.2"
