@@ -291,7 +291,8 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
         legend.position = "right",
         legend.key.size = unit(0.8, "cm"),
         plot.title = element_text(face = "plain", size = 14),
-        axis.title = element_text(face = "bold")
+        axis.title = element_text(face = "bold"),
+        plot.margin = margin(t = 15, r = 5, b = 5, l = 5)
       )
 
     # Add species labels (envfit significant, shown as green dots with labels)
@@ -313,7 +314,7 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
 
     # Filename: {Catchment}_{Site}.jpeg
     fname <- paste0(gsub(" ", "_", catchment_name), "_", gsub(" ", "_", site), ".jpeg")
-    save_plot(p, file.path(output_dir, fname))
+    save_plot(p, file.path(output_dir, fname), width = 10, height = 8)
   }
 
   invisible(stress_results)
@@ -330,6 +331,12 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
   meta_cols <- c("Site", "Date", "Period")
   species_cols <- setdiff(names(community_df), meta_cols)
 
+  shape_map <- c("Baseline" = 16, "Construction" = 17, "Additional" = 15)
+  fill_map <- c("Baseline" = "#ffcccc", "Construction" = "lightblue",
+                "Additional" = "#ffffcc")
+  hull_alpha_map <- c("Baseline" = 0.4, "Construction" = 0.3,
+                      "Additional" = 0.3)
+
   for (site in sites) {
     tryCatch({
       nmds_data <- run_site_nmds(community_df, sites_subset = site)
@@ -340,37 +347,86 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
         scores_df <- nmds_data$scores |> arrange(Date)
         species_scores <- nmds_data$species_scores
 
-        # Top N most influential species
         top_species <- species_scores |>
           arrange(desc(Influence)) |>
           head(top_n)
 
-        # Temporal colours
         n_dates <- length(levels(scores_df$MonthYear))
         colors <- temporal_palette(n_dates)
 
-        p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2, colour = MonthYear)) +
-          geom_point(size = 3) +
+        p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2,
+                                   colour = MonthYear, shape = Period))
+
+        # Convex hulls per period
+        for (period in unique(scores_df$Period)) {
+          hull_period <- scores_df |>
+            filter(Period == period) |>
+            filter(n() >= 3) |>
+            slice(chull(NMDS1, NMDS2))
+          if (nrow(hull_period) >= 3) {
+            p <- p +
+              geom_polygon(data = hull_period,
+                           aes(x = NMDS1, y = NMDS2, group = 1),
+                           fill = fill_map[period], colour = NA,
+                           alpha = hull_alpha_map[period], inherit.aes = FALSE)
+          }
+        }
+
+        p <- p +
+          geom_point(aes(fill = Period), shape = NA, size = 0,
+                     key_glyph = "rect", show.legend = TRUE) +
+          geom_point(size = 3, stroke = 0.8) +
           geom_text_repel(
             data = top_species,
             aes(x = NMDS1, y = NMDS2, label = Species),
-            size = 3, colour = "black",
+            size = 3, colour = "darkgreen", fontface = "italic",
             max.overlaps = Inf,
             box.padding = 0.4,
             point.padding = 0.2,
             segment.color = "grey50",
             inherit.aes = FALSE
           ) +
+          geom_point(
+            data = top_species,
+            aes(x = NMDS1, y = NMDS2),
+            colour = "darkgreen", size = 2.5, shape = 16, inherit.aes = FALSE
+          ) +
           scale_color_manual(values = colors) +
-          theme_ecology() +
+          scale_shape_manual(values = shape_map) +
+          scale_fill_manual(values = fill_map) +
+          coord_cartesian(
+            xlim = c(min(-1, min(scores_df$NMDS1) - 0.1),
+                     max(1, max(scores_df$NMDS1) + 0.1)),
+            ylim = c(min(-1, min(scores_df$NMDS2) - 0.1),
+                     max(1, max(scores_df$NMDS2) + 0.1))
+          ) +
           labs(
             title = paste(site, "- Species Drivers"),
             x = "NMDS1", y = "NMDS2",
-            colour = "Sampling Date"
+            colour = "Sampling Date", shape = "Period", fill = "Period"
+          ) +
+          guides(
+            color = guide_legend(
+              order = 2,
+              override.aes = list(shape = 16, size = 3)
+            ),
+            shape = guide_legend(
+              order = 1,
+              override.aes = list(colour = "black", size = 3)
+            ),
+            fill = guide_legend(order = 1)
+          ) +
+          theme_minimal(base_size = 14) +
+          theme(
+            legend.position = "right",
+            legend.key.size = unit(0.8, "cm"),
+            plot.title = element_text(face = "plain", size = 14),
+            axis.title = element_text(face = "bold"),
+            plot.margin = margin(t = 15, r = 5, b = 5, l = 5)
           )
 
         fname <- paste0(gsub(" ", "_", site), "_nmds_species.jpeg")
-        save_plot(p, file.path(output_dir, fname))
+        save_plot(p, file.path(output_dir, fname), width = 10, height = 8)
       }
     }, error = function(e) {
       message("  Skipping species plot for ", site, ": ", e$message)
