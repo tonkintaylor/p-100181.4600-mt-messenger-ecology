@@ -60,7 +60,10 @@ plot_rpd_by_catchment <- function(rpd_df, output_dir) {
         axis.title = element_text(face = "bold"),
         axis.text.x = element_text(angle = 90, hjust = 0.5)
       ) +
-      scale_x_date(date_breaks = "3 months", date_labels = "%b %y")
+      scale_x_date(
+        date_breaks = "3 months", date_labels = "%b %y",
+        limits = range(catch_df$Date, na.rm = TRUE)
+      )
 
     # Baseline end vline
     p <- add_baseline_vline(p)
@@ -110,7 +113,10 @@ plot_ldv_by_catchment <- function(ldv_df, output_dir) {
         axis.title = element_text(face = "bold"),
         axis.text.x = element_text(angle = 90, hjust = 0.5)
       ) +
-      scale_x_date(date_breaks = "3 months", date_labels = "%b %y")
+      scale_x_date(
+        date_breaks = "3 months", date_labels = "%b %y",
+        limits = range(catch_df$Date, na.rm = TRUE)
+      )
 
     # Baseline end vline
     p <- add_baseline_vline(p)
