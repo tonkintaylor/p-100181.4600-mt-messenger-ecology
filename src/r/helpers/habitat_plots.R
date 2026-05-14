@@ -42,10 +42,6 @@ plot_rpd_by_catchment <- function(rpd_df, output_dir) {
     }
 
     p <- ggplot(catch_df, aes(x = Date, y = Mean, colour = Site)) +
-      geom_errorbar(
-        aes(ymin = CI_Lower, ymax = CI_Upper),
-        width = 16, linewidth = 0.4, alpha = 0.6
-      ) +
       geom_line(linewidth = 0.6, alpha = 0.7) +
       geom_point(size = 2.5) +
       scale_colour_manual(values = SITE_COLOURS) +
