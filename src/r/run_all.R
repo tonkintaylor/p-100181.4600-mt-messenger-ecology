@@ -147,7 +147,13 @@ if (!is.null(data$Community)) {
 
   # Apply display names to community data
   community_df <- community_df |>
-    mutate(Site = ifelse(Site %in% names(display_names), display_names[Site], Site))
+    mutate(
+      Site = ifelse(Site %in% names(display_names), display_names[Site], Site),
+      Period = trimws(Period)
+    )
+  # Normalise period names for consistent mapping
+  community_df$Period[community_df$Period == "Routine Construction"] <- "Construction"
+  community_df$Period[community_df$Period == "Incident"] <- "Additional"
 
   # All-sites grouped NMDS
   message("All-sites NMDS...")
@@ -170,7 +176,7 @@ if (!is.null(data$Community)) {
 
   # Construction-only NMDS
   message("Construction NMDS...")
-  construction_df <- community_df |> filter(Period == "Routine Construction")
+  construction_df <- community_df |> filter(Period == "Construction")
   if (nrow(construction_df) > 3) {
     nmds_constr <- run_site_nmds(construction_df)
     if (!is.null(nmds_constr)) {
