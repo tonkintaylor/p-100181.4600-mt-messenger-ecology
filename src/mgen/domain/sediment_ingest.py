@@ -113,6 +113,10 @@ def read_sediment_sheet(path: Path) -> pd.DataFrame:
     # Ensure Date is datetime64[ns].
     df["Date"] = pd.to_datetime(df[_SOURCE_DATE_COL]).astype("datetime64[ns]")
 
+    # Samples on or before baseline end are Baseline regardless of source label.
+    baseline_end = pd.Timestamp("2022-03-31")
+    df.loc[df["Date"] <= baseline_end, "Period"] = "Baseline"
+
     return df
 
 

@@ -42,6 +42,14 @@ def _pivot_sample(
     date = meta["Date"]
     site = str(meta["Site"]).strip()
 
+    # Flag incident/additional samples; derive Phase from date
+    is_additional = phase.lower() == "incident"
+    baseline_cutoff = pd.Timestamp("2022-03-31")
+    if pd.notna(date) and pd.Timestamp(date) <= baseline_cutoff:
+        phase = "Baseline"
+    else:
+        phase = "Construction"
+
     rows: list[dict[str, object]] = []
     for i, tally in enumerate(counts):
         if pd.isna(tally) or int(tally) <= 0:
@@ -54,6 +62,7 @@ def _pivot_sample(
                 "Taxa": str(taxa_groups[i]),
                 "Species": str(taxa_names[i]),
                 "Tally": int(tally),
+                "is_additional": is_additional,
             }
         )
     return rows

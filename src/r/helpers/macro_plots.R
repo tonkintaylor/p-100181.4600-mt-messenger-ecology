@@ -154,7 +154,7 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
       aes(ymin = CI_lower, ymax = CI_upper),
       width = 16, linewidth = 0.5, show.legend = FALSE
     ) +
-    geom_point(size = 2.5, key_glyph = draw_key_coloured_bg) +
+    geom_point(size = 2.5) +
     coord_cartesian(ylim = MACRO_YLIMS[[metric]]) +
     labs(y = MACRO_LABELS[[metric]], x = "") +
     theme_light(base_size = 12) +

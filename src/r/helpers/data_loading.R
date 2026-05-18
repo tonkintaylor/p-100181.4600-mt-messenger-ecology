@@ -97,15 +97,26 @@ clean_colnames <- function(df) {
 #' Averages replicates per Site+Date+Species, then pivots to wide.
 #' Returns a data frame with columns: Site, Date, Period, <species columns...>
 derive_community_matrix <- function(macro_species) {
+  # Ensure is_additional exists (derive from Phase if missing, e.g. legacy xlsx)
+  if (!"is_additional" %in% names(macro_species)) {
+    macro_species$is_additional <- macro_species$Phase == "Incident"
+  }
+
+  # Derive Period from date (baseline = pre-March 2022) if Phase is unreliable
+  baseline_cutoff <- as.Date("2022-03-31")
+  macro_species$Phase <- ifelse(
+    macro_species$Date <= baseline_cutoff, "Baseline", "Construction"
+  )
+
   # Average replicates per site/date/species
   mean_tallies <- macro_species |>
     group_by(Site, Date, Species) |>
     summarise(Tally = mean(Tally, na.rm = TRUE), .groups = "drop")
 
-  # Get Period from original data (take first non-NA per Site+Date)
+  # Get Period and is_additional flag from original data (first per Site+Date)
   period_lookup <- macro_species |>
     distinct(Site, Date, .keep_all = TRUE) |>
-    select(Site, Date, Period = Phase)
+    select(Site, Date, Period = Phase, is_additional)
 
   # Pivot to wide
   wide <- mean_tallies |>
@@ -116,7 +127,7 @@ derive_community_matrix <- function(macro_species) {
     left_join(period_lookup, by = c("Site", "Date"))
 
   # Reorder columns: metadata first, then species
-  meta_cols <- c("Site", "Date", "Period")
+  meta_cols <- c("Site", "Date", "Period", "is_additional")
   species_cols <- setdiff(names(wide), meta_cols)
   wide[, c(meta_cols, species_cols)]
 }
@@ -145,6 +156,34 @@ get_site_display_names <- function() {
     EM7 = "EM7",
     EM8 = "EM8"
   )
+}
+
+
+#' Load fish trapping data from the aquatic monitoring database.
+#'
+#' Reads the "Fish Trapping" sheet and returns a cleaned data frame
+#' with Date coerced and column names trimmed.
+#'
+#' @param xlsx_path Path to the aquatic monitoring database xlsx.
+#' @return Data frame with columns: Order, Season, Date, Catchment, Site,
+#'   Species, `Species category (for abundance)`, Number, etc.
+load_fish_trapping <- function(xlsx_path) {
+  stopifnot(file.exists(xlsx_path))
+
+  sheets <- excel_sheets(xlsx_path)
+  if (!"Fish Trapping" %in% sheets) {
+    warning("No 'Fish Trapping' sheet found in ", xlsx_path)
+    return(NULL)
+  }
+
+  df <- read_excel(xlsx_path, sheet = "Fish Trapping") |>
+    clean_colnames()
+
+  if ("Date retrieved" %in% names(df)) {
+    df <- df |> mutate(`Date retrieved` = as.Date(`Date retrieved`))
+  }
+
+  df
 }
 
 

@@ -10,7 +10,7 @@
 library(ggplot2)
 
 # --- Constants ---
-BASELINE_END <- as.Date("2022-02-28")
+BASELINE_END <- as.Date("2022-03-31")
 CONSTRUCTION_START <- as.Date("2022-07-01")
 
 PERIOD_COLORS <- c(
@@ -21,6 +21,18 @@ PERIOD_COLORS <- c(
 )
 
 ALL_SITES <- c("EM1", "EM2", "EM3", "EM5", "EM4", "EM7", "EM8")
+
+# Site colour palette — distinct colours for each EM site on the same plot.
+SITE_COLOURS <- c(
+  "EM1" = "#1b9e77",
+  "EM2" = "#d95f02",
+  "EM3" = "#7570b3",
+  "EM4" = "#e7298a",
+  "EM5" = "#66a61e",
+  "EM6" = "#377eb8",
+  "EM7" = "#e6ab02",
+  "EM8" = "#a6761d"
+)
 
 SITE_SHIFT_SHAPE <- 8  # asterisk — less likely to be mistaken for a data point
 

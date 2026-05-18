@@ -126,30 +126,13 @@ plot_clarity_boxplot <- function(clarity_df, output_dir) {
 #' @param clarity_df Data frame with columns Site, Date, Clarity (mm).
 #' @param output_dir Output directory for saved plots.
 plot_clarity_timeseries <- function(clarity_df, output_dir) {
-  df <- clarity_df %>%
-    mutate(
-      Date = as.Date(Date),
-      Quarter = paste0(
-        format(Date, "%Y"), " Q",
-        ((as.integer(format(Date, "%m")) - 1) %/% 3) + 1
-      )
-    )
-
-  # Chronological quarter ordering
-  quarter_levels <- df %>%
-    distinct(Quarter, Date) %>%
-    group_by(Quarter) %>%
-    summarise(q_start = min(Date, na.rm = TRUE), .groups = "drop") %>%
-    arrange(q_start) %>%
-    pull(Quarter)
-
-  long <- df %>%
+  long <- clarity_df %>%
     transmute(
-      Quarter = factor(Quarter, levels = quarter_levels),
+      Date = as.Date(Date),
       Site = factor(Site, levels = CLARITY_SITE_ORDER),
       Value = as.numeric(`Clarity (mm)`)
     ) %>%
-    filter(!is.na(Site), !is.na(Value))
+    filter(!is.na(Site), !is.na(Value), !is.na(Date))
 
   if (nrow(long) == 0) {
     warning("No valid clarity data for time-series")
@@ -178,17 +161,18 @@ plot_clarity_timeseries <- function(clarity_df, output_dir) {
     ) +
     geom_line(
       data = long,
-      aes(x = Quarter, y = Value, group = Site),
+      aes(x = Date, y = Value, group = Site),
       colour = "black",
       linewidth = 0.6
     ) +
     geom_point(
       data = long,
-      aes(x = Quarter, y = Value),
+      aes(x = Date, y = Value),
       colour = "grey25",
       size = 2
     ) +
     facet_wrap(~ Site, ncol = 2) +
+    scale_x_date(date_breaks = "3 months", date_labels = "%b %y") +
     scale_y_continuous(
       breaks = seq(300, 1300, 150),
       expand = c(0, 0)
@@ -208,7 +192,7 @@ plot_clarity_timeseries <- function(clarity_df, output_dir) {
     ) +
     labs(
       title = "Water Quality Changes Over Time At Each Site",
-      x = "Quarter",
+      x = "Date",
       y = "Clarity (mm)"
     )
 

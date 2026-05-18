@@ -1,24 +1,14 @@
-# habitat_plots.R — RPD and LDV per-catchment time-series plots
+# habitat_plots.R — RPD and LDV per-catchment and per-site time-series plots
 #
 # Exports:
 #   plot_rpd_by_catchment(rpd_df, output_dir)
 #   plot_ldv_by_catchment(ldv_df, output_dir)
+#   plot_rpd_per_site(rpd_df, output_dir, sites)
+#   plot_ldv_per_site(ldv_df, output_dir, sites)
 
 library(ggplot2)
 library(dplyr)
 library(lubridate)
-
-
-# Site colour palette — distinct colours for each EM site on the same plot.
-SITE_COLOURS <- c(
-  "EM1" = "#1b9e77",
-  "EM2" = "#d95f02",
-  "EM3" = "#7570b3",
-  "EM4" = "#e7298a",
-  "EM5" = "#66a61e",
-  "EM7" = "#e6ab02",
-  "EM8" = "#a6761d"
-)
 
 
 #' Plot mean RPD per catchment with 95% CI error bars.
@@ -124,5 +114,102 @@ plot_ldv_by_catchment <- function(ldv_df, output_dir) {
 
     safe_name <- tolower(gsub("[^A-Za-z0-9_]", "", gsub("[ -]", "_", catchment_name)))
     save_plot(p, file.path(output_dir, paste0("ldv_", safe_name, ".jpeg")))
+  }
+}
+
+
+#' Plot mean RPD for individual sites.
+#'
+#' Produces one plot per site showing the RPD time-series with 95% CI
+#' error bars. Style matches catchment plots but with a single trace.
+#'
+#' @param rpd_df Data frame with columns: Site, Date, Count, Mean, StdDev,
+#'   CI_Lower, CI_Upper.
+#' @param output_dir Output directory for saved plots.
+#' @param sites Character vector of site codes to plot individually.
+plot_rpd_per_site <- function(rpd_df, output_dir, sites) {
+  for (site in sites) {
+    site_df <- rpd_df |> filter(Site == site)
+
+    if (nrow(site_df) == 0) {
+      message("  Skipping RPD per-site ", site, " \u2014 no data")
+      next
+    }
+
+    p <- ggplot(site_df, aes(x = Date, y = Mean)) +
+      geom_line(linewidth = 0.6, alpha = 0.7, colour = SITE_COLOURS[[site]]) +
+      geom_point(size = 2.5, colour = SITE_COLOURS[[site]]) +
+      geom_errorbar(
+        aes(ymin = CI_Lower, ymax = CI_Upper),
+        width = 16, linewidth = 0.5, colour = SITE_COLOURS[[site]]
+      ) +
+      labs(
+        title = paste(site, "\u2014 Mean Residual Pool Depth"),
+        x = "",
+        y = "Mean RPD (cm)"
+      ) +
+      theme_minimal(base_size = 14) +
+      theme(
+        axis.title = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 0.5)
+      ) +
+      scale_x_date(
+        date_breaks = "3 months", date_labels = "%b %y",
+        limits = range(site_df$Date, na.rm = TRUE)
+      )
+
+    p <- add_baseline_vline(p)
+
+    year_min <- min(year(site_df$Date), na.rm = TRUE)
+    year_max <- max(year(site_df$Date), na.rm = TRUE)
+    p <- add_summer_shading(p, year_min, year_max)
+
+    save_plot(p, file.path(output_dir, paste0("rpd_", site, ".jpeg")))
+  }
+}
+
+
+#' Plot LDV (CV%) for individual sites.
+#'
+#' Produces one plot per site showing the LDV time-series.
+#' Style matches catchment plots but with a single trace.
+#'
+#' @param ldv_df Data frame with columns: Site, Date, Season, CV_pct.
+#' @param output_dir Output directory for saved plots.
+#' @param sites Character vector of site codes to plot individually.
+plot_ldv_per_site <- function(ldv_df, output_dir, sites) {
+  for (site in sites) {
+    site_df <- ldv_df |> filter(Site == site)
+
+    if (nrow(site_df) == 0) {
+      message("  Skipping LDV per-site ", site, " \u2014 no data")
+      next
+    }
+
+    p <- ggplot(site_df, aes(x = Date, y = CV_pct)) +
+      geom_line(linewidth = 0.6, alpha = 0.7, colour = SITE_COLOURS[[site]]) +
+      geom_point(size = 2.5, colour = SITE_COLOURS[[site]]) +
+      labs(
+        title = paste(site, "\u2014 Low-flow Depth Variability"),
+        x = "",
+        y = "CV (%)"
+      ) +
+      theme_minimal(base_size = 14) +
+      theme(
+        axis.title = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 0.5)
+      ) +
+      scale_x_date(
+        date_breaks = "3 months", date_labels = "%b %y",
+        limits = range(site_df$Date, na.rm = TRUE)
+      )
+
+    p <- add_baseline_vline(p)
+
+    year_min <- min(year(site_df$Date), na.rm = TRUE)
+    year_max <- max(year(site_df$Date), na.rm = TRUE)
+    p <- add_summer_shading(p, year_min, year_max)
+
+    save_plot(p, file.path(output_dir, paste0("ldv_", site, ".jpeg")))
   }
 }

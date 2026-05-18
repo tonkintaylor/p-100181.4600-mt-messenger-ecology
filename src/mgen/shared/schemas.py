@@ -25,7 +25,15 @@ MACRO_COLUMNS = MACRO1_COLUMNS
 MACRO_DTYPES = MACRO1_DTYPES
 
 # MacroSpecies sheet: long-format taxa tally
-MACRO_SPECIES_COLUMNS = ["Phase", "Date", "Site", "Taxa", "Species", "Tally"]
+MACRO_SPECIES_COLUMNS = [
+    "Phase",
+    "Date",
+    "Site",
+    "Taxa",
+    "Species",
+    "Tally",
+    "is_additional",
+]
 MACRO_SPECIES_DTYPES = {
     "Phase": "object",
     "Date": _DATETIME,
@@ -33,6 +41,7 @@ MACRO_SPECIES_DTYPES = {
     "Taxa": "object",
     "Species": "object",
     "Tally": "int64",
+    "is_additional": "bool",
 }
 
 # Sediment sheet: SAM scores

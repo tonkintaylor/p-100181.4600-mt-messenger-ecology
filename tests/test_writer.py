@@ -58,6 +58,7 @@ def sample_data() -> dict[str, pd.DataFrame]:
                 "Taxa": ["Mayflies"],
                 "Species": ["Deleatidium"],
                 "Tally": [10],
+                "is_additional": [False],
             }
         ),
         "Sediment": pd.DataFrame(

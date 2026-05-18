@@ -21,6 +21,22 @@ library(openxlsx)
 library(zoo)
 
 
+#' Normalise period labels to consistent values.
+#'
+#' Trims whitespace and applies standard mappings:
+#'   "Routine Construction" -> "Construction"
+#'   "Incident" -> "Additional"
+#'
+#' @param period_vec Character vector of period labels.
+#' @return Character vector with normalised labels.
+normalise_periods <- function(period_vec) {
+  period_vec <- trimws(period_vec)
+  period_vec[period_vec == "Routine Construction"] <- "Construction"
+  period_vec[period_vec == "Incident"] <- "Additional"
+  period_vec
+}
+
+
 #' Run NMDS on a community data frame (filtered to specific sites).
 #'
 #' @param community_df Wide-format community data (Site, Date, Period, species...).
@@ -55,10 +71,7 @@ run_site_nmds <- function(community_df, sites_subset = NULL, seed = 42) {
   scores_df <- as.data.frame(scores(nmds_result, display = "sites"))
   scores_df$Site <- community_df$Site
   scores_df$Date <- as.Date(community_df$Date)
-  scores_df$Period <- trimws(community_df$Period)
-  # Normalise period names for consistent mapping
-  scores_df$Period[scores_df$Period == "Routine Construction"] <- "Construction"
-  scores_df$Period[scores_df$Period == "Incident"] <- "Additional"
+  scores_df$Period <- normalise_periods(community_df$Period)
 
   # Temporal grouping
   scores_df <- scores_df |>
@@ -150,8 +163,10 @@ plot_nmds_grouped <- function(nmds_data, output_path, title = "NMDS Ordination",
       legend.box = "vertical",
       axis.title = element_text(face = "bold"),
       legend.key.size = unit(0.8, "cm"),
-      legend.text = element_text(size = 10)
-    )
+      legend.text = element_text(size = 10),
+      plot.subtitle = element_text(size = 10, colour = "grey30")
+    ) +
+    labs(subtitle = paste0("Stress: ", round(nmds_data$stress, 3)))
 
   save_plot(p, output_path, width = 10, height = 8)
   invisible(p)
@@ -241,9 +256,9 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
     for (period in unique(scores_df$Period)) {
       hull_period <- scores_df |>
         filter(Period == period) |>
-        filter(n() >= 3) |>
+        filter(n() >= 2) |>
         slice(chull(NMDS1, NMDS2))
-      if (nrow(hull_period) >= 3) {
+      if (nrow(hull_period) >= 2) {
         p <- p +
           geom_polygon(data = hull_period,
                        aes(x = NMDS1, y = NMDS2, group = 1),
@@ -292,8 +307,10 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
         legend.key.size = unit(0.8, "cm"),
         plot.title = element_text(face = "plain", size = 14),
         axis.title = element_text(face = "bold"),
-        plot.margin = margin(t = 15, r = 5, b = 5, l = 5)
-      )
+        plot.margin = margin(t = 15, r = 5, b = 5, l = 5),
+        plot.subtitle = element_text(size = 10, colour = "grey30")
+      ) +
+      labs(subtitle = paste0("Stress: ", round(nmds_data$stress, 3)))
 
     # Add species labels (envfit significant, shown as green dots with labels)
     if (nrow(species_df) > 0) {
@@ -361,9 +378,9 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
         for (period in unique(scores_df$Period)) {
           hull_period <- scores_df |>
             filter(Period == period) |>
-            filter(n() >= 3) |>
+            filter(n() >= 2) |>
             slice(chull(NMDS1, NMDS2))
-          if (nrow(hull_period) >= 3) {
+          if (nrow(hull_period) >= 2) {
             p <- p +
               geom_polygon(data = hull_period,
                            aes(x = NMDS1, y = NMDS2, group = 1),
@@ -422,8 +439,10 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
             legend.key.size = unit(0.8, "cm"),
             plot.title = element_text(face = "plain", size = 14),
             axis.title = element_text(face = "bold"),
-            plot.margin = margin(t = 15, r = 5, b = 5, l = 5)
-          )
+            plot.margin = margin(t = 15, r = 5, b = 5, l = 5),
+            plot.subtitle = element_text(size = 10, colour = "grey30")
+          ) +
+          labs(subtitle = paste0("Stress: ", round(nmds_data$stress, 3)))
 
         fname <- paste0(gsub(" ", "_", site), "_nmds_species.jpeg")
         save_plot(p, file.path(output_dir, fname), width = 10, height = 8)
@@ -729,6 +748,7 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
 
   for (site in unique(community_df$Site)) {
     site_df <- community_df |> filter(Site == site)
+    site_df$Period <- normalise_periods(site_df$Period)
     if (nrow(site_df) <= 3) next
 
     species_data <- site_df[, species_cols]
@@ -750,15 +770,26 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
     if (nrow(sig) == 0) next
 
     # Compute abundance change across periods
-    baseline_means <- site_df |>
-      filter(Period == "Baseline") |>
-      select(all_of(species_cols)) |>
-      colMeans(na.rm = TRUE)
-    construction_means <- site_df |>
-      filter(Period == "Construction") |>
-      select(all_of(species_cols)) |>
-      colMeans(na.rm = TRUE)
+    baseline_df <- site_df |> filter(Period == "Baseline")
+    construction_df <- site_df |> filter(Period == "Construction")
     incident_df <- site_df |> filter(Period == "Additional")
+
+    if (nrow(baseline_df) > 0) {
+      baseline_means <- baseline_df |>
+        select(all_of(species_cols)) |>
+        colMeans(na.rm = TRUE)
+    } else {
+      baseline_means <- rep(NA_real_, length(species_cols))
+      names(baseline_means) <- species_cols
+    }
+    if (nrow(construction_df) > 0) {
+      construction_means <- construction_df |>
+        select(all_of(species_cols)) |>
+        colMeans(na.rm = TRUE)
+    } else {
+      construction_means <- rep(NA_real_, length(species_cols))
+      names(construction_means) <- species_cols
+    }
     if (nrow(incident_df) > 0) {
       incident_means <- incident_df |>
         select(all_of(species_cols)) |>

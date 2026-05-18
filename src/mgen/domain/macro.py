@@ -147,13 +147,25 @@ _PERIOD_MAP = {
 
 _SPRING_MONTHS = frozenset({10, 11, 12})
 
+# Samples on or before this date are Baseline regardless of source label.
+_BASELINE_END = pd.Timestamp("2022-03-31")
 
-def _normalise_period(raw_season: str) -> str:
+
+def _normalise_period(raw_season: str, date: object) -> str:
     """Map the raw season label to the normalised Period value.
 
     The source spreadsheet's 'Season' column actually encodes the monitoring
     phase (Baseline/Construction/Additional), not the calendar season.
+
+    Samples dated on or before the baseline monitoring end (2022-03-31) are
+    forced to 'Baseline' regardless of the source label, because some early
+    construction rounds were labelled 'Construction' in the source before
+    baseline monitoring formally ended.
     """
+    ts = pd.Timestamp(date)
+    if ts <= _BASELINE_END:
+        return "Baseline"
+
     period = _PERIOD_MAP.get(raw_season)
     if period is None:
         logger.warning(
@@ -241,7 +253,7 @@ def process_macro_domain(macro_db_path: Path) -> DomainResult:
             {
                 "Site": site,
                 "Date": meta["Date"],
-                "Period": _normalise_period(str(meta["Season"]).strip()),
+                "Period": _normalise_period(str(meta["Season"]).strip(), meta["Date"]),
                 "EPTrich": metrics["% EPT Richness"],
                 "EPTabun": metrics["% EPT Abundance"],
                 "QMCI": qmci_value,

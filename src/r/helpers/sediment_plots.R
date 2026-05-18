@@ -104,7 +104,7 @@ plot_sediment_timeseries <- function(sed_df, triggers, output_dir,
 
     for (metric in c("SAM1", "SAM3")) {
       p <- ggplot(site_df, aes(x = Date, y = .data[[metric]], colour = Period)) +
-        geom_point(size = 2.5, key_glyph = draw_key_coloured_bg) +
+        geom_point(size = 2.5) +
         scale_colour_manual(values = c(
           "Baseline" = "#ff9f1c",
           "Routine Construction" = "#2ec4b6",
