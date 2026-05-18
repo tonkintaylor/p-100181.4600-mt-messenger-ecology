@@ -8,11 +8,51 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mgen.domain.macro import derive_metrics, process_macro_domain
+from mgen.domain.macro import _normalise_period, derive_metrics, process_macro_domain
 from mgen.domain.macro_ingest import ingest_raw_data
 from mgen.shared.domain_types import SITES_WITHOUT_REPLICATES
 from mgen.shared.errors import DomainResult
 from mgen.shared.schemas import MACRO1_COLUMNS
+
+
+class TestNormalisePeriod:
+    """Unit tests for baseline cutoff boundary logic."""
+
+    @pytest.mark.parametrize(
+        ("date", "raw_season", "expected"),
+        [
+            ("2022-03-15", "Construction", "Baseline"),
+            ("2022-03-31", "Construction", "Baseline"),
+            ("2022-03-31", "Baseline", "Baseline"),
+            ("2022-04-01", "Construction", "Routine Construction"),
+            ("2022-04-01", "Baseline", "Baseline"),
+            ("2022-04-01", "Additional", "Incident"),
+            ("2018-10-25", "Baseline", "Baseline"),
+        ],
+        ids=[
+            "construction_before_cutoff",
+            "construction_on_cutoff",
+            "baseline_on_cutoff",
+            "construction_after_cutoff",
+            "baseline_after_cutoff",
+            "additional_after_cutoff",
+            "baseline_well_before_cutoff",
+        ],
+    )
+    def test_boundary_dates(self, date: str, raw_season: str, expected: str) -> None:
+        assert _normalise_period(raw_season, date) == expected
+
+    def test_nat_date_uses_label_map(self) -> None:
+        """NaT date falls through to label-based mapping."""
+        result = _normalise_period("Construction", pd.NaT)
+
+        assert result == "Routine Construction"
+
+    def test_unmapped_label_defaults_to_routine_construction(self) -> None:
+        """Unknown season label defaults to 'Routine Construction'."""
+        result = _normalise_period("UnknownPhase", "2023-06-01")
+
+        assert result == "Routine Construction"
 
 
 class TestDeriveMetrics:

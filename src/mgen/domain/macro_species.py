@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from mgen.domain.macro_ingest import IngestError, ingest_raw_data
+from mgen.shared.domain_types import BASELINE_END
 from mgen.shared.errors import DomainResult, ValidationError
 from mgen.shared.schemas import MACRO_SPECIES_COLUMNS
 
@@ -44,8 +45,7 @@ def _pivot_sample(
 
     # Flag incident/additional samples; derive Phase from date
     is_additional = phase.lower() == "incident"
-    baseline_cutoff = pd.Timestamp("2022-03-31")
-    if pd.notna(date) and pd.Timestamp(date) <= baseline_cutoff:
+    if pd.notna(date) and pd.Timestamp(date) <= BASELINE_END:
         phase = "Baseline"
     else:
         phase = "Construction"

@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import pandas as pd
+
+# Samples on or before this date are Baseline regardless of source label.
+# Per MKE review: baseline monitoring includes all samples through March 2022.
+BASELINE_END = pd.Timestamp("2022-03-31")
+
 # Canonical site codes for the Mt Messenger monitoring programme.
 # NOTE: "MMA 6" and "MMA 6b" have a space — matches source database values.
 VALID_SITES = frozenset(

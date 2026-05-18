@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from mgen.domain.macro_ingest import IngestError, ingest_raw_data
-from mgen.shared.domain_types import SITES_WITHOUT_REPLICATES
+from mgen.shared.domain_types import BASELINE_END, SITES_WITHOUT_REPLICATES
 from mgen.shared.errors import DomainResult, ValidationError
 from mgen.shared.schemas import MACRO1_COLUMNS
 
@@ -147,9 +147,6 @@ _PERIOD_MAP = {
 
 _SPRING_MONTHS = frozenset({10, 11, 12})
 
-# Samples on or before this date are Baseline regardless of source label.
-_BASELINE_END = pd.Timestamp("2022-03-31")
-
 
 def _normalise_period(raw_season: str, date: object) -> str:
     """Map the raw season label to the normalised Period value.
@@ -163,7 +160,7 @@ def _normalise_period(raw_season: str, date: object) -> str:
     baseline monitoring formally ended.
     """
     ts = pd.Timestamp(date)
-    if ts <= _BASELINE_END:
+    if pd.notna(ts) and ts <= BASELINE_END:
         return "Baseline"
 
     period = _PERIOD_MAP.get(raw_season)

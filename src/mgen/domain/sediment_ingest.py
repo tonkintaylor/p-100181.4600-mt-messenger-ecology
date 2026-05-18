@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from mgen.shared.domain_types import BASELINE_END
 from mgen.shared.errors import DomainResult, ValidationError
 
 __all__ = [
@@ -114,8 +115,7 @@ def read_sediment_sheet(path: Path) -> pd.DataFrame:
     df["Date"] = pd.to_datetime(df[_SOURCE_DATE_COL]).astype("datetime64[ns]")
 
     # Samples on or before baseline end are Baseline regardless of source label.
-    baseline_end = pd.Timestamp("2022-03-31")
-    df.loc[df["Date"] <= baseline_end, "Period"] = "Baseline"
+    df.loc[df["Date"] <= BASELINE_END, "Period"] = "Baseline"
 
     return df
 
