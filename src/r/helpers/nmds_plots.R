@@ -21,6 +21,22 @@ library(openxlsx)
 library(zoo)
 
 
+#' Normalise period labels to consistent values.
+#'
+#' Trims whitespace and applies standard mappings:
+#'   "Routine Construction" -> "Construction"
+#'   "Incident" -> "Additional"
+#'
+#' @param period_vec Character vector of period labels.
+#' @return Character vector with normalised labels.
+normalise_periods <- function(period_vec) {
+  period_vec <- trimws(period_vec)
+  period_vec[period_vec == "Routine Construction"] <- "Construction"
+  period_vec[period_vec == "Incident"] <- "Additional"
+  period_vec
+}
+
+
 #' Run NMDS on a community data frame (filtered to specific sites).
 #'
 #' @param community_df Wide-format community data (Site, Date, Period, species...).
@@ -55,7 +71,7 @@ run_site_nmds <- function(community_df, sites_subset = NULL, seed = 42) {
   scores_df <- as.data.frame(scores(nmds_result, display = "sites"))
   scores_df$Site <- community_df$Site
   scores_df$Date <- as.Date(community_df$Date)
-  scores_df$Period <- community_df$Period
+  scores_df$Period <- normalise_periods(community_df$Period)
 
   # Temporal grouping
   scores_df <- scores_df |>
@@ -116,18 +132,41 @@ plot_nmds_grouped <- function(nmds_data, output_path, title = "NMDS Ordination",
   p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2, colour = MonthYear, shape = Site)) +
     geom_polygon(data = hull_data,
                  aes(x = NMDS1, y = NMDS2, fill = Site, group = Site),
-                 colour = "black", alpha = 0.2, inherit.aes = FALSE) +
+                 colour = NA, alpha = 0.3, inherit.aes = FALSE,
+                 key_glyph = "rect") +
+    geom_point(shape = NA, size = 0, key_glyph = "rect",
+               show.legend = c(colour = TRUE, shape = FALSE)) +
     geom_point(size = 3, stroke = 1.1) +
     scale_color_manual(values = colors) +
     scale_shape_manual(values = shapes) +
-    theme_ecology() +
     labs(
       title = title,
       x = "NMDS1", y = "NMDS2",
       colour = "Sampling Date",
       shape = shape_title,
       fill = shape_title
-    )
+    ) +
+    guides(
+      color = guide_legend(
+        order = 2,
+        override.aes = list(shape = 16, size = 3)
+      ),
+      shape = guide_legend(
+        order = 1,
+        override.aes = list(colour = "black", size = 3)
+      ),
+      fill = guide_legend(order = 1)
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      legend.position = "right",
+      legend.box = "vertical",
+      axis.title = element_text(face = "bold"),
+      legend.key.size = unit(0.8, "cm"),
+      legend.text = element_text(size = 10),
+      plot.subtitle = element_text(size = 10, colour = "grey30")
+    ) +
+    labs(subtitle = paste0("Stress: ", round(nmds_data$stress, 3)))
 
   save_plot(p, output_path, width = 10, height = 8)
   invisible(p)
@@ -147,6 +186,8 @@ plot_nmds_grouped <- function(nmds_data, output_path, title = "NMDS Ordination",
 plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL) {
   if (is.null(catchment_lookup)) catchment_lookup <- get_catchment_lookup()
 
+  meta_cols <- c("Site", "Date", "Period")
+  species_cols <- setdiff(names(community_df), meta_cols)
   sites <- unique(community_df$Site)
 
   stress_results <- data.frame(Site = character(), Stress = numeric(),
@@ -182,8 +223,55 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
     catchment_name <- catchment_lookup[site]
     if (is.na(catchment_name)) catchment_name <- "Unknown"
 
-    p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2, colour = MonthYear, shape = Period)) +
-      geom_point(size = 3) +
+    # Species labels via envfit (significant species only, p < 0.05)
+    site_species_data <- community_df |>
+      filter(Site == site)
+    site_species_mat <- site_species_data[, species_cols]
+    col_sums <- colSums(site_species_mat, na.rm = TRUE)
+    site_species_mat <- site_species_mat[, col_sums > 0, drop = FALSE]
+
+    species_df <- tryCatch({
+      set.seed(42)
+      fit_species <- envfit(nmds_data$nmds, site_species_mat, permutations = 999)
+      arrows_df <- as.data.frame(fit_species$vectors$arrows * fit_species$vectors$r)
+      arrows_df$Species <- rownames(arrows_df)
+      arrows_df$r <- fit_species$vectors$r
+      arrows_df$p <- fit_species$vectors$pvals
+      arrows_df |> filter(p < 0.05)
+    }, error = function(e) {
+      data.frame(Species = character(), NMDS1 = numeric(), NMDS2 = numeric())
+    })
+
+    # Convex hulls per period
+    shape_map <- c("Baseline" = 16, "Construction" = 17, "Additional" = 15)
+    fill_map <- c("Baseline" = "#ffcccc", "Construction" = "lightblue",
+                  "Additional" = "#ffffcc")
+    hull_alpha_map <- c("Baseline" = 0.4, "Construction" = 0.3,
+                        "Additional" = 0.3)
+
+    # Build plot
+    p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2, colour = MonthYear, shape = Period))
+
+    # Add hulls for each period
+    for (period in unique(scores_df$Period)) {
+      hull_period <- scores_df |>
+        filter(Period == period) |>
+        filter(n() >= 2) |>
+        slice(chull(NMDS1, NMDS2))
+      if (nrow(hull_period) >= 2) {
+        p <- p +
+          geom_polygon(data = hull_period,
+                       aes(x = NMDS1, y = NMDS2, group = 1),
+                       fill = fill_map[period], colour = NA,
+                       alpha = hull_alpha_map[period], inherit.aes = FALSE)
+      }
+    }
+
+    p <- p +
+      # Hidden layer: draws coloured rectangles in the Period legend key background
+      geom_point(aes(fill = Period), shape = NA, size = 0,
+                 key_glyph = "rect", show.legend = TRUE) +
+      geom_point(size = 3, stroke = 0.8) +
       geom_segment(
         data = trend_df,
         aes(x = start_x, y = start_y, xend = end_x, yend = end_y),
@@ -191,18 +279,59 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
         inherit.aes = FALSE, linewidth = 1, colour = "black"
       ) +
       scale_color_manual(values = colors) +
-      scale_shape_manual(values = c("Baseline" = 16, "Routine Construction" = 17)) +
-      theme_ecology() +
+      scale_shape_manual(values = shape_map) +
+      scale_fill_manual(values = fill_map) +
+      coord_cartesian(
+        xlim = c(min(-1, min(scores_df$NMDS1) - 0.1), max(1, max(scores_df$NMDS1) + 0.1)),
+        ylim = c(min(-1, min(scores_df$NMDS2) - 0.1), max(1, max(scores_df$NMDS2) + 0.1))
+      ) +
       labs(
         title = paste(catchment_name, "-", site),
         x = "NMDS1", y = "NMDS2",
-        colour = "Sampling Date",
-        shape = "Period"
-      )
+        colour = "Sampling Date", shape = "Period", fill = "Period"
+      ) +
+      guides(
+        color = guide_legend(
+          order = 2,
+          override.aes = list(shape = 16, size = 3)
+        ),
+        shape = guide_legend(
+          order = 1,
+          override.aes = list(colour = "black", size = 3)
+        ),
+        fill = guide_legend(order = 1)
+      ) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "right",
+        legend.key.size = unit(0.8, "cm"),
+        plot.title = element_text(face = "plain", size = 14),
+        axis.title = element_text(face = "bold"),
+        plot.margin = margin(t = 15, r = 5, b = 5, l = 5),
+        plot.subtitle = element_text(size = 10, colour = "grey30")
+      ) +
+      labs(subtitle = paste0("Stress: ", round(nmds_data$stress, 3)))
+
+    # Add species labels (envfit significant, shown as green dots with labels)
+    if (nrow(species_df) > 0) {
+      p <- p +
+        geom_point(
+          data = species_df,
+          aes(x = NMDS1, y = NMDS2),
+          colour = "darkgreen", size = 2.5, shape = 16, inherit.aes = FALSE
+        ) +
+        geom_text_repel(
+          data = species_df,
+          aes(x = NMDS1, y = NMDS2, label = Species),
+          color = "darkgreen", size = 3, fontface = "italic", inherit.aes = FALSE,
+          max.overlaps = Inf, box.padding = 0.3,
+          point.padding = 0.2, segment.color = NA
+        )
+    }
 
     # Filename: {Catchment}_{Site}.jpeg
     fname <- paste0(gsub(" ", "_", catchment_name), "_", gsub(" ", "_", site), ".jpeg")
-    save_plot(p, file.path(output_dir, fname))
+    save_plot(p, file.path(output_dir, fname), width = 10, height = 8)
   }
 
   invisible(stress_results)
@@ -219,6 +348,12 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
   meta_cols <- c("Site", "Date", "Period")
   species_cols <- setdiff(names(community_df), meta_cols)
 
+  shape_map <- c("Baseline" = 16, "Construction" = 17, "Additional" = 15)
+  fill_map <- c("Baseline" = "#ffcccc", "Construction" = "lightblue",
+                "Additional" = "#ffffcc")
+  hull_alpha_map <- c("Baseline" = 0.4, "Construction" = 0.3,
+                      "Additional" = 0.3)
+
   for (site in sites) {
     tryCatch({
       nmds_data <- run_site_nmds(community_df, sites_subset = site)
@@ -229,37 +364,88 @@ plot_nmds_per_site_with_species <- function(community_df, output_dir, top_n = 10
         scores_df <- nmds_data$scores |> arrange(Date)
         species_scores <- nmds_data$species_scores
 
-        # Top N most influential species
         top_species <- species_scores |>
           arrange(desc(Influence)) |>
           head(top_n)
 
-        # Temporal colours
         n_dates <- length(levels(scores_df$MonthYear))
         colors <- temporal_palette(n_dates)
 
-        p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2, colour = MonthYear)) +
-          geom_point(size = 3) +
+        p <- ggplot(scores_df, aes(x = NMDS1, y = NMDS2,
+                                   colour = MonthYear, shape = Period))
+
+        # Convex hulls per period
+        for (period in unique(scores_df$Period)) {
+          hull_period <- scores_df |>
+            filter(Period == period) |>
+            filter(n() >= 2) |>
+            slice(chull(NMDS1, NMDS2))
+          if (nrow(hull_period) >= 2) {
+            p <- p +
+              geom_polygon(data = hull_period,
+                           aes(x = NMDS1, y = NMDS2, group = 1),
+                           fill = fill_map[period], colour = NA,
+                           alpha = hull_alpha_map[period], inherit.aes = FALSE)
+          }
+        }
+
+        p <- p +
+          geom_point(aes(fill = Period), shape = NA, size = 0,
+                     key_glyph = "rect", show.legend = TRUE) +
+          geom_point(size = 3, stroke = 0.8) +
           geom_text_repel(
             data = top_species,
             aes(x = NMDS1, y = NMDS2, label = Species),
-            size = 3, colour = "black",
+            size = 3, colour = "darkgreen", fontface = "italic",
             max.overlaps = Inf,
             box.padding = 0.4,
             point.padding = 0.2,
             segment.color = "grey50",
             inherit.aes = FALSE
           ) +
+          geom_point(
+            data = top_species,
+            aes(x = NMDS1, y = NMDS2),
+            colour = "darkgreen", size = 2.5, shape = 16, inherit.aes = FALSE
+          ) +
           scale_color_manual(values = colors) +
-          theme_ecology() +
+          scale_shape_manual(values = shape_map) +
+          scale_fill_manual(values = fill_map) +
+          coord_cartesian(
+            xlim = c(min(-1, min(scores_df$NMDS1) - 0.1),
+                     max(1, max(scores_df$NMDS1) + 0.1)),
+            ylim = c(min(-1, min(scores_df$NMDS2) - 0.1),
+                     max(1, max(scores_df$NMDS2) + 0.1))
+          ) +
           labs(
             title = paste(site, "- Species Drivers"),
             x = "NMDS1", y = "NMDS2",
-            colour = "Sampling Date"
-          )
+            colour = "Sampling Date", shape = "Period", fill = "Period"
+          ) +
+          guides(
+            color = guide_legend(
+              order = 2,
+              override.aes = list(shape = 16, size = 3)
+            ),
+            shape = guide_legend(
+              order = 1,
+              override.aes = list(colour = "black", size = 3)
+            ),
+            fill = guide_legend(order = 1)
+          ) +
+          theme_minimal(base_size = 14) +
+          theme(
+            legend.position = "right",
+            legend.key.size = unit(0.8, "cm"),
+            plot.title = element_text(face = "plain", size = 14),
+            axis.title = element_text(face = "bold"),
+            plot.margin = margin(t = 15, r = 5, b = 5, l = 5),
+            plot.subtitle = element_text(size = 10, colour = "grey30")
+          ) +
+          labs(subtitle = paste0("Stress: ", round(nmds_data$stress, 3)))
 
         fname <- paste0(gsub(" ", "_", site), "_nmds_species.jpeg")
-        save_plot(p, file.path(output_dir, fname))
+        save_plot(p, file.path(output_dir, fname), width = 10, height = 8)
       }
     }, error = function(e) {
       message("  Skipping species plot for ", site, ": ", e$message)
@@ -562,6 +748,7 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
 
   for (site in unique(community_df$Site)) {
     site_df <- community_df |> filter(Site == site)
+    site_df$Period <- normalise_periods(site_df$Period)
     if (nrow(site_df) <= 3) next
 
     species_data <- site_df[, species_cols]
@@ -583,15 +770,26 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
     if (nrow(sig) == 0) next
 
     # Compute abundance change across periods
-    baseline_means <- site_df |>
-      filter(Period == "Baseline") |>
-      select(all_of(species_cols)) |>
-      colMeans(na.rm = TRUE)
-    construction_means <- site_df |>
-      filter(Period == "Routine Construction") |>
-      select(all_of(species_cols)) |>
-      colMeans(na.rm = TRUE)
-    incident_df <- site_df |> filter(Period == "Incident")
+    baseline_df <- site_df |> filter(Period == "Baseline")
+    construction_df <- site_df |> filter(Period == "Construction")
+    incident_df <- site_df |> filter(Period == "Additional")
+
+    if (nrow(baseline_df) > 0) {
+      baseline_means <- baseline_df |>
+        select(all_of(species_cols)) |>
+        colMeans(na.rm = TRUE)
+    } else {
+      baseline_means <- rep(NA_real_, length(species_cols))
+      names(baseline_means) <- species_cols
+    }
+    if (nrow(construction_df) > 0) {
+      construction_means <- construction_df |>
+        select(all_of(species_cols)) |>
+        colMeans(na.rm = TRUE)
+    } else {
+      construction_means <- rep(NA_real_, length(species_cols))
+      names(construction_means) <- species_cols
+    }
     if (nrow(incident_df) > 0) {
       incident_means <- incident_df |>
         select(all_of(species_cols)) |>
@@ -604,16 +802,16 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
     abundance_change <- data.frame(
       Species = names(baseline_means),
       Baseline = baseline_means,
-      `Routine Construction` = construction_means,
-      Incident = incident_means,
+      `Construction` = construction_means,
+      Additional = incident_means,
       check.names = FALSE,
       stringsAsFactors = FALSE
     ) |>
       mutate(
-        `Actual Change` = `Routine Construction` - Baseline,
+        `Actual Change` = `Construction` - Baseline,
         `Percentage Change` = ifelse(
           Baseline > 0,
-          round((`Routine Construction` - Baseline) / Baseline * 100, 1),
+          round((`Construction` - Baseline) / Baseline * 100, 1),
           NA_real_
         )
       )
@@ -632,8 +830,8 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
 
     # Also produce NMDS_stats_baseline_construction.xlsx (subset of columns)
     nmds_stats <- all_results |>
-      select(Species, NMDS1, NMDS2, r, p, Site, Baseline, `Routine Construction`,
-             Incident, `Actual Change`)
+      select(Species, NMDS1, NMDS2, r, p, Site, Baseline, `Construction`,
+             Additional, `Actual Change`)
     write.xlsx(nmds_stats, file.path(output_dir, "NMDS_stats_baseline_construction.xlsx"))
     message("  Exported NMDS stats baseline/construction: ", nrow(nmds_stats), " rows")
   }

@@ -1,0 +1,15 @@
+Type: project
+Title: Mt Messenger Ecology Pipeline
+Description: R figure generation for Mt Messenger aquatic ecology monitoring.
+Imports:
+    readxl,
+    dplyr,
+    tidyr,
+    ggplot2,
+    vegan,
+    indicspecies,
+    ggrepel,
+    zoo,
+    patchwork,
+    openxlsx,
+    lubridate

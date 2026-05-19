@@ -25,7 +25,15 @@ MACRO_COLUMNS = MACRO1_COLUMNS
 MACRO_DTYPES = MACRO1_DTYPES
 
 # MacroSpecies sheet: long-format taxa tally
-MACRO_SPECIES_COLUMNS = ["Phase", "Date", "Site", "Taxa", "Species", "Tally"]
+MACRO_SPECIES_COLUMNS = [
+    "Phase",
+    "Date",
+    "Site",
+    "Taxa",
+    "Species",
+    "Tally",
+    "is_additional",
+]
 MACRO_SPECIES_DTYPES = {
     "Phase": "object",
     "Date": _DATETIME,
@@ -33,6 +41,7 @@ MACRO_SPECIES_DTYPES = {
     "Taxa": "object",
     "Species": "object",
     "Tally": "int64",
+    "is_additional": "bool",
 }
 
 # Sediment sheet: SAM scores
@@ -98,4 +107,25 @@ SEDIMENT_SIZE_DTYPES = {
     "Period": "object",
     "Season": "object",
     **dict.fromkeys(SEDIMENT_SIZE_COLUMNS[4:], "float64"),
+}
+
+# RPD sheet: residual pool depth summary per site/date
+RPD_COLUMNS = ["Site", "Date", "Count", "Mean", "StdDev", "CI_Lower", "CI_Upper"]
+RPD_DTYPES = {
+    "Site": "object",
+    "Date": _DATETIME,
+    "Count": "int64",
+    "Mean": "float64",
+    "StdDev": "float64",
+    "CI_Lower": "float64",
+    "CI_Upper": "float64",
+}
+
+# LDV sheet: low-flow depth variability (CV%) per site/date
+LDV_COLUMNS = ["Site", "Date", "Season", "CV_pct"]
+LDV_DTYPES = {
+    "Site": "object",
+    "Date": _DATETIME,
+    "Season": "object",
+    "CV_pct": "float64",
 }

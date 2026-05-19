@@ -152,7 +152,7 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   p <- ggplot(summary_df, aes(x = Date, y = Mean, colour = Period)) +
     geom_errorbar(
       aes(ymin = CI_lower, ymax = CI_upper),
-      width = 16, linewidth = 0.5
+      width = 16, linewidth = 0.5, show.legend = FALSE
     ) +
     geom_point(size = 2.5) +
     coord_cartesian(ylim = MACRO_YLIMS[[metric]]) +
@@ -161,6 +161,7 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
     theme(
       legend.title = element_blank(),
       legend.text = element_text(size = 9),
+      legend.key.size = unit(0.9, "cm"),
       legend.position = "right"
     )
 
@@ -199,12 +200,8 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
       key_glyph = draw_key_vdotted
     )
 
-  shift_events <- get_site_shift_events(site)
-  if (nrow(shift_events) > 0) {
-    shift_events <- shift_events |>
-      mutate(Y = MACRO_YLIMS[[metric]][2] * 0.95)
-    p <- add_site_shift_layer(p, shift_events)
-  }
+  p <- add_site_shift_annotations(p, site, summary_df,
+                                    y_col = "CI_upper", y_nudge = 0)
 
   # Summer shading
   year_min <- min(year(summary_df$Date), na.rm = TRUE)

@@ -78,7 +78,12 @@ def _coerce_column(df: pd.DataFrame, col: str) -> pd.Series:
 
     if col in df.columns:
         if dtype == "float64":
-            return pd.to_numeric(df[col], errors="coerce").astype("float64")
+            series = df[col]
+            if not pd.api.types.is_numeric_dtype(series):
+                series = series.map(
+                    lambda v: v.replace("\xa0", "").strip() if isinstance(v, str) else v
+                )
+            return pd.to_numeric(series, errors="coerce").astype("float64")
         return df[col].astype(dtype)
 
     # Optional column not present — fill with appropriate NA.

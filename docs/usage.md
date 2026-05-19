@@ -50,14 +50,14 @@ The install script will:
 
 [uv]: https://docs.astral.sh/uv/
 
-### Activating the environment
+### Using `mgen` after install
 
-In each new terminal session, activate the virtual environment before
-running `mgen`:
+After running `install.ps1`, the `mgen` command is available globally —
+no virtual environment activation needed:
 
 ```powershell
 cd R:\BEKA\mt_messenger
-.\.venv\Scripts\activate.ps1
+mgen all
 ```
 
 ## Configuration
@@ -179,7 +179,13 @@ Tables/
 
 ### `mgen` command not found
 
-Activate the virtual environment first:
+Re-run the install script to register `mgen` on your PATH:
+
+```powershell
+./tasks/install.ps1
+```
+
+If using a developer checkout, activate the virtual environment:
 
 ```powershell
 .\.venv\Scripts\activate.ps1
@@ -187,13 +193,12 @@ Activate the virtual environment first:
 
 ### R package installation fails
 
-If `./tasks/install.ps1` fails during R setup, install packages manually
-in R:
+If `./tasks/install.ps1` fails during R setup, restore packages manually
+in R from the project root:
 
 ```r
-install.packages(c("readxl", "dplyr", "tidyr", "ggplot2", "vegan",
-                    "indicspecies", "ggrepel", "zoo", "patchwork",
-                    "openxlsx", "lubridate"))
+source("renv/activate.R")
+renv::restore()
 ```
 
 ### Input file not found
@@ -210,3 +215,32 @@ cd R:\BEKA\mt_messenger
 git pull
 ./tasks/install.ps1
 ```
+
+## R Package Management
+
+R packages are managed by [renv](https://rstudio.github.io/renv/) for
+reproducibility. The lockfile (`renv.lock`) pins exact versions so every
+developer gets the same R environment.
+
+### Adding an R package
+
+```r
+# In R, from the project root:
+renv::install("newpackage")
+```
+
+Then add it to the `Imports` field in `DESCRIPTION` and update the lockfile:
+
+```r
+renv::snapshot()
+```
+
+Commit both `DESCRIPTION` and `renv.lock`.
+
+### Restoring packages after a pull
+
+```r
+renv::restore()
+```
+
+Or just re-run `./tasks/install.ps1` or `./tasks/dev_sync.ps1`.

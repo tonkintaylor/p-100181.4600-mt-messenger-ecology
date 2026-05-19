@@ -35,13 +35,12 @@ else
     fi
 fi
 
-echo "Ensuring R packages are installed..."
-# Run from a script file — multi-line 'Rscript -e' segfaults through Git Bash on Windows.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-Rscript --vanilla "$SCRIPT_DIR/install_r_packages.R"
+echo "Restoring R packages from renv.lock..."
+Rscript -e "source('renv/activate.R'); renv::restore(prompt = FALSE)"
 
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to install R packages."
+    echo "Error: Failed to restore R packages from renv.lock."
+    echo "Try running in R: source('renv/activate.R'); renv::restore()"
     exit 1
 fi
 

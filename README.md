@@ -94,33 +94,70 @@ VS Code configuration:
 
 ## Development
 
+### Running Python code
+
+Python code is run through uv to ensure the virtual environment is used:
+
+```powershell
+uv run python src/scripts/my_script.py
+uv run mgen data
+```
+
+### Running R code
+
+R scripts can be run directly with Rscript. The `.Rprofile` activates
+renv automatically:
+
+```powershell
+Rscript src/r/run_all.R
+```
+
 ### Running tests
 
 ```powershell
 uv run pytest
 ```
 
-### Adding a dependency
+### Managing Python packages
 
-Add the package to `[project].dependencies` in `pyproject.toml`, then:
+Python dependencies are managed by [uv](https://docs.astral.sh/uv/) with
+versions locked in `uv.lock`.
+
+**Adding a package:**
+
+```powershell
+uv add newpackage
+```
+
+This updates both `pyproject.toml` and `uv.lock` automatically.
+
+**Restoring after a pull:**
 
 ```powershell
 ./tasks/dev_sync.ps1
 ```
 
-### Releasing a version
+### Managing R packages
 
-```powershell
-./tasks/release.ps1
+R dependencies are managed by [renv](https://rstudio.github.io/renv/) with
+versions locked in `renv.lock`. The `DESCRIPTION` file declares the direct
+R package dependencies.
+
+**Adding a package:**
+
+1. In R from the project root: `renv::install("newpackage")`
+2. Add the package to the `Imports` field in `DESCRIPTION`
+3. Update the lockfile: `renv::snapshot()`
+4. Commit both `DESCRIPTION` and `renv.lock`
+
+**Restoring after a pull:**
+
+```r
+renv::restore()
 ```
 
-The branch will be automatically created and pushed, ready for a PR.
-
-### Changelog
-
-Add a new file at `doc/whatsnew/{issue_num}.{entry_type}.md` where
-`{entry_type}` is one of `feature`, `bugfix`, `doc`, `removal`,
-`newhome`, `test`, or `devconfig`.
+Or just re-run `./tasks/dev_sync.ps1` — it restores both Python and R
+packages automatically.
 
 ## Licence
 

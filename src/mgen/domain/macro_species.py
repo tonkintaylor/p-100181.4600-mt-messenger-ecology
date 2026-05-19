@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from mgen.domain.macro_ingest import IngestError, ingest_raw_data
+from mgen.shared.domain_types import BASELINE_END
 from mgen.shared.errors import DomainResult, ValidationError
 from mgen.shared.schemas import MACRO_SPECIES_COLUMNS
 
@@ -42,6 +43,13 @@ def _pivot_sample(
     date = meta["Date"]
     site = str(meta["Site"]).strip()
 
+    # Flag incident/additional samples; derive Phase from date
+    is_additional = phase.lower() == "incident"
+    if pd.notna(date) and pd.Timestamp(date) <= BASELINE_END:
+        phase = "Baseline"
+    else:
+        phase = "Construction"
+
     rows: list[dict[str, object]] = []
     for i, tally in enumerate(counts):
         if pd.isna(tally) or int(tally) <= 0:
@@ -54,6 +62,7 @@ def _pivot_sample(
                 "Taxa": str(taxa_groups[i]),
                 "Species": str(taxa_names[i]),
                 "Tally": int(tally),
+                "is_additional": is_additional,
             }
         )
     return rows

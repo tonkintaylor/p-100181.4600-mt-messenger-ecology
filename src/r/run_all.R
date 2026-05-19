@@ -28,7 +28,8 @@ suppressPackageStartupMessages({
 script_dir <- if (interactive()) {
   "src/r"
 } else {
-  dirname(commandArgs(trailingOnly = FALSE)[grep("--file=", commandArgs(trailingOnly = FALSE))])
+  file_arg <- commandArgs(trailingOnly = FALSE)[grep("--file=", commandArgs(trailingOnly = FALSE))]
+  dirname(sub("^--file=", "", file_arg))
 }
 # Handle both running from project root and from src/r/
 if (grepl("src[/\\\\]r$", script_dir)) {
@@ -37,8 +38,13 @@ if (grepl("src[/\\\\]r$", script_dir)) {
   project_root <- getwd()
 }
 
-# Source helper modules
-helpers_dir <- file.path(project_root, "src", "r", "helpers")
+# Source helper modules — look relative to this script's location first
+# (works for both dev layout and installed-package layout), fall back
+# to the legacy project_root/src/r/helpers path.
+helpers_dir <- file.path(script_dir, "helpers")
+if (!dir.exists(helpers_dir)) {
+  helpers_dir <- file.path(project_root, "src", "r", "helpers")
+}
 source(file.path(helpers_dir, "data_loading.R"))
 source(file.path(helpers_dir, "plotting_style.R"))
 source(file.path(helpers_dir, "triggers.R"))
@@ -46,6 +52,8 @@ source(file.path(helpers_dir, "sediment_plots.R"))
 source(file.path(helpers_dir, "macro_plots.R"))
 source(file.path(helpers_dir, "nmds_plots.R"))
 source(file.path(helpers_dir, "clarity_plots.R"))
+source(file.path(helpers_dir, "habitat_plots.R"))
+source(file.path(helpers_dir, "fish_plots.R"))
 
 # --- Parse arguments ---
 args <- commandArgs(trailingOnly = TRUE)
@@ -64,6 +72,20 @@ resolve_default_xlsx <- function(project_root) {
     }
   }
   file.path(project_root, "ref", "Data.xlsx")
+}
+
+resolve_aquatic_db <- function(project_root) {
+  cycle_path <- file.path(project_root, "cycle.toml")
+  if (file.exists(cycle_path)) {
+    toml_lines <- readLines(cycle_path, warn = FALSE)
+    db_lines <- grep("^aquatic_monitoring_db\\s*=", toml_lines, value = TRUE)
+    if (length(db_lines) == 1) {
+      parsed <- gsub('.*"([^"]+)".*', "\\1", db_lines[[1]])
+      if (nzchar(parsed) && file.exists(parsed)) return(parsed)
+      warning("cycle.toml aquatic_monitoring_db path not found on disk: ", parsed)
+    }
+  }
+  NULL
 }
 
 xlsx_path <- if (length(args) >= 1) args[1] else resolve_default_xlsx(project_root)
@@ -141,7 +163,13 @@ if (!is.null(data$Community)) {
 
   # Apply display names to community data
   community_df <- community_df |>
-    mutate(Site = ifelse(Site %in% names(display_names), display_names[Site], Site))
+    mutate(
+      Site = ifelse(Site %in% names(display_names), display_names[Site], Site),
+      Period = trimws(Period)
+    )
+
+  # Exclude additional/incident monitoring samples from NMDS analysis
+  community_df <- community_df |> filter(!is_additional)
 
   # All-sites grouped NMDS
   message("All-sites NMDS...")
@@ -164,7 +192,7 @@ if (!is.null(data$Community)) {
 
   # Construction-only NMDS
   message("Construction NMDS...")
-  construction_df <- community_df |> filter(Period == "Routine Construction")
+  construction_df <- community_df |> filter(Period == "Construction")
   if (nrow(construction_df) > 3) {
     nmds_constr <- run_site_nmds(construction_df)
     if (!is.null(nmds_constr)) {
@@ -283,6 +311,53 @@ if (!is.null(data$Clarity)) {
   plot_clarity_ntu_relationship(data$Clarity, clarity_fig_dir)
 } else {
   message("  Skipped: no Clarity sheet found")
+}
+
+message("")
+
+# --- RPD & LDV (Habitat) ---
+habitat_fig_dir <- file.path(output_dir, "Habitat")
+dir.create(habitat_fig_dir, showWarnings = FALSE, recursive = TRUE)
+
+message("--- Habitat Plots (RPD & LDV) ---")
+if (!is.null(data$RPD)) {
+  plot_rpd_by_catchment(data$RPD, habitat_fig_dir)
+} else {
+  message("  Skipped: no RPD sheet found")
+}
+
+if (!is.null(data$LDV)) {
+  plot_ldv_by_catchment(data$LDV, habitat_fig_dir)
+} else {
+  message("  Skipped: no LDV sheet found")
+}
+
+# Per-site habitat plots (EM5 — no baseline data, requested by Mike)
+EM5_HABITAT_SITES <- c("EM5")
+if (!is.null(data$RPD)) {
+  plot_rpd_per_site(data$RPD, habitat_fig_dir, sites = EM5_HABITAT_SITES)
+}
+if (!is.null(data$LDV)) {
+  plot_ldv_per_site(data$LDV, habitat_fig_dir, sites = EM5_HABITAT_SITES)
+}
+
+message("")
+
+# --- Fish Trapping ---
+fish_fig_dir <- file.path(output_dir, "Fish")
+dir.create(fish_fig_dir, showWarnings = FALSE, recursive = TRUE)
+
+message("--- Fish Trapping Plots ---")
+aquatic_db_path <- resolve_aquatic_db(project_root)
+if (!is.null(aquatic_db_path)) {
+  fish_data <- load_fish_trapping(aquatic_db_path)
+  if (!is.null(fish_data)) {
+    plot_fish_by_catchment(fish_data, fish_fig_dir)
+  } else {
+    message("  Skipped: no Fish Trapping sheet found")
+  }
+} else {
+  message("  Skipped: aquatic monitoring DB not found")
 }
 
 message("")

@@ -10,7 +10,7 @@
 library(ggplot2)
 
 # --- Constants ---
-BASELINE_END <- as.Date("2022-02-28")
+BASELINE_END <- as.Date("2022-03-31")
 CONSTRUCTION_START <- as.Date("2022-07-01")
 
 PERIOD_COLORS <- c(
@@ -22,15 +22,44 @@ PERIOD_COLORS <- c(
 
 ALL_SITES <- c("EM1", "EM2", "EM3", "EM5", "EM4", "EM7", "EM8")
 
-SITE_SHIFT_SHAPE <- 17  # filled triangle for all shift markers
+# Site colour palette — distinct colours for each EM site on the same plot.
+SITE_COLOURS <- c(
+  "EM1" = "#1b9e77",
+  "EM2" = "#d95f02",
+  "EM3" = "#7570b3",
+  "EM4" = "#e7298a",
+  "EM5" = "#66a61e",
+  "EM6" = "#377eb8",
+  "EM7" = "#e6ab02",
+  "EM8" = "#a6761d"
+)
+
+SITE_SHIFT_SHAPE <- 8  # asterisk — less likely to be mistaken for a data point
 
 SITE_SHIFT_EVENTS <- data.frame(
   Site = c("EM2", "EM7", "EM7"),
   Date = as.Date(c("2020-11-01", "2023-11-01", "2025-11-01")),
-  Label = c("Site shift (Nov 2020)", "Site shift (Nov 2023)", "Site shift (Nov 2025)"),
+  Label = c("* Site shifted (Nov 2020)", "* Site shifted (Nov 2023)", "* Site shifted (Nov 2025)"),
   Period = c("Baseline", "Routine Construction", "Routine Construction"),
   stringsAsFactors = FALSE
 )
+
+
+#' Custom legend key glyph: coloured background with solid black symbol.
+#'
+#' Draws a filled rectangle using the mapped colour as background, then a
+#' solid black point on top. If shape is NA (e.g. for Trigger Level entries)
+#' draws only a line instead.
+draw_key_coloured_bg <- function(data, params, size) {
+  bg_col <- if (!is.null(data$colour) && !is.na(data$colour)) data$colour else "grey80"
+  shp <- if (!is.null(data$shape) && !is.na(data$shape)) data$shape else 16
+  grid::grobTree(
+    grid::rectGrob(gp = grid::gpar(fill = bg_col, col = NA)),
+    grid::pointsGrob(0.5, 0.5, pch = shp,
+                     gp = grid::gpar(col = "black", fill = "black"),
+                     size = unit(0.8, "char"))
+  )
+}
 
 
 #' Minimal ecology theme matching the R scripts' theme_minimal(base_size=14).
@@ -143,38 +172,32 @@ get_site_shift_events <- function(site) {
 }
 
 
-#' Add site-shift triangle markers and legend to a ggplot.
+#' Annotate nearest data points to site-shift dates with "*".
+#'
+#' For each shift event, finds the closest row in plot_data by date and places
+#' a "*" text annotation above that point. No legend entry is added.
 #'
 #' @param p A ggplot object.
-#' @param shift_events Data frame from get_site_shift_events(), must include
-#'   Date, Label, Shape, Colour, and Y columns.
-#' @return The plot with shift markers added, or unchanged if no events.
-add_site_shift_layer <- function(p, shift_events) {
+#' @param site Site code (e.g. "EM2").
+#' @param plot_data Data frame with the plotted data points.
+#' @param x_col Name of the date column in plot_data.
+#' @param y_col Name of the y-value column in plot_data.
+#' @param y_nudge Vertical offset above the data point for the "*".
+#' @return The plot with "*" annotations, or unchanged if no shift events.
+add_site_shift_annotations <- function(p, site, plot_data, x_col = "Date",
+                                       y_col = "Mean", y_nudge = 0) {
+  shift_events <- get_site_shift_events(site)
   if (nrow(shift_events) == 0) return(p)
 
-  shift_shapes <- setNames(shift_events$Shape, shift_events$Label)
-  shift_labels <- unique(shift_events$Label)
-  shift_colours <- setNames(shift_events$Colour, shift_events$Label)
+  for (i in seq_len(nrow(shift_events))) {
+    diffs <- abs(as.numeric(plot_data[[x_col]] - shift_events$Date[i]))
+    nearest_idx <- which.min(diffs)
+    ann_x <- plot_data[[x_col]][nearest_idx]
+    ann_y <- plot_data[[y_col]][nearest_idx] + y_nudge
 
-  p +
-    geom_point(
-      data = shift_events,
-      aes(x = Date, y = Y, shape = Label),
-      inherit.aes = FALSE,
-      colour = shift_events$Colour,
-      size = 2.8,
-      stroke = 0.8
-    ) +
-    scale_shape_manual(
-      values = shift_shapes,
-      breaks = shift_labels,
-      limits = shift_labels,
-      name = NULL,
-      guide = guide_legend(
-        override.aes = list(
-          colour = unname(shift_colours[shift_labels]),
-          linetype = rep("blank", length(shift_labels))
-        )
-      )
-    )
+    p <- p + annotate("text", x = ann_x, y = ann_y,
+                       label = "*", size = 8, hjust = 0.5, vjust = -0.1,
+                       colour = "black", fontface = "bold")
+  }
+  p
 }

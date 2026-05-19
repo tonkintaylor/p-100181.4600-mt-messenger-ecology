@@ -122,19 +122,16 @@ test_that("site shift metadata returns expected events per site", {
   em7 <- get_site_shift_events("EM7")
   expect_equal(nrow(em7), 2)
   expect_equal(as.character(em7$Date), c("2023-11-01", "2025-11-01"))
-  expect_equal(em7$Label, c("Site shift (Nov 2023)", "Site shift (Nov 2025)"))
 
   em2 <- get_site_shift_events("EM2")
   expect_equal(nrow(em2), 1)
   expect_equal(as.character(em2$Date), "2020-11-01")
-  expect_equal(em2$Label, "Site shift (Nov 2020)")
-  expect_equal(unname(em2$Shape), 17)
   expect_equal(unname(em2$Colour), "#ff9f1c")
   em3 <- get_site_shift_events("EM3")
   expect_equal(nrow(em3), 0)
 })
 
-test_that("macro panel includes configured site shift labels in shape legend", {
+test_that("macro panel includes asterisk annotations for site shifts", {
   summary_df <- data.frame(
     Date = as.Date(c("2023-08-01", "2023-11-01", "2024-02-01")),
     Mean = c(5.8, 5.5, 5.6),
@@ -153,18 +150,14 @@ test_that("macro panel includes configured site shift labels in shape legend", {
     site = "EM7"
   )
 
-  has_shift_layer <- any(vapply(
-    p$layers,
+  # EM7 has 2 shift events → 2 annotate("text") layers with label="*"
+  asterisk_layers <- Filter(
     function(layer) {
-      has_shape_mapping <- !is.null(layer$mapping$shape) &&
-        grepl("Label", paste(deparse(layer$mapping$shape), collapse = ""))
-      has_shift_data <- !is.null(layer$data) &&
-        is.data.frame(layer$data) &&
-        "Label" %in% names(layer$data) &&
-        any(grepl("^Site shift", layer$data$Label))
-      has_shape_mapping && has_shift_data
+      inherits(layer$geom, "GeomText") &&
+        !is.null(layer$aes_params$label) &&
+        layer$aes_params$label == "*"
     },
-    logical(1)
-  ))
-  expect_true(has_shift_layer)
+    p$layers
+  )
+  expect_equal(length(asterisk_layers), 2)
 })
