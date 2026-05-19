@@ -36,11 +36,11 @@ else
 fi
 
 echo "Restoring R packages from renv.lock..."
-Rscript -e "source('renv/activate.R'); renv::restore(prompt = FALSE)"
+Rscript --vanilla -e "source('renv/activate.R'); renv::restore(prompt = FALSE)"
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to restore R packages from renv.lock."
-    echo "Try running in R: source('renv/activate.R'); renv::restore()"
+    echo "Try running: Rscript --vanilla -e \"source('renv/activate.R'); renv::restore()\""
     exit 1
 fi
 

@@ -114,6 +114,7 @@ def _run_r_figures(
 
     cmd = [
         "Rscript",
+        "--vanilla",
         str(r_script),
         str(xlsx_path),
         str(figures_dir),

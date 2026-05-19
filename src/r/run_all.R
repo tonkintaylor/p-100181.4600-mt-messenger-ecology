@@ -10,6 +10,26 @@
 #   tables_dir:  same as figures_dir
 
 # --- Setup ---
+script_dir <- if (interactive()) {
+  "src/r"
+} else {
+  file_arg <- commandArgs(trailingOnly = FALSE)[grep("--file=", commandArgs(trailingOnly = FALSE))]
+  dirname(sub("^--file=", "", file_arg))
+}
+
+# Handle both running from project root and from src/r/. Installed package
+# layouts use the current working directory as the project root.
+if (grepl("src[/\\\\]r$", script_dir)) {
+  project_root <- normalizePath(file.path(script_dir, "..", ".."), mustWork = FALSE)
+} else {
+  project_root <- getwd()
+}
+
+renv_activate <- file.path(project_root, "renv", "activate.R")
+if (file.exists(renv_activate)) {
+  source(renv_activate)
+}
+
 suppressPackageStartupMessages({
   library(readxl)
   library(dplyr)
@@ -23,20 +43,6 @@ suppressPackageStartupMessages({
   library(openxlsx)
   library(lubridate)
 })
-
-# Determine project root (assuming script is at src/r/run_all.R)
-script_dir <- if (interactive()) {
-  "src/r"
-} else {
-  file_arg <- commandArgs(trailingOnly = FALSE)[grep("--file=", commandArgs(trailingOnly = FALSE))]
-  dirname(sub("^--file=", "", file_arg))
-}
-# Handle both running from project root and from src/r/
-if (grepl("src[/\\\\]r$", script_dir)) {
-  project_root <- normalizePath(file.path(script_dir, "..", ".."), mustWork = FALSE)
-} else {
-  project_root <- getwd()
-}
 
 # Source helper modules — look relative to this script's location first
 # (works for both dev layout and installed-package layout), fall back
