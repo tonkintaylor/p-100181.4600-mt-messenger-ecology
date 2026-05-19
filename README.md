@@ -105,11 +105,21 @@ uv run mgen data
 
 ### Running R code
 
-R scripts can be run directly with Rscript. The `.Rprofile` activates
-renv automatically:
+Use `mgen figures` or `mgen all` for normal figure generation. The CLI runs
+`Rscript --vanilla src/r/run_all.R ...`; `run_all.R` activates renv explicitly
+before loading packages.
+
+For one-off diagnostics that do not need project packages, use `--vanilla` to
+avoid renv startup overhead:
 
 ```powershell
-Rscript src/r/run_all.R
+Rscript --vanilla -e "sessionInfo()"
+```
+
+For one-off commands that do need project packages, bootstrap renv explicitly:
+
+```powershell
+Rscript --vanilla -e "source('renv/activate.R'); packageVersion('ggplot2')"
 ```
 
 ### Running tests
@@ -152,8 +162,8 @@ R package dependencies.
 
 **Restoring after a pull:**
 
-```r
-renv::restore()
+```powershell
+Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
 ```
 
 Or just re-run `./tasks/dev_sync.ps1` — it restores both Python and R

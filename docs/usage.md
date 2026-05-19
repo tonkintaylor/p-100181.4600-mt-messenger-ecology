@@ -194,11 +194,20 @@ If using a developer checkout, activate the virtual environment:
 ### R package installation fails
 
 If `./tasks/install.ps1` fails during R setup, restore packages manually
-in R from the project root:
+from the project root:
 
-```r
-source("renv/activate.R")
-renv::restore()
+```powershell
+Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
+```
+
+### `Rscript` not found
+
+`mgen figures` and `mgen all` require `Rscript` on PATH. On Windows, R is often
+installed under a versioned directory such as `C:\Program Files\R\R-4.5.3\bin`.
+Add that `bin` directory to PATH, restart the terminal, then verify:
+
+```powershell
+Rscript --version
 ```
 
 ### Input file not found
@@ -239,8 +248,8 @@ Commit both `DESCRIPTION` and `renv.lock`.
 
 ### Restoring packages after a pull
 
-```r
-renv::restore()
+```powershell
+Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
 ```
 
 Or just re-run `./tasks/install.ps1` or `./tasks/dev_sync.ps1`.

@@ -167,7 +167,7 @@ class TestFiguresCommand:
         assert result.exit_code == 0
         mock_run.assert_called_once()
         call_args = mock_run.call_args
-        assert call_args[0][0][0] == "Rscript"
+        assert call_args[0][0][:2] == ["Rscript", "--vanilla"]
         assert str(data_path) in call_args[0][0]
 
     def test_figures_missing_r_script(self, tmp_path: Path) -> None:
@@ -252,3 +252,5 @@ class TestAllCommand:
         assert result.exit_code == 0
         mock_pipeline.assert_called_once()
         mock_subprocess.assert_called_once()
+        call_args = mock_subprocess.call_args
+        assert call_args[0][0][:2] == ["Rscript", "--vanilla"]
