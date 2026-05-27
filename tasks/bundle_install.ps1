@@ -1,14 +1,14 @@
-# Mt Messenger Ecology Pipeline — Install from Bundle
-# Installs mgen globally via uv tool install — no venv activation needed.
+﻿# Mt Messenger Ecology Pipeline -- Install from Bundle
+# Installs mgen globally via uv tool install -- no venv activation needed.
 #
-# Usage:  Right-click → Run with PowerShell
+# Usage:  Right-click -> Run with PowerShell
 #         Or in PowerShell: .\install.ps1
 
 $ErrorActionPreference = "Stop"
 $bundleDir = $PSScriptRoot
 
 Write-Host ""
-Write-Host "=== Mt Messenger Ecology Pipeline — Bundle Install ===" -ForegroundColor Cyan
+Write-Host "=== Mt Messenger Ecology Pipeline -- Bundle Install ===" -ForegroundColor Cyan
 Write-Host ""
 
 # --- 1. Install uv ---
@@ -39,6 +39,9 @@ if ($env:PATH -notlike "*$uvBin*") {
 Write-Host ""
 Write-Host "Setting up R environment..."
 
+$rVersion = "4.5.3"
+
+# Look for existing R installation
 $rBin = Get-ChildItem "C:\Program Files\R" -Directory -ErrorAction SilentlyContinue |
     Sort-Object Name | Select-Object -Last 1
 if ($rBin) {
@@ -47,25 +50,63 @@ if ($rBin) {
     $rscript = $null
 }
 
+# If R not found in Program Files, check user-local install
+if (-not ($rscript -and (Test-Path $rscript))) {
+    $localR = "$env:LOCALAPPDATA\R\R-$rVersion\bin\Rscript.exe"
+    if (Test-Path $localR) {
+        $rscript = $localR
+    }
+}
+
+# If still not found, download and install R to user-local path (no admin needed)
+if (-not ($rscript -and (Test-Path $rscript))) {
+    Write-Host "  R not found -- installing R $rVersion (this may take a few minutes)..."
+    $rInstaller = "$env:TEMP\R-$rVersion-win.exe"
+    $rInstallDir = "$env:LOCALAPPDATA\R\R-$rVersion"
+
+    $rUrl = "https://cran.r-project.org/bin/windows/base/R-$rVersion-win.exe"
+    try {
+        Invoke-WebRequest -Uri $rUrl -OutFile $rInstaller -UseBasicParsing
+    } catch {
+        Write-Host "  ERROR: Failed to download R from $rUrl" -ForegroundColor Red
+        Write-Host "  Install R manually from https://cran.r-project.org/" -ForegroundColor Yellow
+        $rInstaller = $null
+    }
+
+    if ($rInstaller -and (Test-Path $rInstaller)) {
+        Write-Host "  Installing R to $rInstallDir ..."
+        Start-Process -FilePath $rInstaller -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=$rInstallDir" -Wait -NoNewWindow
+        Remove-Item $rInstaller -Force -ErrorAction SilentlyContinue
+        $rscript = "$rInstallDir\bin\Rscript.exe"
+        if (-not (Test-Path $rscript)) {
+            Write-Host "  ERROR: R installation failed." -ForegroundColor Red
+            $rscript = $null
+        } else {
+            Write-Host "  R installed successfully."
+        }
+    }
+}
+
 if ($rscript -and (Test-Path $rscript)) {
     Write-Host "  R found: $rscript"
     Push-Location $bundleDir
-    & $rscript -e "source('renv/activate.R'); renv::restore(prompt = FALSE)"
+    & $rscript --vanilla -e "source('renv/activate.R'); renv::restore(prompt = FALSE)"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  WARNING: R package restore failed. Run manually in R:" -ForegroundColor Yellow
         Write-Host "    source('renv/activate.R'); renv::restore()"
     }
     Pop-Location
 } else {
-    Write-Host "  WARNING: R not found. Install R from https://cran.r-project.org/" -ForegroundColor Yellow
-    Write-Host "  Then run in R from this folder: source('renv/activate.R'); renv::restore()"
+    Write-Host "  WARNING: R could not be installed automatically." -ForegroundColor Yellow
+    Write-Host "  Install R from https://cran.r-project.org/ then run:" -ForegroundColor Yellow
+    Write-Host "    source('renv/activate.R'); renv::restore()"
 }
 
 # --- 4. Create cycle.toml from template ---
 if (-not (Test-Path "$bundleDir\cycle.toml")) {
     Copy-Item "$bundleDir\cycle.example.toml" "$bundleDir\cycle.toml"
     Write-Host ""
-    Write-Host "  Created cycle.toml — edit this to set your input/output paths." -ForegroundColor Yellow
+    Write-Host "  Created cycle.toml -- edit this to set your input/output paths." -ForegroundColor Yellow
 }
 
 # --- 5. Done ---
@@ -77,6 +118,6 @@ Write-Host "  1. Edit cycle.toml with your input/output paths"
 Write-Host "  2. cd to this folder:  cd $bundleDir"
 Write-Host "  3. Run:  mgen all"
 Write-Host ""
-Write-Host "No virtual environment activation needed — mgen is on your PATH."
+Write-Host "No virtual environment activation needed -- mgen is on your PATH."
 Write-Host ""
 Read-Host "Press Enter to exit"

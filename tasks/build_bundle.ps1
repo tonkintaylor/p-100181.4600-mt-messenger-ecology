@@ -58,6 +58,18 @@ Copy-Item "cycle.example.toml" "$OutputDir\" -Force
 # 6. Copy the install script
 Copy-Item "tasks\bundle_install.ps1" "$OutputDir\install.ps1" -Force
 
+# 7. Validate install.ps1 parses without errors (catches encoding issues)
+Write-Host "Validating install.ps1 syntax..."
+$parseErrors = $null
+[System.Management.Automation.Language.Parser]::ParseFile(
+    "$OutputDir\install.ps1", [ref]$null, [ref]$parseErrors
+) | Out-Null
+if ($parseErrors.Count -gt 0) {
+    $parseErrors | ForEach-Object { Write-Host "  ERROR: $_" -ForegroundColor Red }
+    throw "install.ps1 has parse errors -- check for non-ASCII characters or encoding issues"
+}
+Write-Host "  install.ps1 syntax OK"
+
 Write-Host ""
 Write-Host "=== Bundle ready ===" -ForegroundColor Green
 Write-Host "  Location: $OutputDir"
