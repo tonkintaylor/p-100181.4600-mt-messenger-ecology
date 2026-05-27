@@ -7,6 +7,13 @@ fi
 
 source ./tasks/shims/recover_corrupt_venv
 
+# Ensure uv is installed
+if ! command -v uv &> /dev/null
+then
+    echo "uv not found — installing via install_backend..."
+    source ./tasks/shims/install_backend
+fi
+
 # Finding Python version
 if ! output=$(cat .python-version 2>&1)
 then
