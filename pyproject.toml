@@ -235,6 +235,7 @@ sonarqube.exclusions=[
   "src/scripts/**/*",
   "src/archive/**/*",
 ]
+sonarqube.extra-properties."sonar.python.ruff.reportPaths" = "ruff-report.json"
 
 [tool.coverage.run]
 source = ["src"]
