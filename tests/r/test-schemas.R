@@ -1,15 +1,6 @@
+src_data("schemas.R")
+
 test_that("schema column vectors match the Python contract", {
-  # testthat::test_file() changes working directory; find project root
-  if (!file.exists("src/r/data/schemas.R")) {
-    wd <- getwd()
-    while (!file.exists(file.path(wd, ".git"))) {
-      new_wd <- dirname(wd)
-      if (new_wd == wd) break
-      wd <- new_wd
-    }
-    setwd(wd)
-  }
-  source("src/r/data/schemas.R", local = TRUE)
   expect_equal(MACRO1_COLUMNS,
                c("Site","Date","Period","EPTrich","EPTabun","QMCI","Season"))
   expect_identical(MACRO_COLUMNS, MACRO1_COLUMNS)
