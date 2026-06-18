@@ -12,4 +12,7 @@ Imports:
     zoo,
     patchwork,
     openxlsx,
-    lubridate
+    lubridate,
+    R6,
+    RcppTOML,
+    testthat
