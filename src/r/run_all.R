@@ -64,39 +64,22 @@ source(file.path(helpers_dir, "fish_plots.R"))
 # --- Parse arguments ---
 args <- commandArgs(trailingOnly = TRUE)
 
-resolve_default_xlsx <- function(project_root) {
-  cycle_path <- file.path(project_root, "cycle.toml")
-  if (file.exists(cycle_path)) {
-    toml_lines <- readLines(cycle_path, warn = FALSE)
-    data_lines <- grep("^data_xlsx\\s*=", toml_lines, value = TRUE)
-    if (length(data_lines) == 1) {
-      parsed <- gsub('.*"([^"]+)".*', "\\1", data_lines[[1]])
-      if (nzchar(parsed) && file.exists(parsed)) return(parsed)
-      warning("cycle.toml data_xlsx path not found on disk: ", parsed)
-    } else if (length(data_lines) > 1) {
-      warning("cycle.toml has multiple data_xlsx entries; using ref/Data.xlsx fallback")
-    }
-  }
-  file.path(project_root, "ref", "Data.xlsx")
-}
+# Load config.R for structured TOML parsing
+data_config_dir <- file.path(project_root, "src", "r", "data")
+source(file.path(data_config_dir, "config.R"))
 
-resolve_aquatic_db <- function(project_root) {
-  cycle_path <- file.path(project_root, "cycle.toml")
-  if (file.exists(cycle_path)) {
-    toml_lines <- readLines(cycle_path, warn = FALSE)
-    db_lines <- grep("^aquatic_monitoring_db\\s*=", toml_lines, value = TRUE)
-    if (length(db_lines) == 1) {
-      parsed <- gsub('.*"([^"]+)".*', "\\1", db_lines[[1]])
-      if (nzchar(parsed) && file.exists(parsed)) return(parsed)
-      warning("cycle.toml aquatic_monitoring_db path not found on disk: ", parsed)
-    }
+cfg <- tryCatch(
+  load_config(file.path(project_root, "cycle.toml")),
+  error = function(e) {
+    message("Warning: could not load cycle.toml via config.R: ", conditionMessage(e))
+    NULL
   }
-  NULL
-}
+)
 
-xlsx_path <- if (length(args) >= 1) args[1] else resolve_default_xlsx(project_root)
-output_dir <- if (length(args) >= 2) args[2] else file.path(project_root, "src", "r", "outputs")
-tables_dir <- if (length(args) >= 3) args[3] else output_dir
+xlsx_path <- if (length(args) >= 1) args[1] else if (!is.null(cfg)) cfg$data_xlsx else file.path(project_root, "ref", "Data.xlsx")
+output_dir <- if (length(args) >= 2) args[2] else if (!is.null(cfg)) cfg$figures_dir else file.path(project_root, "src", "r", "outputs")
+tables_dir <- if (length(args) >= 3) args[3] else if (!is.null(cfg)) cfg$tables_dir else output_dir
+aquatic_db_path <- if (!is.null(cfg)) cfg$aquatic_monitoring_db else NULL
 
 if (!file.exists(xlsx_path)) {
   stop("Data.xlsx not found at: ", xlsx_path)
@@ -354,7 +337,6 @@ fish_fig_dir <- file.path(output_dir, "Fish")
 dir.create(fish_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("--- Fish Trapping Plots ---")
-aquatic_db_path <- resolve_aquatic_db(project_root)
 if (!is.null(aquatic_db_path)) {
   fish_data <- load_fish_trapping(aquatic_db_path)
   if (!is.null(fish_data)) {
