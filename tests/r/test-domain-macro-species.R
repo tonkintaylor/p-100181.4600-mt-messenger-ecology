@@ -499,7 +499,7 @@ test_that("unexpected per-sample error produces warning and processing continues
   on.exit(assign("ingest_raw_data", old_ingest, envir = .GlobalEnv), add = TRUE)
   assign("ingest_raw_data", function(...) fake_bundle, envir = .GlobalEnv)
 
-  result <- process_macro_species_domain(tempfile(fileext = ".xlsx"))
+  result <- suppressWarnings(process_macro_species_domain(tempfile(fileext = ".xlsx")))
 
   # Sample 20 succeeds; sample 10 triggers unexpected error -> warning
   expect_true(result$ok())
