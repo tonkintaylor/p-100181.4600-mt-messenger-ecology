@@ -63,7 +63,14 @@ ingest_raw_data <- function(macro_db_path) {
   )
   bad_date <- is.na(parsed_dates)
   if (any(bad_date)) {
-    parsed_dates[bad_date] <- suppressWarnings(as.Date(date_raw[bad_date]))
+    # Try multiple text formats: ISO (YYYY-MM-DD), then DD/MM/YYYY (as seen in some cells).
+    for (fmt in c("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y")) {
+      still_bad <- is.na(parsed_dates) & bad_date
+      if (!any(still_bad)) break
+      parsed_dates[still_bad] <- suppressWarnings(
+        as.Date(date_raw[still_bad], format = fmt)
+      )
+    }
   }
 
   meta <- data.frame(
