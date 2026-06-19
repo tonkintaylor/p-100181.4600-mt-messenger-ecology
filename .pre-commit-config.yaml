@@ -8,47 +8,6 @@ repos:
         language: fail
         files: \.rej$
 
-  - repo: local
-    hooks:
-      # Prevent committing test.py files within the tests directory
-      - id: forbidden-testpy-files
-        name: forbidden testpy files
-        entry: found test.py file inside tests directory; rename or remove them
-        language: fail
-        files: ((./tests/.*/test.py)|(./tests/test.py))$
-
-  - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.25
-    hooks:
-      - id: validate-pyproject
-
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.2
-    hooks:
-      - id: uv-lock
-      - id: uv-sync
-      - id: uv-export
-        args: ["--frozen", "--output-file=requirements.txt", "--quiet", "--no-emit-project", "--no-hashes", "--no-annotate"]
-
-  - repo: https://github.com/tsvikas/sync-with-uv
-    rev: v0.5.0
-    hooks:
-      - id: sync-with-uv
-
-  - repo: https://github.com/python-formate/flake8-dunder-all
-    rev: v0.5.0
-    hooks:
-      - id: ensure-dunder-all
-        files: .*/__init__\.py$
-        exclude: tests/assets/
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
-    hooks:
-    - id: ruff-check
-      args: ["--fix", "--unsafe-fixes", "--ignore", "FIX"]
-    - id: ruff-format
-
   - repo: builtin
     hooks:
       - id: check-added-large-files
@@ -58,23 +17,6 @@ repos:
       - id: check-merge-conflict
         args: [--assume-in-merge]
 
-  - repo: local
-    hooks:
-      - id: nbstripout
-        name: nbstripout
-        entry: uv run --frozen --offline nbstripout
-        language: system
-        files: .*\.(ipynb)$
-        exclude: .*\.(example|template|keepoutput|)\.ipynb$
-
-  - repo: local
-    hooks:
-      - id: deptry
-        name: deptry
-        entry: uv run --frozen --offline deptry src
-        language: system
-        always_run: true
-        pass_filenames: false
 default_install_hook_types:
   - pre-commit
   - pre-push

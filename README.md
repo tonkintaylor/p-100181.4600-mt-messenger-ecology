@@ -1,10 +1,8 @@
 # Mt Messenger Ecology Pipeline
 
 <!-- badges: start -->
-![Python Version](<https://img.shields.io/badge/python-3.13-green>)
 ![R Version](<https://img.shields.io/badge/R-4.5-blue>)
 ![Licence](<https://img.shields.io/badge/licence-proprietary-red>)
-[![Ruff](<https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json>)](<https://github.com/astral-sh/ruff>)
 <!-- badges: end -->
 
 Automated data processing and figure generation for Mt Messenger aquatic
@@ -18,21 +16,19 @@ ecology monitoring reports.
 
 ```mermaid
 flowchart TD
-    Config[/"cycle.toml"/] --> CLI
+    Config[/"cycle.toml"/] --> DataCmd
+    Config --> PipelineCmd
+    Config --> AllCmd
 
-    subgraph CLI ["mgen CLI"]
-        DataCmd["mgen data"]
-        FigCmd["mgen figures"]
-        AllCmd["mgen all"]
+    subgraph EntryPoints ["R entry points"]
+        DataCmd["Rscript src/r/run_data.R"]
+        PipelineCmd["Rscript src/r/run_pipeline.R"]
+        AllCmd["Rscript src/r/run_all.R"]
     end
 
     DataCmd --> Pipeline
     AllCmd --> Pipeline
     AllCmd --> RFigures
-
-    subgraph Pipeline ["Python data pipeline"]
-        RunPipeline["run_pipeline()"]
-    end
 
     subgraph Sources ["Source Spreadsheets"]
         MacroDB[("Macroinvertebrate\nDatabase.xlsx")]
@@ -45,12 +41,14 @@ flowchart TD
     AquaticDB --> SedimentSize
     AquaticDB --> Clarity
 
-    subgraph Domains ["Domain processors"]
-        Macro["Macroinvertebrate metrics"]
-        MacroSpecies["Species data"]
-        Sediment["Sediment"]
-        SedimentSize["Grain size"]
-        Clarity["Water clarity"]
+    subgraph Pipeline ["R data pipeline"]
+        subgraph Domains ["Domain processors"]
+            Macro["Macroinvertebrate metrics"]
+            MacroSpecies["Species data"]
+            Sediment["Sediment"]
+            SedimentSize["Grain size"]
+            Clarity["Water clarity"]
+        end
     end
 
     Macro --> Merge
@@ -66,11 +64,11 @@ flowchart TD
     Writer["Write xlsx"] --> DataOutput[/"MtMessengerEcologyData.xlsx"/]
     Errors --> ErrReport["Error summary\nexit code 1"]
 
-    FigCmd --> RFigures
+    PipelineCmd --> RFigures
     DataOutput --> RFigures
 
     subgraph RFigures ["R figure pipeline"]
-        Rscript["Rscript run_all.R"]
+        Rscript["Rscript src/r/run_pipeline.R"]
     end
 
     RFigures --> Figures[/"Figures/\nPNG plots"/]
@@ -94,23 +92,26 @@ VS Code configuration:
 
 ## Development
 
-### Running Python code
-
-Python code is run through uv to ensure the virtual environment is used:
-
-```powershell
-uv run python src/scripts/my_script.py
-uv run mgen data
-```
-
 ### Running R code
 
-Use `mgen figures` or `mgen all` for normal figure generation. The CLI runs
-`Rscript --vanilla src/r/run_all.R ...`; `run_all.R` activates renv explicitly
-before loading packages.
+Use the Rscript entry points for normal operation. All scripts activate
+renv explicitly before loading packages.
 
-For one-off diagnostics that do not need project packages, use `--vanilla` to
-avoid renv startup overhead:
+```powershell
+# Data pipeline only
+Rscript --vanilla src/r/run_data.R cycle.toml
+
+# With validation (checks paths and config before running)
+Rscript --vanilla src/r/run_data.R cycle.toml --validate
+
+# Figures and tables only (requires data xlsx to exist)
+Rscript --vanilla src/r/run_pipeline.R cycle.toml
+
+# Full pipeline: data + figures + tables
+Rscript --vanilla src/r/run_all.R cycle.toml
+```
+
+For one-off diagnostics that do not need project packages, use `--vanilla`:
 
 ```powershell
 Rscript --vanilla -e "sessionInfo()"
@@ -125,26 +126,7 @@ Rscript --vanilla -e "source('renv/activate.R'); packageVersion('ggplot2')"
 ### Running tests
 
 ```powershell
-uv run pytest
-```
-
-### Managing Python packages
-
-Python dependencies are managed by [uv](https://docs.astral.sh/uv/) with
-versions locked in `uv.lock`.
-
-**Adding a package:**
-
-```powershell
-uv add newpackage
-```
-
-This updates both `pyproject.toml` and `uv.lock` automatically.
-
-**Restoring after a pull:**
-
-```powershell
-./tasks/dev_sync.ps1
+Rscript --vanilla -e "source('renv/activate.R'); library(readxl); library(openxlsx); library(dplyr); library(tidyr); library(lubridate); testthat::test_dir('tests/r')"
 ```
 
 ### Managing R packages
@@ -166,8 +148,7 @@ R package dependencies.
 Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
 ```
 
-Or just re-run `./tasks/dev_sync.ps1` — it restores both Python and R
-packages automatically.
+Or just re-run `./tasks/dev_sync.ps1` — it restores R packages automatically.
 
 ## Licence
 

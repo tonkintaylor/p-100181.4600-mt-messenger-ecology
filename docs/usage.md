@@ -1,6 +1,6 @@
 # Using the Mt Messenger Ecology Pipeline
 
-This guide explains how to set up and run the `mgen` pipeline to produce
+This guide explains how to set up and run the R pipeline to produce
 data spreadsheets, figures, and reference tables for the Mt Messenger
 aquatic ecology monitoring reports.
 
@@ -11,13 +11,13 @@ aquatic ecology monitoring reports.
 cd R:\BEKA\mt_messenger
 git clone https://github.com/tonkintaylor/p-100181.4600-mt-messenger-ecology.git .
 
-# 2. Install Python, R, and the mgen command
+# 2. Install R and restore packages
 ./tasks/install.ps1
 
 # 3. Edit cycle.toml with your paths (see Configuration below)
 
 # 4. Run the full pipeline
-mgen all
+Rscript --vanilla src/r/run_all.R cycle.toml
 ```
 
 ## Installation
@@ -26,8 +26,7 @@ mgen all
 
 - **Windows** with PowerShell
 - **Git** (with Git Bash — included in [Git for Windows])
-
-Python and R are installed automatically by the install script.
+- **R 4.5+** — install from [CRAN](https://cran.r-project.org/) or let `install.ps1` do it
 
 [Git for Windows]: https://git-scm.com/download/win
 
@@ -43,21 +42,17 @@ git clone https://github.com/tonkintaylor/p-100181.4600-mt-messenger-ecology.git
 
 The install script will:
 
-1. Install [uv] (Python package manager) if needed
-2. Create a `.venv` virtual environment and install dependencies
-3. Install R and required R packages if needed
-4. Create `cycle.toml` from the template
+1. Install R if not already present (via winget)
+2. Restore R packages from `renv.lock`
+3. Create `cycle.toml` from the template
 
-[uv]: https://docs.astral.sh/uv/
+### Restoring R packages manually
 
-### Using `mgen` after install
-
-After running `install.ps1`, the `mgen` command is available globally —
-no virtual environment activation needed:
+If `./tasks/install.ps1` fails during R setup, restore packages manually
+from the project root:
 
 ```powershell
-cd R:\BEKA\mt_messenger
-mgen all
+Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
 ```
 
 ## Configuration
@@ -89,57 +84,50 @@ Both network paths (`T:/...`) and local paths (`R:/...`) are supported.
 Validate your config without running the pipeline:
 
 ```powershell
-mgen validate
+Rscript --vanilla src/r/run_data.R cycle.toml --validate
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `mgen all` | Run data + figures back-to-back (most common) |
-| `mgen data` | Process input databases → consolidated xlsx |
-| `mgen figures` | Generate R figures and tables from the data xlsx |
-| `mgen validate` | Check config and input paths without writing output |
+| `Rscript --vanilla src/r/run_all.R cycle.toml` | Run data + figures back-to-back (most common) |
+| `Rscript --vanilla src/r/run_data.R cycle.toml` | Process input databases → consolidated xlsx |
+| `Rscript --vanilla src/r/run_data.R cycle.toml --validate` | Validate config and paths without writing output |
+| `Rscript --vanilla src/r/run_pipeline.R cycle.toml` | Generate R figures and tables from the data xlsx |
 
-### `mgen all`
+### run_all.R
 
 The most common usage — processes both databases and generates all figures
 and tables in one step:
 
 ```powershell
-mgen all
+Rscript --vanilla src/r/run_all.R cycle.toml
 ```
 
-### `mgen data`
+### run_data.R
 
 Reads both monitoring databases, processes each domain (macroinvertebrate
 metrics, species data, sediment, grain size, water clarity), and writes
 a multi-sheet `MtMessengerEcologyData.xlsx`:
 
 ```powershell
-mgen data
+Rscript --vanilla src/r/run_data.R cycle.toml
 ```
 
-### `mgen figures`
-
-Runs the R plotting pipeline against the data xlsx:
+Pass `--validate` to check config and input paths without writing any output:
 
 ```powershell
-mgen figures
+Rscript --vanilla src/r/run_data.R cycle.toml --validate
 ```
 
-To generate figures from a manually edited copy of the data:
+### run_pipeline.R
+
+Runs the R plotting and table pipeline against the data xlsx:
 
 ```powershell
-mgen figures --data R:\BEKA\mt_messenger\output\MtMessengerEcologyData_edited.xlsx
+Rscript --vanilla src/r/run_pipeline.R cycle.toml
 ```
-
-### Options
-
-All commands accept:
-
-- An optional path to a different config file: `mgen all path\to\cycle.toml`
-- `-q` / `--quiet` to suppress status messages (errors still print)
 
 ## Output
 
@@ -177,43 +165,28 @@ Tables/
 
 ## Troubleshooting
 
-### `mgen` command not found
-
-Re-run the install script to register `mgen` on your PATH:
-
-```powershell
-./tasks/install.ps1
-```
-
-If using a developer checkout, activate the virtual environment:
-
-```powershell
-.\.venv\Scripts\activate.ps1
-```
-
-### R package installation fails
-
-If `./tasks/install.ps1` fails during R setup, restore packages manually
-from the project root:
-
-```powershell
-Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
-```
-
 ### `Rscript` not found
 
-`mgen figures` and `mgen all` require `Rscript` on PATH. On Windows, R is often
-installed under a versioned directory such as `C:\Program Files\R\R-4.5.3\bin`.
-Add that `bin` directory to PATH, restart the terminal, then verify:
+R is often installed under a versioned directory such as
+`C:\Program Files\R\R-4.5.3\bin`. Add that `bin` directory to PATH,
+restart the terminal, then verify:
 
 ```powershell
 Rscript --version
 ```
 
+### R package installation fails
+
+Restore packages manually from the project root:
+
+```powershell
+Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
+```
+
 ### Input file not found
 
 Check that the paths in `cycle.toml` use forward slashes and that the
-files exist at those locations. Run `mgen validate` to verify.
+files exist at those locations. Run `run_data.R --validate` to verify.
 
 ### Updating to a new version
 
@@ -252,4 +225,4 @@ Commit both `DESCRIPTION` and `renv.lock`.
 Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
 ```
 
-Or just re-run `./tasks/install.ps1` or `./tasks/dev_sync.ps1`.
+Or just re-run `./tasks/dev_sync.ps1`.
