@@ -15,30 +15,57 @@ process_macro_species_domain <- function(macro_db_path) {
   taxa_groups <- bundle$taxa_counts$TaxonGroup
   taxa_names <- bundle$taxa_counts$Taxon
 
+  errors <- list()
   out <- list()
   for (i in seq_len(nrow(meta))) {
     m <- meta[i, ]
     sid <- as.character(m$sample_id)
-    counts <- bundle$taxa_counts[[sid]]
-    date <- as.Date(m$Date)
-    site <- trimws(as.character(m$Site))
-    is_additional <- tolower(as.character(m$Season)) == "incident"
-    phase <- if (!is.na(date) && date <= BASELINE_END) "Baseline" else "Construction"
-    keep <- which(!is.na(counts) & counts > 0)
-    for (j in keep) {
-      out[[length(out) + 1L]] <- data.frame(
-        Phase = phase, Date = date, Site = site,
-        Taxa = as.character(taxa_groups[j]), Species = as.character(taxa_names[j]),
-        Tally = as.integer(counts[j]), is_additional = is_additional,
-        stringsAsFactors = FALSE, check.names = FALSE)
+
+    # Skip sample if its column is absent from taxa_counts
+    if (!sid %in% names(bundle$taxa_counts)) {
+      errors[[length(errors) + 1L]] <- err(
+        sprintf("sample_col=%s", sid),
+        "Sample column not found in taxa_counts",
+        sev = "warning"
+      )
+      next
+    }
+
+    # Wrap per-sample pivot in tryCatch so unexpected errors warn and continue
+    sample_rows <- tryCatch({
+      counts <- bundle$taxa_counts[[sid]]
+      date <- as.Date(m$Date)
+      site <- trimws(as.character(m$Site))
+      is_additional <- tolower(as.character(m$Season)) == "incident"
+      phase <- if (!is.na(date) && date <= BASELINE_END) "Baseline" else "Construction"
+      keep <- which(!is.na(counts) & counts > 0)
+      lapply(keep, function(j) {
+        data.frame(
+          Phase = phase, Date = date, Site = site,
+          Taxa = as.character(taxa_groups[j]), Species = as.character(taxa_names[j]),
+          Tally = as.integer(counts[j]), is_additional = is_additional,
+          stringsAsFactors = FALSE, check.names = FALSE)
+      })
+    }, error = function(e) {
+      errors[[length(errors) + 1L]] <<- err(
+        sprintf("sample_col=%s", sid),
+        "Unexpected error reading sample counts",
+        sev = "warning"
+      )
+      NULL
+    })
+
+    if (!is.null(sample_rows)) {
+      out <- c(out, sample_rows)
     }
   }
+
   if (length(out) == 0) {
-    return(DomainResult$new(data = NULL, errors = list(
-      err("all samples", "No non-zero taxa counts found"))))
+    errors[[length(errors) + 1L]] <- err("all samples", "No non-zero taxa counts found")
+    return(DomainResult$new(data = NULL, errors = errors))
   }
   df <- do.call(rbind, out)[, MACRO_SPECIES_COLUMNS, drop = FALSE]
   df$Tally <- as.integer(df$Tally)
   rownames(df) <- NULL
-  DomainResult$new(data = list(MacroSpecies = df))
+  DomainResult$new(data = list(MacroSpecies = df), errors = errors)
 }

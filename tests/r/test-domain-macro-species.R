@@ -383,3 +383,174 @@ test_that("Site values in output are trimmed", {
   df <- result$data$MacroSpecies
   expect_false(any(grepl("^ | $", df$Site)))
 })
+
+# ===========================================================================
+# 11. Per-sample error isolation
+#     Mirrors: test_unexpected_ingest_error_returns_error,
+#              test_missing_sample_column_warns_and_continues,
+#              test_unexpected_sample_error_warns_and_continues,
+#              test_sample_not_in_index_skipped
+# ===========================================================================
+
+test_that("unexpected ingest error returns error DomainResult", {
+  # omit_marker=TRUE causes ingest_raw_data to fail (no "Number of Taxa" marker)
+  path <- build_macro_xlsx_sp(omit_marker = TRUE)
+  result <- process_macro_species_domain(path)
+  expect_false(result$ok())
+  expect_true(length(result$errors) > 0)
+  expect_equal(result$errors[[1]]$severity, "error")
+})
+
+test_that("missing sample column produces warning and result is still ok", {
+  # Build a valid xlsx, then load the bundle manually and strip a count column
+  # to verify the R implementation handles missing column as warning-and-continue.
+  # We do this by constructing a bundle where sample_metadata lists sample "99"
+  # but taxa_counts does not contain a column "99".
+  # We replicate the internal logic: feed a path where ingest works but the
+  # count column for one sample is absent from taxa_counts.
+  #
+  # Strategy: build a two-sample xlsx; both samples present in fixture.
+  # Then verify the code handles a fixture where one column is deliberately absent
+  # by using mockery to intercept ingest_raw_data.
+  #
+  # Since mockery may not be available, we verify the guard directly:
+  # build a single-sample fixture, then also supply a second sample_id in metadata
+  # that has no matching count column — achieved via a custom bundle constructed
+  # inside the test using the same approach as test_missing_sample_column in Python.
+
+  src_data("errors.R")  # ensure DomainResult/ValidationError in scope
+  src_data("domain_types.R")
+  src_data("schemas.R")
+  src_data("domains/macro_ingest.R")
+  src_data("domains/macro_species.R")
+
+  # Patch ingest_raw_data locally for this test using a fake bundle
+  fake_bundle <- list(
+    sample_metadata = data.frame(
+      sample_id  = c(10L, 99L),
+      Season     = c("Baseline", "Baseline"),
+      Date       = as.Date(c("2020-01-01", "2020-01-01")),
+      Site       = c("EM3", "EM5"),
+      Replicate  = c(1L, 2L),
+      stringsAsFactors = FALSE
+    ),
+    taxa_counts = data.frame(
+      TaxonGroup = "Mayflies",
+      Taxon      = "Deleatidium",
+      `10`       = 5L,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ),
+    metric_rows = data.frame(),
+    mci_scores  = data.frame()
+  )
+
+  # Temporarily override ingest_raw_data in the macro_species.R environment
+  # (it is defined in .GlobalEnv after sourcing)
+  old_ingest <- ingest_raw_data
+  on.exit(assign("ingest_raw_data", old_ingest, envir = .GlobalEnv), add = TRUE)
+  assign("ingest_raw_data", function(...) fake_bundle, envir = .GlobalEnv)
+
+  result <- process_macro_species_domain(tempfile(fileext = ".xlsx"))
+
+  # Sample 10 succeeds; sample 99 missing column -> warning, not error
+  expect_true(result$ok())
+  severities <- vapply(result$errors, function(e) e$severity, character(1))
+  expect_true(any(severities == "warning"))
+  locations  <- vapply(result$errors, function(e) e$location, character(1))
+  expect_true(any(grepl("sample_col=99", locations)))
+  messages   <- vapply(result$errors, function(e) e$message, character(1))
+  expect_true(any(grepl("Sample column not found", messages)))
+})
+
+test_that("unexpected per-sample error produces warning and processing continues", {
+  src_data("errors.R")
+  src_data("domain_types.R")
+  src_data("schemas.R")
+  src_data("domains/macro_ingest.R")
+  src_data("domains/macro_species.R")
+
+  # Use a plain list for taxa_counts (the R code accesses it via [[sid]], $TaxonGroup,
+  # $Taxon and names()) so we can store a non-coercible value for sample "10" that
+  # will cause an error inside the tryCatch per-sample block.
+  # An environment is not an atomic/list type, so `counts > 0` throws a comparison error.
+  fake_taxa_counts <- list(
+    TaxonGroup = "Mayflies",
+    Taxon      = "Deleatidium",
+    `10`       = new.env(),  # errors on `counts > 0` comparison
+    `20`       = 5L
+  )
+
+  fake_bundle <- list(
+    sample_metadata = data.frame(
+      sample_id  = c(10L, 20L),
+      Season     = c("Baseline", "Baseline"),
+      Date       = as.Date(c("2020-01-01", "2020-01-01")),
+      Site       = c("EM3", "EM5"),
+      Replicate  = c(1L, 2L),
+      stringsAsFactors = FALSE
+    ),
+    taxa_counts = fake_taxa_counts,
+    metric_rows = data.frame(),
+    mci_scores  = data.frame()
+  )
+
+  old_ingest <- ingest_raw_data
+  on.exit(assign("ingest_raw_data", old_ingest, envir = .GlobalEnv), add = TRUE)
+  assign("ingest_raw_data", function(...) fake_bundle, envir = .GlobalEnv)
+
+  result <- process_macro_species_domain(tempfile(fileext = ".xlsx"))
+
+  # Sample 20 succeeds; sample 10 triggers unexpected error -> warning
+  expect_true(result$ok())
+  severities <- vapply(result$errors, function(e) e$severity, character(1))
+  expect_true(any(severities == "warning"))
+  messages <- vapply(result$errors, function(e) e$message, character(1))
+  expect_true(any(grepl("Unexpected error reading sample counts", messages)))
+})
+
+test_that("sample_id not present as column in taxa_counts is skipped without aborting", {
+  # Verify that a sample whose column key is entirely absent from taxa_counts
+  # does not stop processing — the remaining valid samples still produce rows.
+  src_data("errors.R")
+  src_data("domain_types.R")
+  src_data("schemas.R")
+  src_data("domains/macro_ingest.R")
+  src_data("domains/macro_species.R")
+
+  fake_bundle <- list(
+    sample_metadata = data.frame(
+      sample_id  = c(10L, 42L),
+      Season     = c("Baseline", "Routine"),
+      Date       = as.Date(c("2020-01-01", "2024-06-15")),
+      Site       = c("EM3", "EM5"),
+      Replicate  = c(1L, 1L),
+      stringsAsFactors = FALSE
+    ),
+    taxa_counts = data.frame(
+      TaxonGroup = "Mayflies",
+      Taxon      = "Deleatidium",
+      `10`       = 7L,
+      # column "42" deliberately absent
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ),
+    metric_rows = data.frame(),
+    mci_scores  = data.frame()
+  )
+
+  old_ingest <- ingest_raw_data
+  on.exit(assign("ingest_raw_data", old_ingest, envir = .GlobalEnv), add = TRUE)
+  assign("ingest_raw_data", function(...) fake_bundle, envir = .GlobalEnv)
+
+  result <- process_macro_species_domain(tempfile(fileext = ".xlsx"))
+
+  # Overall result still ok (sample 10 produced rows)
+  expect_true(result$ok())
+  # Data for sample 10 is present
+  expect_equal(nrow(result$data$MacroSpecies), 1L)
+  expect_equal(result$data$MacroSpecies$Tally, 7L)
+  # A warning was emitted for sample 42
+  locations <- vapply(result$errors, function(e) e$location, character(1))
+  expect_true(any(grepl("sample_col=42", locations)))
+})
