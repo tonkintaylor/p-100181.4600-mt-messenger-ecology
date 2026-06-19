@@ -32,8 +32,10 @@ run_data <- function(...) {
 run_data_rc <- function(...) {
   attr(
     withr::with_dir(ROOT,
-      system2("Rscript", c("--vanilla", file.path(ROOT, "src", "r", "run_data.R"), ...),
-              stdout = TRUE, stderr = TRUE)),
+      suppressWarnings(
+        system2("Rscript", c("--vanilla", file.path(ROOT, "src", "r", "run_data.R"), ...),
+                stdout = TRUE, stderr = TRUE)
+      )),
     "status"
   ) %||% 0L
 }
@@ -41,8 +43,10 @@ run_data_rc <- function(...) {
 run_pipeline_rc <- function(...) {
   attr(
     withr::with_dir(ROOT,
-      system2("Rscript", c("--vanilla", file.path(ROOT, "src", "r", "run_pipeline.R"), ...),
-              stdout = TRUE, stderr = TRUE)),
+      suppressWarnings(
+        system2("Rscript", c("--vanilla", file.path(ROOT, "src", "r", "run_pipeline.R"), ...),
+                stdout = TRUE, stderr = TRUE)
+      )),
     "status"
   ) %||% 0L
 }
