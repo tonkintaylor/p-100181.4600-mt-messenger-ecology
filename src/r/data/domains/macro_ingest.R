@@ -63,8 +63,10 @@ ingest_raw_data <- function(macro_db_path) {
   )
   bad_date <- is.na(parsed_dates)
   if (any(bad_date)) {
-    # Try multiple text formats: ISO (YYYY-MM-DD), then DD/MM/YYYY (as seen in some cells).
-    for (fmt in c("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y")) {
+    # Try multiple text formats: ISO (YYYY-MM-DD), then DD/MM/YYYY (NZ day-first convention).
+    # Note: %m/%d/%Y (US month-first) is deliberately omitted to prevent ambiguous
+    # misparses on day-first source data (e.g., 03/04/2023 could be either Mar-4 or Apr-3).
+    for (fmt in c("%Y-%m-%d", "%d/%m/%Y")) {
       still_bad <- is.na(parsed_dates) & bad_date
       if (!any(still_bad)) break
       parsed_dates[still_bad] <- suppressWarnings(
