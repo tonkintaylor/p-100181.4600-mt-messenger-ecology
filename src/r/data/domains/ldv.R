@@ -13,7 +13,7 @@
 
 process_ldv_domain <- function(path) {
   df <- tryCatch(
-    readxl::read_excel(path, sheet = .ldv_sheet, skip = .ldv_skip),
+    suppressWarnings(readxl::read_excel(path, sheet = .ldv_sheet, skip = .ldv_skip)),
     error = function(e) e)
   if (inherits(df, "error")) {
     return(.ldv_error(path, sprintf("Sheet '%s' not found or unreadable in %s",
