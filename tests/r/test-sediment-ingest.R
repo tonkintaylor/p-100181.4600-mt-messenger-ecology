@@ -205,6 +205,20 @@ test_that("missing required columns raises an error via stop()", {
   expect_error(read_sediment_sheet(tmp), regexp = "Missing required columns")
 })
 
+test_that("absent empty-named period column raises an error", {
+  # Build a fixture that has all required columns EXCEPT the empty-named period col
+  df <- data.frame(
+    Site       = "EM4",
+    Date       = as.Date("2023-06-15"),
+    Season     = "Spring",
+    SAM1_grain = 10.5,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  path <- sediment_xlsx(df)
+  expect_error(read_sediment_sheet(path), "Missing required columns")
+})
+
 # ---------------------------------------------------------------------------
 # 10. sediment_make_error returns a DomainResult with the correct error
 # ---------------------------------------------------------------------------
