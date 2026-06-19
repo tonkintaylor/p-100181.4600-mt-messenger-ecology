@@ -226,3 +226,7 @@ Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
 ```
 
 Or just re-run `./tasks/dev_sync.ps1`.
+
+## CI and Data Parity
+
+The golden integration test (`tests/r/test-pipeline-integration.R`) skips automatically when the source databases are unreachable, so a green CI run alone does not certify data parity — parity must be confirmed on a machine with the source databases mounted.
