@@ -20,6 +20,11 @@ jobs:
         runs-on: "ubuntu-latest"
         permissions:
             contents: read # Required to checkout the test suite
+        env:
+            # Install packages independently so one failure does not mask the
+            # rest, and log the underlying cause if a build fails.
+            RENV_CONFIG_INSTALL_TRANSACTIONAL: "FALSE"
+            RENV_CONFIG_INSTALL_VERBOSE: "TRUE"
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
