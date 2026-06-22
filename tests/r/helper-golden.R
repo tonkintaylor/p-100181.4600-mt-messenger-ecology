@@ -27,7 +27,9 @@ compare_sheet_to_golden <- function(actual_df, sheet_name, golden_path,
     info = sprintf("%s: columns", sheet_name))
 
   for (col in names(actual)) {
-    a <- actual[[col]]; e <- expected[[col]]
+    # Compare cell values only; R vector name attributes have no xlsx
+    # equivalent (openxlsx drops them on write), so strip them first.
+    a <- unname(actual[[col]]); e <- unname(expected[[col]])
     if (is.numeric(a) || is.numeric(e)) {
       testthat::expect_equal(as.numeric(a), as.numeric(e),
         tolerance = tolerance, info = sprintf("%s/%s", sheet_name, col))

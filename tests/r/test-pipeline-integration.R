@@ -1,7 +1,6 @@
 # test-pipeline-integration.R — full pipeline golden integration gate.
 # Runs all 7 domain processors against the real source databases from cycle.toml
-# and compares 5 sheets (Macro, Macro1, MacroSpecies, Sediment, SedimentSize)
-# to the golden file via compare_sheet_to_golden.
+# and compares all 8 output sheets to the golden file via compare_sheet_to_golden.
 
 # Load all modules in dependency order.
 src_data("errors.R")
@@ -51,7 +50,7 @@ test_that("full pipeline matches the golden file on every sheet", {
   for (r in results) if (!is.null(r$data)) combined <- c(combined, r$data)
 
   golden <- golden_path()
-  for (sheet in c("Macro", "Macro1", "MacroSpecies", "Sediment", "SedimentSize")) {
+  for (sheet in SHEET_ORDER) {
     compare_sheet_to_golden(combined[[sheet]], sheet, golden)
   }
 })
