@@ -154,6 +154,32 @@ test_that("excel file with no LDV Summary sheet returns an error result", {
 })
 
 # ---------------------------------------------------------------------------
+# 7b. Source "N/A" Season string is coerced to NA (matches Python golden)
+#
+# The source "LDV Summary" sheet records "N/A" in the Season column for dates
+# that fall outside a monitoring season. The Python pipeline (pandas) treats
+# "N/A" as a missing value and writes a blank cell. The R port must do the
+# same so its output matches the golden Data_*.xlsx byte-for-byte.
+# ---------------------------------------------------------------------------
+test_that("'N/A' Season string is coerced to NA", {
+  df <- data.frame(
+    Site    = c("EM3", "EM7"),
+    Date    = as.Date(c("2024-08-22", "2024-11-06")),
+    Season  = c("N/A", "Spring"),
+    `CV (%)` = c(58.44, 75.38),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  path   <- ldv_xlsx(df)
+  result <- process_ldv_domain(path)
+
+  expect_true(result$ok())
+  ldv <- result$data$LDV
+  expect_true(is.na(ldv$Season[1]))
+  expect_equal(ldv$Season[2], "Spring")
+})
+
+# ---------------------------------------------------------------------------
 # 7. Output has exactly LDV_COLUMNS in that order
 # ---------------------------------------------------------------------------
 test_that("output has exactly LDV_COLUMNS columns in correct order", {

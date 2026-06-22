@@ -12,9 +12,9 @@
 }
 
 process_ldv_domain <- function(path) {
-  df <- tryCatch(
+  df <- suppressMessages(tryCatch(
     suppressWarnings(readxl::read_excel(path, sheet = .ldv_sheet, skip = .ldv_skip)),
-    error = function(e) e)
+    error = function(e) e))
   if (inherits(df, "error")) {
     return(.ldv_error(path, sprintf("Sheet '%s' not found or unreadable in %s",
                                     .ldv_sheet, path)))
@@ -33,6 +33,11 @@ process_ldv_domain <- function(path) {
   out <- out[!is.na(out$Date), , drop = FALSE]
   out$Site <- as.character(out$Site)
   out$Season <- as.character(out$Season)
+  # Match the Python pipeline: pandas reads "N/A" (and similar tokens) as a
+  # missing value, so the golden writes a blank cell. Coerce those sentinels
+  # to NA here rather than passing the literal string through.
+  .na_tokens <- c("", "n/a", "na", "null", "nan", "none", "#n/a")
+  out$Season[trimws(tolower(out$Season)) %in% .na_tokens] <- NA_character_
   out <- out[, LDV_COLUMNS, drop = FALSE]
   rownames(out) <- NULL
   DomainResult$new(data = list(LDV = out))
