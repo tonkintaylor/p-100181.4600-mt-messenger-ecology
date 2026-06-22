@@ -26,5 +26,10 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Run pre-commit checks
-              uses: pre-commit/action@2c7b3805fd2a0fd8c1884d09c769a791cc835b95 # v3.0.1
+            - name: Set up uv
+              uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+              with:
+                  version: latest
+
+            - name: Run prek hooks
+              run: uvx prek run --all-files --show-diff-on-failure
