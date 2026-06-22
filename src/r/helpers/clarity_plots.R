@@ -13,7 +13,7 @@ library(dplyr)
 library(tibble)
 
 # --- Constants ---
-CLARITY_SITE_ORDER <- c("CM1", "CM2", "CM3", "CM4", "CMDSF13", "EM1", "EM4")
+CLARITY_SITE_ORDER <- c("CM1", "CM2", "CM3", "CM4", "CMDSF13", "EM4")
 
 # Band boundaries (metres)
 CLARITY_BAND_A <- 0.93
