@@ -27,7 +27,7 @@ flowchart TD
     end
 
     DataCmd --> Pipeline
-    AllCmd --> Pipeline
+    PipelineCmd --> Pipeline
     AllCmd --> RFigures
 
     subgraph Sources ["Source Spreadsheets"]
@@ -40,6 +40,8 @@ flowchart TD
     AquaticDB --> Sediment
     AquaticDB --> SedimentSize
     AquaticDB --> Clarity
+    AquaticDB --> RPD
+    AquaticDB --> LDV
 
     subgraph Pipeline ["R data pipeline"]
         subgraph Domains ["Domain processors"]
@@ -48,6 +50,8 @@ flowchart TD
             Sediment["Sediment"]
             SedimentSize["Grain size"]
             Clarity["Water clarity"]
+            RPD["Residual pool depth"]
+            LDV["Low-flow depth variability"]
         end
     end
 
@@ -56,6 +60,8 @@ flowchart TD
     Sediment --> Merge
     SedimentSize --> Merge
     Clarity --> Merge
+    RPD --> Merge
+    LDV --> Merge
 
     Merge{All OK?}
     Merge -->|yes| Writer
@@ -68,7 +74,7 @@ flowchart TD
     DataOutput --> RFigures
 
     subgraph RFigures ["R figure pipeline"]
-        Rscript["Rscript src/r/run_pipeline.R"]
+        Rscript["Rscript src/r/run_all.R"]
     end
 
     RFigures --> Figures[/"Figures/\nPNG plots"/]
@@ -104,11 +110,11 @@ Rscript --vanilla src/r/run_data.R cycle.toml
 # With validation (checks paths and config before running)
 Rscript --vanilla src/r/run_data.R cycle.toml --validate
 
-# Figures and tables only (requires data xlsx to exist)
+# Full pipeline: data + figures + tables
 Rscript --vanilla src/r/run_pipeline.R cycle.toml
 
-# Full pipeline: data + figures + tables
-Rscript --vanilla src/r/run_all.R cycle.toml
+# Figures and tables only (requires the data xlsx to exist; reads paths from cycle.toml)
+Rscript --vanilla src/r/run_all.R
 ```
 
 For one-off diagnostics that do not need project packages, use `--vanilla`:

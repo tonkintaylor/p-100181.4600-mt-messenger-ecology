@@ -175,8 +175,8 @@ domain, it belongs in that domain, not the kernel.
 
 ### Open Host Service
 
-The `writer.py` module acts as an open host: it accepts a standard interface
-(DataFrames with known schemas) from any domain module and emits the xlsx. New
+The `writer.R` module acts as an open host: it accepts a standard interface
+(data frames with known schemas) from any domain module and emits the xlsx. New
 domains plug in by conforming to the interface, not by modifying the writer.
 
 ## Design Checklist
@@ -190,42 +190,49 @@ When reviewing architecture, ask:
 3. **Could you add a new domain without modifying existing ones?**
    - Orchestrator discovers/calls domains; domains don't know about each other
 4. **Are domain rules in the domain, not in infrastructure?**
-   - Metric derivation lives in `domains/macro.py`, not in `writer.py`
+   - Metric derivation lives in `domains/macro.R`, not in `writer.R`
 5. **Would an ecologist recognise the function names?**
    - Ubiquitous language test
 
-## Module Layout Template
+## Module Layout
+
+This project is implemented in R. The data pipeline lives under `src/r/data/`:
 
 ```
-src/mgen/
-  config.py              # Read cycle.toml, resolve paths
-  pipeline.py            # Orchestrator: load config, call domains, emit or report
-  validation.py          # Shared validation primitives (schema, range, null checks)
-  shared/
-    __init__.py
-    types.py             # Value objects: Site, Season, Period
-    schemas.py           # Output DataFrame schemas (column names, dtypes)
-    errors.py            # ValidationError with file/sheet/cell context
+src/r/data/
+  config.R               # Read cycle.toml, resolve paths
+  pipeline.R             # Orchestrator: load config, call domains, emit or report
+  validation.R           # Shared validation primitives (schema, range, null checks)
+  domain_types.R         # DomainResult and shared domain return types
+  schemas.R              # Output data frame schemas (column names)
+  errors.R               # ValidationError with file/sheet/cell context
+  writer.R               # Infrastructure: data frames -> Data.xlsx (8 sheets)
   domains/
-    __init__.py
-    macro.py             # ACL + derive + transform → Macro1 + Macro
-    macro_species.py     # ACL + pivot → MacroSpecies
-    sediment.py          # ACL + reshape → Sediment
-    sediment_size.py     # ACL + reshape → SedimentSize
-  writer.py              # Infrastructure: DataFrame → Data.xlsx (5 sheets)
+    macro_ingest.R       # ACL: read the raw macro spreadsheet
+    macro.R              # derive + transform -> Macro1 + Macro
+    macro_species.R      # pivot -> MacroSpecies
+    sediment_ingest.R    # ACL: read the raw sediment sheets
+    sediment.R           # reshape -> Sediment
+    sediment_size.R      # reshape -> SedimentSize
+    clarity.R            # ACL + reshape -> Clarity
+    rpd.R                # ACL + parse -> RPD
+    ldv.R                # ACL -> LDV
 ```
+
+> The code samples below are language-agnostic illustrations of the DDD concepts; the
+> project's own implementation is in R (see the layout above), not Python.
 
 ## Anti-Patterns to Avoid
 
-- **Anemic domain modules** — don't put all logic in pipeline.py and make domains
+- **Anemic domain modules** — don't put all logic in pipeline.R and make domains
   just readers. Each domain owns its validation and transformation.
-- **Leaky abstractions** — don't pass raw openpyxl objects between modules. Each
-  module converts to pandas internally.
+- **Leaky abstractions** — don't pass raw readxl/openxlsx objects between modules. Each
+  module converts to a plain data frame internally.
 - **Shared mutable state** — domains return results, they don't mutate a shared
   context object.
 - **Over-engineering** — no event bus, no microkernel, no DI container. This is a
-  data pipeline with 4 domains and <2000 lines of code. Protocols and dataclasses
-  are sufficient.
+  data pipeline with a handful of domains and a modest line count. Plain functions,
+  lists, and a small R6 result type are sufficient.
 
 ## When to Use These Patterns
 

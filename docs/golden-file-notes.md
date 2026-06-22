@@ -1,12 +1,23 @@
 # Golden File Notes
 
-## File: `tests/assets/expected_Data.xlsx`
+## File: `tests/r/assets/expected_Data.xlsx`
 
-The golden file is used by `TestGoldenFileComparison` in `tests/test_writer.py` to validate
-that the full pipeline produces correct output. It was regenerated on 2026-05-06 from the
-current pipeline output.
+The golden file is used by the integration test in `tests/r/test-pipeline-integration.R`
+(via the `compare_sheet_to_golden` helper in `tests/r/helper-golden.R`) to validate that
+the full R data pipeline produces correct output. It is a verbatim copy of a vetted
+pipeline output spreadsheet (`Data_20260514.xlsx`).
 
-## Known Differences vs Original Hand-Produced Golden File
+The test runs all seven domain processors against the real source databases named in
+`cycle.toml` and compares **all eight output sheets** (Macro, Macro1, MacroSpecies,
+Sediment, SedimentSize, Clarity, RPD, LDV) against the golden. It skips automatically
+when the source databases are unreachable, so a green CI run alone does not certify data
+parity — parity must be confirmed on a machine with the source databases mounted.
+
+## Known Differences vs Original Hand-Produced Golden File (historical, 2026-05-06)
+
+> The tables in this section record a one-time reconciliation against the original
+> hand-produced golden file. They are kept for historical context; the row counts and
+> values below reflect the pipeline state at that time, not the current golden.
 
 The original `expected_Data.xlsx` was manually produced (likely exported from the legacy
 pipeline). When we compared our pipeline output against it, the following discrepancies
@@ -60,10 +71,34 @@ revised after the golden was originally exported.
 
 ## Current State
 
-The golden file was regenerated on 2026-05-06 from pipeline output filtered to dates
-≤ 2025-03-12 (the max date from the original golden). All 5 sheets now match pipeline
-output exactly. The test filters actual pipeline output to golden-file dates and sorts
-by Date+Site before comparison.
+The current golden file is a copy of `Data_20260514.xlsx`, which covers monitoring rounds
+through early 2026. All **eight** sheets match the R pipeline output exactly:
+
+| Sheet        | Data rows |
+| ------------ | --------- |
+| Macro        | 35        |
+| Macro1       | 214       |
+| MacroSpecies | 3637      |
+| Sediment     | 87        |
+| SedimentSize | 87        |
+| Clarity      | 46        |
+| RPD          | 31        |
+| LDV          | 31        |
+
+The test filters actual pipeline output to golden-file dates and sorts by Date+Site
+before comparison, and ignores R vector name attributes (which have no xlsx equivalent
+and are dropped on write).
+
+## LDV "N/A" Season Coercion
+
+The source "LDV Summary" sheet records the literal string `"N/A"` in the `Season` column
+for dates that fall outside a defined monitoring season. The original Python pipeline read
+the source with pandas, which treats `"N/A"` as a missing value by default, so the golden
+file holds a blank cell there. R's `readxl` does **not** treat `"N/A"` as missing, so the
+LDV domain processor (`src/r/data/domains/ldv.R`) explicitly coerces pandas-style NA
+sentinels (`"N/A"`, `"NA"`, `"null"`, `"nan"`, `"none"`, `"#n/a"`, case-insensitive) in the
+`Season` column to `NA`. This keeps the R output byte-identical to the golden. The
+behaviour is locked in by a unit test in `tests/r/test-domain-ldv.R`.
 
 ## Season Normalisation Strategy (Macro vs Sediment)
 
@@ -89,15 +124,19 @@ This is **by design** and matches the original hand-produced golden file's conve
 
 ## Updating the Golden File
 
-If domain logic or source data changes, regenerate with:
+If domain logic or source data changes such that the new output is the intended
+reference, regenerate the golden file from a vetted pipeline run:
 
-```python
-from mgen.domain.macro import process_macro_domain
-from mgen.domain.macro_species import process_macro_species_domain
-from mgen.domain.sediment import process_sediment_domain
-from mgen.domain.sediment_size import process_sediment_size_domain
+```powershell
+# 1. Run the data pipeline against the current source databases.
+Rscript --vanilla src/r/run_data.R cycle.toml
 
-# Run pipeline, filter to desired date range, write with pd.ExcelWriter
+# 2. Inspect the output, confirm it is correct, then copy it over the fixture.
+Copy-Item <data_xlsx from cycle.toml> tests/r/assets/expected_Data.xlsx
+
+# 3. Re-run the integration test on a machine with the source databases mounted.
+Rscript --vanilla -e "source('renv/activate.R'); suppressPackageStartupMessages({library(readxl);library(openxlsx);library(dplyr);library(tidyr);library(lubridate)}); testthat::test_dir('tests/r')"
 ```
 
-Or run the test with `--update-golden` (not yet implemented — future enhancement).
+Only update the golden when the new output is deliberately the new reference — never to
+make a failing test pass without first understanding why it changed.

@@ -16,8 +16,8 @@ git clone https://github.com/tonkintaylor/p-100181.4600-mt-messenger-ecology.git
 
 # 3. Edit cycle.toml with your paths (see Configuration below)
 
-# 4. Run the full pipeline
-Rscript --vanilla src/r/run_all.R cycle.toml
+# 4. Run the full pipeline (data + figures + tables)
+Rscript --vanilla src/r/run_pipeline.R cycle.toml
 ```
 
 ## Installation
@@ -91,19 +91,24 @@ Rscript --vanilla src/r/run_data.R cycle.toml --validate
 
 | Command | Description |
 |---------|-------------|
-| `Rscript --vanilla src/r/run_all.R cycle.toml` | Run data + figures back-to-back (most common) |
+| `Rscript --vanilla src/r/run_pipeline.R cycle.toml` | Run data + figures back-to-back (most common) |
 | `Rscript --vanilla src/r/run_data.R cycle.toml` | Process input databases → consolidated xlsx |
 | `Rscript --vanilla src/r/run_data.R cycle.toml --validate` | Validate config and paths without writing output |
-| `Rscript --vanilla src/r/run_pipeline.R cycle.toml` | Generate R figures and tables from the data xlsx |
+| `Rscript --vanilla src/r/run_all.R` | Generate R figures and tables from an existing data xlsx (paths read from `cycle.toml`) |
 
 ### run_all.R
 
-The most common usage — processes both databases and generates all figures
-and tables in one step:
+Generates the figures and tables **only**, reading an already-produced
+`MtMessengerEcologyData.xlsx`. It reads its input/output paths from `cycle.toml`
+in the project root, so it takes **no positional arguments**:
 
 ```powershell
-Rscript --vanilla src/r/run_all.R cycle.toml
+Rscript --vanilla src/r/run_all.R
 ```
+
+> Do not pass `cycle.toml` to `run_all.R` — its first positional argument is the
+> path to an existing data xlsx, not the config file. To run data + figures
+> together from `cycle.toml`, use `run_pipeline.R` (below).
 
 ### run_data.R
 
@@ -123,7 +128,8 @@ Rscript --vanilla src/r/run_data.R cycle.toml --validate
 
 ### run_pipeline.R
 
-Runs the R plotting and table pipeline against the data xlsx:
+The most common usage — runs the data pipeline and then the figure/table
+pipeline back-to-back (the equivalent of `run_data.R` followed by `run_all.R`):
 
 ```powershell
 Rscript --vanilla src/r/run_pipeline.R cycle.toml
@@ -157,11 +163,13 @@ Tables/
 
 `MtMessengerEcologyData.xlsx` with sheets for each domain:
 
-- Macroinvertebrate metrics
-- Macroinvertebrate species
-- Sediment
-- Sediment grain size
-- Water clarity
+- Macroinvertebrate metrics (`Macro`, `Macro1`)
+- Macroinvertebrate species (`MacroSpecies`)
+- Sediment (`Sediment`)
+- Sediment grain size (`SedimentSize`)
+- Water clarity (`Clarity`)
+- Residual pool depth (`RPD`)
+- Low-flow depth variability (`LDV`)
 
 ## Troubleshooting
 
