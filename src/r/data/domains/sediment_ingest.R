@@ -48,7 +48,12 @@ read_sediment_sheet <- function(path) {
   Season <- rep("Spring", nrow(df))
   Season[grepl("Summer", season_raw, fixed = TRUE)] <- "Summer"
 
-  df$Site <- trimws(as.character(df[[.sed_site_col]]))
+  # Match pandas df[col].astype(str).str.strip(): a missing Site cell becomes
+  # the literal string "nan" (these rows are not dropped downstream), so map
+  # NA -> "nan" before trimming rather than leaving an R NA.
+  site_chr <- as.character(df[[.sed_site_col]])
+  site_chr[is.na(site_chr)] <- "nan"
+  df$Site <- trimws(site_chr)
   df$Date <- as.Date(df[[.sed_date_col]])
   Period[!is.na(df$Date) & df$Date <= BASELINE_END] <- "Baseline"
   df$Period <- Period

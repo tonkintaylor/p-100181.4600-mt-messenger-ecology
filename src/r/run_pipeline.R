@@ -19,6 +19,9 @@ local({
 
   rc <- system2("Rscript", c("--vanilla", run_data_r, config_path))
   if (rc != 0) quit(status = rc)
-  rc2 <- system2("Rscript", c("--vanilla", run_all_r))
+  # Forward the same config to the figure stage so a custom cycle.toml is used
+  # for both data and figures (run_all.R otherwise defaults to ./cycle.toml).
+  config_abs <- normalizePath(config_path, mustWork = FALSE)
+  rc2 <- system2("Rscript", c("--vanilla", run_all_r, paste0("--config=", config_abs)))
   quit(status = rc2)
 })

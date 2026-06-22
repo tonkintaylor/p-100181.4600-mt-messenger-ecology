@@ -62,23 +62,31 @@ source(file.path(helpers_dir, "habitat_plots.R"))
 source(file.path(helpers_dir, "fish_plots.R"))
 
 # --- Parse arguments ---
+# Positional args are [Data.xlsx] [figures_dir] [tables_dir]; an optional
+# --config=PATH flag selects the cycle.toml (so run_pipeline.R can forward a
+# custom config to the figure stage). Defaults to project_root/cycle.toml.
 args <- commandArgs(trailingOnly = TRUE)
+positional <- args[!startsWith(args, "--")]
+config_flag <- sub("^--config=", "", args[grep("^--config=", args)])
+config_file <- if (length(config_flag) >= 1) config_flag[[1]] else
+  file.path(project_root, "cycle.toml")
 
 # Load config.R for structured TOML parsing
 data_config_dir <- file.path(project_root, "src", "r", "data")
 source(file.path(data_config_dir, "config.R"))
 
 cfg <- tryCatch(
-  load_config(file.path(project_root, "cycle.toml")),
+  load_config(config_file),
   error = function(e) {
-    message("Warning: could not load cycle.toml via config.R: ", conditionMessage(e))
+    message("Warning: could not load ", config_file, " via config.R: ",
+            conditionMessage(e))
     NULL
   }
 )
 
-xlsx_path <- if (length(args) >= 1) args[1] else if (!is.null(cfg)) cfg$data_xlsx else file.path(project_root, "ref", "Data.xlsx")
-output_dir <- if (length(args) >= 2) args[2] else if (!is.null(cfg)) cfg$figures_dir else file.path(project_root, "src", "r", "outputs")
-tables_dir <- if (length(args) >= 3) args[3] else if (!is.null(cfg)) cfg$tables_dir else output_dir
+xlsx_path <- if (length(positional) >= 1) positional[1] else if (!is.null(cfg)) cfg$data_xlsx else file.path(project_root, "ref", "Data.xlsx")
+output_dir <- if (length(positional) >= 2) positional[2] else if (!is.null(cfg)) cfg$figures_dir else file.path(project_root, "src", "r", "outputs")
+tables_dir <- if (length(positional) >= 3) positional[3] else if (!is.null(cfg)) cfg$tables_dir else output_dir
 aquatic_db_path <- if (!is.null(cfg)) cfg$aquatic_monitoring_db else NULL
 
 if (!file.exists(xlsx_path)) {

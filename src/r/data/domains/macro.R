@@ -122,9 +122,13 @@ process_macro_domain <- function(macro_db_path) {
   rownames(macro1) <- NULL
 
   replicated <- macro1[!(macro1$Site %in% SITES_WITHOUT_REPLICATES), , drop = FALSE]
+  # Match pandas groupby(...).agg("mean"), which skips NaN per column. Without
+  # na.rm a group with any NA replicate would collapse to NA, diverging from
+  # the Python golden (na.pass keeps NA rows; na.rm averages the non-NA ones).
   agg <- stats::aggregate(
     cbind(EPTrich, EPTabun, QMCI) ~ Site + Date + Period + Season,
-    data = replicated, FUN = mean, na.action = stats::na.pass)
+    data = replicated, FUN = function(x) mean(x, na.rm = TRUE),
+    na.action = stats::na.pass)
   macro <- agg[, MACRO1_COLUMNS, drop = FALSE]
   rownames(macro) <- NULL
 

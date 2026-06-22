@@ -27,17 +27,23 @@ process_ldv_domain <- function(path) {
   }
   out <- df[, names(.ldv_map), drop = FALSE]
   names(out) <- unname(.ldv_map[names(out)])
-  out <- out[!is.na(out$Site) & trimws(as.character(out$Site)) != "", , drop = FALSE]
-  out$Date <- suppressWarnings(as.Date(out$Date))
+  # Match pandas dropna(subset=["Site"]): drop only true-NA Site (empty cells
+  # read as NA), not whitespace-only strings, which pandas retains.
+  out <- out[!is.na(out$Site), , drop = FALSE]
+  # Use the same serial-aware parser as RPD so Excel date serials arriving as a
+  # numeric column are not misread with R's default 1970 origin.
+  out$Date <- .rpd_parse_date(out$Date)
   out$CV_pct <- suppressWarnings(as.numeric(out$CV_pct))
   out <- out[!is.na(out$Date), , drop = FALSE]
   out$Site <- as.character(out$Site)
   out$Season <- as.character(out$Season)
-  # Match the Python pipeline: pandas reads "N/A" (and similar tokens) as a
-  # missing value, so the golden writes a blank cell. Coerce those sentinels
-  # to NA here rather than passing the literal string through.
-  .na_tokens <- c("", "n/a", "na", "null", "nan", "none", "#n/a")
-  out$Season[trimws(tolower(out$Season)) %in% .na_tokens] <- NA_character_
+  # Match the Python pipeline: pandas read_excel coerces its default na_values
+  # to NaN at read time, so the golden writes a blank cell. Reproduce that exact
+  # set, case-sensitively (e.g. "None" -> NA but "none" is kept, as in pandas).
+  .na_tokens <- c("", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN",
+                  "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA",
+                  "NULL", "NaN", "None", "n/a", "nan", "null")
+  out$Season[out$Season %in% .na_tokens] <- NA_character_
   out <- out[, LDV_COLUMNS, drop = FALSE]
   rownames(out) <- NULL
   DomainResult$new(data = list(LDV = out))

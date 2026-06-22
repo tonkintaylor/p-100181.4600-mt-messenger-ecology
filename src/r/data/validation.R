@@ -13,7 +13,7 @@ check_required_columns <- function(df, expected, domain, file, sheet) {
     domain = domain, severity = "error", file = file, sheet = sheet,
     location = "header",
     message = sprintf("Missing required columns: %s",
-                      paste0("[", paste(sprintf("'%s'", sort(missing)),
+                      paste0("[", paste(sprintf("'%s'", sort(missing, method = "radix")),
                                         collapse = ", "), "]"))
   ))
 }
@@ -41,7 +41,13 @@ check_value_range <- function(df, column, min_val = NULL, max_val = NULL,
   errs <- list()
   if (!column %in% names(df)) return(errs)
   raw <- df[[column]]
-  series <- suppressWarnings(as.numeric(as.character(raw)))
+  # Mirror pandas pd.to_numeric: numeric/logical columns convert directly
+  # (bool -> 1/0), only genuine strings go through character coercion.
+  series <- if (is.numeric(raw) || is.logical(raw)) {
+    as.numeric(raw)
+  } else {
+    suppressWarnings(as.numeric(as.character(raw)))
+  }
 
   coerced_nans <- is.na(series) & !is.na(raw)
   if (any(coerced_nans)) {

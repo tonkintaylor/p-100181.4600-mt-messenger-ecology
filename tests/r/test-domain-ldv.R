@@ -1,4 +1,6 @@
-src_data("errors.R"); src_data("schemas.R"); src_data("domains/ldv.R")
+src_data("errors.R"); src_data("schemas.R")
+# ldv.R reuses .rpd_parse_date(); both are sourced together at runtime.
+src_data("domains/rpd.R"); src_data("domains/ldv.R")
 
 # ---------------------------------------------------------------------------
 # Helper: write an "LDV Summary" sheet with 13 filler rows then the real

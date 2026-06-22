@@ -65,10 +65,20 @@ run_site_nmds <- function(community_df, sites_subset = NULL, seed = 42) {
 
   set.seed(seed)
   # vegan emits thousands of benign "standard deviation is zero" warnings from
-  # its internal permutation correlations; silence them around the ordination.
-  nmds_result <- suppressWarnings(
-    metaMDS(species_data, distance = "bray", k = 2, trymax = 100, trace = 0)
+  # its internal permutation correlations; muffle ONLY those, so genuine
+  # warnings (degenerate/near-zero stress, non-convergence) still surface.
+  nmds_result <- withCallingHandlers(
+    metaMDS(species_data, distance = "bray", k = 2, trymax = 100, trace = 0),
+    warning = function(w) {
+      if (grepl("standard deviation is zero", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      }
+    }
   )
+  if (!isTRUE(nmds_result$converged)) {
+    warning("NMDS did not converge after trymax tries (stress = ",
+            signif(nmds_result$stress, 3), ")")
+  }
 
   # Site scores
   scores_df <- as.data.frame(scores(nmds_result, display = "sites"))

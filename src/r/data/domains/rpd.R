@@ -52,9 +52,13 @@ process_rpd_domain <- function(path) {
   }
   out <- df[, names(.rpd_map), drop = FALSE]
   names(out) <- unname(.rpd_map[names(out)])
-  out <- out[!is.na(out$Site) & trimws(as.character(out$Site)) != "", , drop = FALSE]
+  # Match pandas dropna(subset=["Site"]): drop only true-NA Site (empty cells
+  # read as NA), not whitespace-only strings, which pandas retains.
+  out <- out[!is.na(out$Site), , drop = FALSE]
   out$Date <- .rpd_parse_date(out$Date)
-  out$Count <- suppressWarnings(as.integer(round(as.numeric(out$Count))))
+  # Match pandas .astype("Int64"), which truncates toward zero rather than
+  # rounding half-to-even.
+  out$Count <- suppressWarnings(as.integer(trunc(as.numeric(out$Count))))
   for (col in c("Mean", "StdDev", "CI_Lower", "CI_Upper")) {
     out[[col]] <- suppressWarnings(as.numeric(out[[col]]))
   }

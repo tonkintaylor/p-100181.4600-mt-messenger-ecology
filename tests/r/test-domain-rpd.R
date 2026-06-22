@@ -75,9 +75,12 @@ test_that("output column types are correct", {
 })
 
 # ---------------------------------------------------------------------------
-# 3. Count coercion via round(as.numeric(...)) then as.integer
+# 3. Count coercion via trunc(as.numeric(...)) then as.integer
 # ---------------------------------------------------------------------------
-test_that("Count is coerced to integer via round", {
+# Matches pandas .astype("Int64"), which truncates toward zero (not rounds).
+# Real RPD counts are whole numbers; the fractional inputs here only assert
+# the coercion rule.
+test_that("Count is coerced to integer via truncation toward zero", {
   df <- minimal_rpd_df()
   df$Count <- c(4.7, 3.2)  # non-integer numerics
   path   <- rpd_xlsx(df)
@@ -86,7 +89,7 @@ test_that("Count is coerced to integer via round", {
   expect_true(result$ok())
   rpd <- result$data$RPD
   expect_true(is.integer(rpd$Count))
-  expect_equal(rpd$Count, c(5L, 3L))
+  expect_equal(rpd$Count, c(4L, 3L))
 })
 
 # ---------------------------------------------------------------------------
