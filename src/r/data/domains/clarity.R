@@ -11,9 +11,9 @@
 }
 
 process_clarity_domain <- function(path) {
-  df <- tryCatch(
+  df <- suppressMessages(tryCatch(
     readxl::read_excel(path, sheet = .clarity_source_sheet),
-    error = function(e) e)
+    error = function(e) e))
   if (inherits(df, "error")) {
     return(.clarity_error(path, sprintf("Sheet '%s' not found or unreadable in %s",
                                         .clarity_source_sheet, path)))

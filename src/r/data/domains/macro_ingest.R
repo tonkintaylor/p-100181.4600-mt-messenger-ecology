@@ -41,14 +41,16 @@ ingest_error <- function(msg) {
 #'   }
 #' @export
 ingest_raw_data <- function(macro_db_path) {
-  raw <- tryCatch(
+  # suppressMessages silences readxl's "New names" column-repair chatter, which
+  # is noisy here because RawData has hundreds of blank header cells.
+  raw <- suppressMessages(tryCatch(
     readxl::read_excel(macro_db_path, sheet = "RawData",
                        col_names = FALSE, col_types = "text"),
     error = function(e) ingest_error(
       sprintf("Cannot read 'RawData' sheet from %s: %s",
               macro_db_path, conditionMessage(e))
     )
-  )
+  ))
   raw <- as.data.frame(raw, stringsAsFactors = FALSE, check.names = FALSE)
   ncol_raw  <- ncol(raw)
   sample_cols <- seq.int(.macro_data_col_start, ncol_raw)  # 1-based indices

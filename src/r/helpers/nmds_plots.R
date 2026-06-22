@@ -64,8 +64,11 @@ run_site_nmds <- function(community_df, sites_subset = NULL, seed = 42) {
   }
 
   set.seed(seed)
-  nmds_result <- metaMDS(species_data, distance = "bray", k = 2, trymax = 100,
-                         trace = 0)
+  # vegan emits thousands of benign "standard deviation is zero" warnings from
+  # its internal permutation correlations; silence them around the ordination.
+  nmds_result <- suppressWarnings(
+    metaMDS(species_data, distance = "bray", k = 2, trymax = 100, trace = 0)
+  )
 
   # Site scores
   scores_df <- as.data.frame(scores(nmds_result, display = "sites"))
@@ -232,7 +235,7 @@ plot_nmds_per_site <- function(community_df, output_dir, catchment_lookup = NULL
 
     species_df <- tryCatch({
       set.seed(42)
-      fit_species <- envfit(nmds_data$nmds, site_species_mat, permutations = 999)
+      fit_species <- suppressMessages(suppressWarnings(envfit(nmds_data$nmds, site_species_mat, permutations = 999)))
       arrows_df <- as.data.frame(fit_species$vectors$arrows * fit_species$vectors$r)
       arrows_df$Species <- rownames(arrows_df)
       arrows_df$r <- fit_species$vectors$r
@@ -477,8 +480,9 @@ plot_indicator_species <- function(community_df, output_dir,
   }
 
   set.seed(42)
-  indval_result <- multipatt(species_data, groups, func = "IndVal.g",
-                             control = how(nperm = 999))
+  indval_result <- suppressMessages(suppressWarnings(
+    multipatt(species_data, groups, func = "IndVal.g", control = how(nperm = 999))
+  ))
 
   # Extract significant species
   summary_df <- indval_result$sign |>
@@ -540,7 +544,7 @@ export_species_drivers <- function(community_df, output_dir,
   if (is.null(nmds_data)) return(invisible(NULL))
 
   set.seed(42)
-  ef <- envfit(nmds_data$nmds, species_data, permutations = 999)
+  ef <- suppressMessages(suppressWarnings(envfit(nmds_data$nmds, species_data, permutations = 999)))
 
   # Extract results
   vectors <- as.data.frame(scores(ef, display = "vectors"))
@@ -609,8 +613,9 @@ export_indicator_species_combined <- function(community_df, output_dir, sites = 
     groups <- site_df$Period
     set.seed(42)
     tryCatch({
-      indval <- multipatt(species_data, groups, func = "IndVal.g",
-                          control = how(nperm = 999))
+      indval <- suppressMessages(suppressWarnings(
+        multipatt(species_data, groups, func = "IndVal.g", control = how(nperm = 999))
+      ))
       summary_df <- indval$sign |>
         tibble::rownames_to_column("Species") |>
         pivot_longer(cols = starts_with("s."), names_to = "Phase",
@@ -659,8 +664,9 @@ export_indicator_species_by_catchment <- function(community_df, catchments, outp
     groups <- subset_df$Period
     set.seed(42)
     tryCatch({
-      indval <- multipatt(species_data, groups, func = "IndVal.g",
-                          control = how(nperm = 999))
+      indval <- suppressMessages(suppressWarnings(
+        multipatt(species_data, groups, func = "IndVal.g", control = how(nperm = 999))
+      ))
       group_levels <- sort(unique(groups))
       sig_df <- indval$sign |>
         tibble::rownames_to_column("Species") |>
@@ -714,7 +720,7 @@ export_species_drivers_combined <- function(community_df, catchments, output_dir
     if (is.null(nmds_data)) next
 
     set.seed(42)
-    ef <- envfit(nmds_data$nmds, species_data, permutations = 999)
+    ef <- suppressMessages(suppressWarnings(envfit(nmds_data$nmds, species_data, permutations = 999)))
     vectors <- as.data.frame(scores(ef, display = "vectors"))
     vectors$Species <- rownames(vectors)
     vectors$r <- ef$vectors$r
@@ -760,7 +766,7 @@ export_topspecies_with_abundance <- function(community_df, output_dir,
     if (is.null(nmds_data)) next
 
     set.seed(42)
-    ef <- envfit(nmds_data$nmds, species_data, permutations = 999)
+    ef <- suppressMessages(suppressWarnings(envfit(nmds_data$nmds, species_data, permutations = 999)))
     vectors <- as.data.frame(scores(ef, display = "vectors"))
     vectors$Species <- rownames(vectors)
     vectors$r <- ef$vectors$r

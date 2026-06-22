@@ -260,14 +260,14 @@ plot_clarity_ntu_relationship <- function(clarity_df, output_dir) {
   p <- ggplot(plot_df, aes(x = x, y = y, colour = Site)) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "black") +
     geom_point(size = 3, alpha = 0.95) +
-    geom_smooth(method = "lm", se = FALSE, colour = "red", linewidth = 0.8) +
+    geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
+                colour = "red", linewidth = 0.8) +
     annotate(
       "label",
       x = 0.98 * x_max, y = 0.98 * y_max,
       label = label_txt,
       hjust = 1, vjust = 1,
-      size = 3.5,
-      label.size = 0.3
+      size = 3.5
     ) +
     coord_cartesian(xlim = c(0, x_max), ylim = c(0, y_max)) +
     labs(

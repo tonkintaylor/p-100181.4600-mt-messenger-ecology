@@ -37,8 +37,9 @@
 }
 
 process_rpd_domain <- function(path) {
-  df <- tryCatch(readxl::read_excel(path, sheet = .rpd_sheet, skip = .rpd_skip),
-                 error = function(e) e)
+  df <- suppressMessages(tryCatch(
+    readxl::read_excel(path, sheet = .rpd_sheet, skip = .rpd_skip),
+    error = function(e) e))
   if (inherits(df, "error")) {
     return(.rpd_error(path, sprintf("Sheet '%s' not found or unreadable in %s",
                                     .rpd_sheet, path)))
