@@ -25,5 +25,14 @@ jobs:
                   r-version: "4.5"
                   use-public-rspm: true
 
+            # Ensure a CRAN mirror is set in Rprofile.site (read at startup,
+            # before the renv project .Rprofile) so setup-renv's bootstrap
+            # `install.packages("renv")` has a mirror.
+            - name: Configure CRAN mirror
+              shell: bash
+              run: |
+                  R_ETC="$(Rscript -e 'cat(R.home("etc"))')"
+                  echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' | sudo tee -a "$R_ETC/Rprofile.site"
+
             - name: Set up renv
               uses: r-lib/actions/setup-renv@v2
