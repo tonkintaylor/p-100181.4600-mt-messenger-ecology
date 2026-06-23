@@ -14,9 +14,7 @@ jobs:
         permissions:
             contents: read # Required to checkout for the renv lockfile
         env:
-            # Non-transactional so setup-renv's restore keeps the packages it
-            # did install when it aborts on the openxlsx<->zip resolver bug.
-            RENV_CONFIG_INSTALL_TRANSACTIONAL: "FALSE"
+            R_LIBS_USER: ${{ github.workspace }}/.rlibs
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -29,25 +27,13 @@ jobs:
                   r-version: "4.5"
                   use-public-rspm: true
 
-            # Ensure a CRAN mirror is set in Rprofile.site (read at startup,
-            # before the renv project .Rprofile) so setup-renv's bootstrap
-            # `install.packages("renv")` has a mirror.
-            - name: Configure CRAN mirror
+            # renv::restore has an upstream resolver bug on Linux that deadlocks
+            # the openxlsx<->zip pair, so install the dependencies directly from
+            # the public RSPM binaries instead. renv.lock is retained for local
+            # reproducibility.
+            - name: Install R dependencies
               shell: bash
               run: |
-                  R_ETC="$(Rscript -e 'cat(R.home("etc"))')"
-                  echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' | sudo tee -a "$R_ETC/Rprofile.site"
-
-            # setup-renv installs 62/64 packages but renv::restore has a
-            # resolver bug on Linux that deadlocks the openxlsx<->zip pair.
-            # Let it run, then install the pair directly and finalize.
-            - name: Set up renv
-              uses: r-lib/actions/setup-renv@v2
-              continue-on-error: true
-
-            - name: Install openxlsx/zip and finalize restore
-              shell: Rscript {0}
-              run: |
-                renv::activate()
-                renv::install(c("zip", "openxlsx"), prompt = FALSE)
-                renv::restore(prompt = FALSE)
+                  rm -f .Rprofile
+                  mkdir -p "$R_LIBS_USER"
+                  Rscript -e 'install.packages(c("readxl","openxlsx","dplyr","tidyr","lubridate","ggplot2","vegan","indicspecies","ggrepel","zoo","patchwork","RcppTOML","testthat","R6","withr"))'
