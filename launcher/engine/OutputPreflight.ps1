@@ -18,7 +18,7 @@ function Test-OutputWritable {
     )
     $problems = New-Object System.Collections.Generic.List[string]
 
-    $dataParent = Split-Path -Path $DataXlsx -Parent
+    $dataParent = [System.IO.Path]::GetDirectoryName($DataXlsx)
     if ($dataParent -and -not (Test-Path -LiteralPath $dataParent)) {
         $problems.Add("Output folder does not exist: $dataParent")
     }
@@ -26,7 +26,7 @@ function Test-OutputWritable {
         $problems.Add("$([System.IO.Path]::GetFileName($DataXlsx)) is open in Excel - close it and try again.")
     }
     foreach ($dir in @($FiguresDir, $TablesDir)) {
-        $parent = Split-Path -Path $dir -Parent
+        $parent = [System.IO.Path]::GetDirectoryName($dir)
         if ($parent -and -not (Test-Path -LiteralPath $parent)) {
             $problems.Add("Folder path does not exist: $parent")
         }
