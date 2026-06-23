@@ -9,7 +9,7 @@ foreach ($f in Get-ChildItem -LiteralPath (Join-Path $ScriptRoot 'engine') -Filt
 }
 
 # --- Config ---
-$script:RWingetVersion = '4.5.1'   # confirmed available via: winget show --id RProject.R --versions
+$script:RWingetVersionFallback = '4.5.1'   # fallback only; confirm/adjust during clean-VM smoke
 $PipelineRoot   = Join-Path $ScriptRoot 'pipeline'
 $RunPipeline    = Join-Path $PipelineRoot 'src\r\run_pipeline.R'
 $RunData        = Join-Path $PipelineRoot 'src\r\run_data.R'
@@ -190,7 +190,12 @@ $btnCancel.Add_Click({
 })
 $btnSetup.Add_Click({
     $btnSetup.Enabled = $false; $status.Text = 'Setting up R...'
-    $res = Install-RIfMissing -WingetVersion $script:RWingetVersion `
+    $pinned = $null
+    $descPath = Join-Path $PipelineRoot 'DESCRIPTION'
+    if (Test-Path -LiteralPath $descPath) { $pinned = Get-PinnedRVersion -DescriptionPath $descPath }
+    $rv = if ($pinned) { Get-WingetRVersion -MajorMinor $pinned } else { $null }
+    if (-not $rv) { $rv = $script:RWingetVersionFallback; $log.AppendText("Note: using fallback R version $rv`r`n") }
+    $res = Install-RIfMissing -WingetVersion $rv `
         -RscriptResolver { Resolve-RscriptPath } -OnOutput { param($l) $log.AppendText($l + "`r`n") }
     if (-not $res.Ok) { $status.ForeColor=[System.Drawing.Color]::Red; $status.Text=$res.Message; $btnSetup.Enabled=$true; return }
     $script:RscriptPath = $res.RscriptPath

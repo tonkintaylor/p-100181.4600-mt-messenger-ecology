@@ -7,6 +7,27 @@ function Get-PinnedRVersion {
     return ($line -replace '^\s*Config/R/Version\s*:\s*', '').Trim()
 }
 
+function Select-NewestMatchingRVersion {
+    param([string[]]$Available, [Parameter(Mandatory)][string]$MajorMinor)
+    $escaped = [regex]::Escape($MajorMinor)
+    $matching = @($Available | Where-Object { $_ -match ("^" + $escaped + "(\.|$)") })
+    if ($matching.Count -eq 0) { return $null }
+    $parsed = foreach ($v in $matching) {
+        $ver = $null
+        if ([version]::TryParse($v, [ref]$ver)) { [pscustomobject]@{ Text = $v; Ver = $ver } }
+    }
+    if (-not $parsed) { return $null }
+    return ($parsed | Sort-Object Ver -Descending | Select-Object -First 1).Text
+}
+
+function Get-WingetRVersion {
+    param([Parameter(Mandatory)][string]$MajorMinor)
+    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) { return $null }
+    $out = & winget.exe show --id RProject.R --versions 2>$null
+    $versions = @($out | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+\.\d+(\.\d+)*$' })
+    return (Select-NewestMatchingRVersion -Available $versions -MajorMinor $MajorMinor)
+}
+
 function Get-WingetInstallArgs {
     param([string]$RVersion)
     $a = @('install', '--id', 'RProject.R', '--scope', 'user', '--silent',
