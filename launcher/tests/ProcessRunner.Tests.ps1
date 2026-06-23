@@ -9,6 +9,11 @@ Describe 'ConvertTo-ArgumentString' {
     }
 }
 Describe 'Invoke-PipelineProcess' {
+    It 'returns a structured failure (exit -1, message) when the executable does not exist' {
+        $r = Invoke-PipelineProcess -FilePath (Join-Path $TestDrive 'nope-does-not-exist.exe')
+        $r.ExitCode | Should -Be -1
+        $r.Output   | Should -Match 'Failed to launch'
+    }
     It 'captures exit code and streams stderr lines via OnOutput' {
         $seen = New-Object System.Collections.Generic.List[string]
         $cb = { param($line) $seen.Add($line) }

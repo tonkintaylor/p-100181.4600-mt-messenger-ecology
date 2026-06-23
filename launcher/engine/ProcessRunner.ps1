@@ -32,7 +32,11 @@ function Invoke-PipelineProcess {
 
     $proc = New-Object System.Diagnostics.Process
     $proc.StartInfo = $psi
-    [void]$proc.Start()
+    try {
+        [void]$proc.Start()
+    } catch {
+        return [pscustomobject]@{ ExitCode = -1; Output = "Failed to launch '$FilePath': $($_.Exception.Message)" }
+    }
     if ($ProcessRef) { $ProcessRef.Value = $proc }
 
     # R's message() (progress) goes to stderr, so stream stderr live and drain
