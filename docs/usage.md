@@ -43,16 +43,16 @@ git clone https://github.com/tonkintaylor/p-100181.4600-mt-messenger-ecology.git
 The install script will:
 
 1. Install R if not already present (via winget)
-2. Restore R packages from `renv.lock`
+2. Sync R packages from the pinned package snapshot (`scripts/sync_r_packages.R`)
 3. Create `cycle.toml` from the template
 
-### Restoring R packages manually
+### Syncing R packages manually
 
-If `./tasks/install.ps1` fails during R setup, restore packages manually
+If `./tasks/install.ps1` fails during R setup, sync packages manually
 from the project root:
 
 ```powershell
-Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
+Rscript scripts/sync_r_packages.R
 ```
 
 ## Configuration

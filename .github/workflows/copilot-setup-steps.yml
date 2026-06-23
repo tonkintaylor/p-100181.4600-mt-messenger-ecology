@@ -27,13 +27,12 @@ jobs:
                   r-version: "4.5"
                   use-public-rspm: true
 
-            # renv::restore has an upstream resolver bug on Linux that deadlocks
-            # the openxlsx<->zip pair, so install the dependencies directly from
-            # the public RSPM binaries instead. renv.lock is retained for local
-            # reproducibility.
+            # Install from the dated PPM snapshot pinned in DESCRIPTION
+            # (Config/Repo/Snapshot). Same source of truth as local dev — no
+            # renv::restore (which deadlocks on openxlsx<->zip on Linux) and no
+            # hand-maintained package list to drift.
             - name: Install R dependencies
               shell: bash
               run: |
-                  rm -f .Rprofile
                   mkdir -p "$R_LIBS_USER"
-                  Rscript -e 'install.packages(c("readxl","openxlsx","dplyr","tidyr","lubridate","ggplot2","vegan","indicspecies","ggrepel","zoo","patchwork","RcppTOML","testthat","R6","withr"))'
+                  Rscript scripts/sync_r_packages.R

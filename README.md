@@ -100,8 +100,8 @@ VS Code configuration:
 
 ### Running R code
 
-Use the Rscript entry points for normal operation. All scripts activate
-renv explicitly before loading packages.
+Use the Rscript entry points for normal operation. They run with `--vanilla`
+and load packages from the synced project library (see Managing R packages).
 
 ```powershell
 # Data pipeline only
@@ -123,38 +123,53 @@ For one-off diagnostics that do not need project packages, use `--vanilla`:
 Rscript --vanilla -e "sessionInfo()"
 ```
 
-For one-off commands that do need project packages, bootstrap renv explicitly:
+Project packages live in the default library once synced, so they are available
+without any bootstrap:
 
 ```powershell
-Rscript --vanilla -e "source('renv/activate.R'); packageVersion('ggplot2')"
+Rscript --vanilla -e "packageVersion('ggplot2')"
 ```
 
 ### Running tests
 
 ```powershell
-Rscript --vanilla -e "source('renv/activate.R'); library(readxl); library(openxlsx); library(dplyr); library(tidyr); library(lubridate); testthat::test_dir('tests/r')"
+Rscript --vanilla -e "testthat::test_dir('tests/r')"
 ```
 
 ### Managing R packages
 
-R dependencies are managed by [renv](https://rstudio.github.io/renv/) with
-versions locked in `renv.lock`. The `DESCRIPTION` file declares the direct
-R package dependencies.
+R dependencies are pinned by a dated [Posit Package Manager][ppm] snapshot, so
+every machine (Windows, macOS, Linux/CI) installs identical package versions
+from plain `install.packages()` — no Docker, and no `renv::restore()`.
+
+The `DESCRIPTION` file is the single source of truth:
+
+- `Imports:` — the direct packages to install
+- `Config/Repo/Snapshot:` — the snapshot date (`YYYY-MM-DD`) that pins versions
+- `Config/R/Version:` — the required R major.minor
+
+[`scripts/sync_r_packages.R`](scripts/sync_r_packages.R) reads those fields,
+checks the R version, and installs anything missing or drifted from the
+snapshot. The same script is used by local dev and by CI.
+
+**Syncing after a pull:**
+
+```powershell
+Rscript scripts/sync_r_packages.R
+```
+
+Or just re-run `./tasks/dev_sync.ps1` — it syncs R packages automatically.
+Use `--dry-run` to preview, or `--force` to reinstall everything to the snapshot.
 
 **Adding a package:**
 
-1. In R from the project root: `renv::install("newpackage")`
-2. Add the package to the `Imports` field in `DESCRIPTION`
-3. Update the lockfile: `renv::snapshot()`
-4. Commit both `DESCRIPTION` and `renv.lock`
+1. Add the package to the `Imports:` field in `DESCRIPTION`
+2. Run `Rscript scripts/sync_r_packages.R`
+3. Commit `DESCRIPTION`
 
-**Restoring after a pull:**
+**Bumping versions:** change `Config/Repo/Snapshot:` to a newer date and re-run.
 
-```powershell
-Rscript --vanilla -e "source('renv/activate.R'); renv::restore()"
-```
-
-Or just re-run `./tasks/dev_sync.ps1` — it restores R packages automatically.
+[ppm]: https://packagemanager.posit.co/
 
 ## Licence
 
