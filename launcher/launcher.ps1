@@ -154,7 +154,7 @@ $timer.Add_Tick({
         # Persist a timestamped run log next to the data workbook.
         try {
             $stamp = (Get-Date).ToString('yyyy-MM-dd-HHmm')
-            $logDir = Split-Path -Parent $tbData.Text
+            $logDir = [System.IO.Path]::GetDirectoryName($tbData.Text)
             if ($logDir -and (Test-Path $logDir)) {
                 Set-Content -LiteralPath (Join-Path $logDir "run-$stamp.log") -Value $sync.Log.ToString()
             }

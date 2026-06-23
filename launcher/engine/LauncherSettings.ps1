@@ -20,7 +20,7 @@ function Save-LauncherSettings {
         [Parameter(Mandatory)][string]$Path,
         [Parameter(Mandatory)][hashtable]$Settings
     )
-    $dir = Split-Path -Parent $Path
+    $dir = [System.IO.Path]::GetDirectoryName($Path)
     if ($dir -and -not (Test-Path -LiteralPath $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
