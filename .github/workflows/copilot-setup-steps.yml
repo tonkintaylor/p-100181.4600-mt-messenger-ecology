@@ -34,5 +34,16 @@ jobs:
                   R_ETC="$(Rscript -e 'cat(R.home("etc"))')"
                   echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' | sudo tee -a "$R_ETC/Rprofile.site"
 
+            # setup-renv installs 62/64 packages but renv::restore has a
+            # resolver bug on Linux that deadlocks the openxlsx<->zip pair.
+            # Let it run, then install the pair directly and finalize.
             - name: Set up renv
               uses: r-lib/actions/setup-renv@v2
+              continue-on-error: true
+
+            - name: Install openxlsx/zip and finalize restore
+              shell: Rscript {0}
+              run: |
+                renv::activate()
+                utils::install.packages(c("zip", "openxlsx"), lib = .libPaths()[1])
+                renv::restore(prompt = FALSE)
