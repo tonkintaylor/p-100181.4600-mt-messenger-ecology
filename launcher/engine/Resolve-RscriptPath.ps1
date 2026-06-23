@@ -16,8 +16,11 @@ function Get-RscriptCandidatePath {
         } catch { }
     }
 
-    foreach ($base in @((Join-Path $LocalAppData 'Programs\R'), (Join-Path $ProgramFiles 'R'))) {
-        if ($base -and (Test-Path -LiteralPath $base)) {
+    foreach ($base in @(
+        $(if ($LocalAppData) { Join-Path $LocalAppData 'Programs\R' }),
+        $(if ($ProgramFiles) { Join-Path $ProgramFiles 'R' })
+    ) | Where-Object { $_ }) {
+        if (Test-Path -LiteralPath $base) {
             Get-ChildItem -LiteralPath $base -Directory -Filter 'R-*' -ErrorAction SilentlyContinue |
                 Sort-Object Name -Descending |
                 ForEach-Object { $candidates.Add((Join-Path $_.FullName 'bin\Rscript.exe')) }
