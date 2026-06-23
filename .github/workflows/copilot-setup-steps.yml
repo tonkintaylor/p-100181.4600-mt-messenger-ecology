@@ -13,6 +13,10 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read # Required to checkout for the renv lockfile
+        env:
+            # Non-transactional so setup-renv's restore keeps the packages it
+            # did install when it aborts on the openxlsx<->zip resolver bug.
+            RENV_CONFIG_INSTALL_TRANSACTIONAL: "FALSE"
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -45,5 +49,5 @@ jobs:
               shell: Rscript {0}
               run: |
                 renv::activate()
-                utils::install.packages(c("zip", "openxlsx"), lib = .libPaths()[1])
+                renv::install(c("zip", "openxlsx"), prompt = FALSE)
                 renv::restore(prompt = FALSE)

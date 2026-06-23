@@ -20,6 +20,11 @@ jobs:
         runs-on: "ubuntu-latest"
         permissions:
             contents: read # Required to checkout the test suite
+        env:
+            # Non-transactional so setup-renv's restore keeps the packages it
+            # did install when it aborts on the openxlsx<->zip resolver bug
+            # (a transactional restore rolls the whole batch back on failure).
+            RENV_CONFIG_INSTALL_TRANSACTIONAL: "FALSE"
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -53,9 +58,10 @@ jobs:
               shell: Rscript {0}
               run: |
                 renv::activate()
-                # Install the pair with the base installer (bypassing renv's
-                # restore resolver), then re-run restore — now satisfied.
-                utils::install.packages(c("zip", "openxlsx"), lib = .libPaths()[1])
+                # renv::install uses a different code path than restore (no
+                # deadlock) and installs into the renv project library, so the
+                # test step finds them. Then finalize the full restore.
+                renv::install(c("zip", "openxlsx"), prompt = FALSE)
                 renv::restore(prompt = FALSE)
 
             - name: Run testthat suite
