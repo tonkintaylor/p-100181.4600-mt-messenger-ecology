@@ -17,7 +17,7 @@ $SettingsPath   = Join-Path $env:LOCALAPPDATA 'MtMessengerPipeline\settings.json
 
 # --- Shared state across UI thread and background runspace ---
 $sync = [hashtable]::Synchronized(@{
-    Queue   = New-Object System.Collections.Queue
+    Queue   = [System.Collections.Queue]::Synchronized((New-Object System.Collections.Queue))
     Running = $false
     Process = $null
     Done    = $false
@@ -141,7 +141,11 @@ function Start-Job([string]$rscript, [string[]]$scriptArgs) {
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 150
 $timer.Add_Tick({
-    while ($sync.Queue.Count -gt 0) { $log.AppendText([string]$sync.Queue.Dequeue() + "`r`n") }
+    while ($sync.Queue.Count -gt 0) {
+        $line = [string]$sync.Queue.Dequeue()
+        $log.AppendText($line + "`r`n")
+        [void]$sync.Log.AppendLine($line)
+    }
     if ($sync.Done -and $sync.Running) {
         $sync.Running = $false; $timer.Stop()
         $st = Get-RunStatus -ExitCode ([int]$sync.Exit) -LogText $sync.Log.ToString()
