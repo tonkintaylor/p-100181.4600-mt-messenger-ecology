@@ -176,7 +176,9 @@ load_fish_trapping <- function(xlsx_path) {
     return(NULL)
   }
 
-  df <- read_excel(xlsx_path, sheet = "Fish Trapping") |>
+  # suppressWarnings silences benign "Coercing text to numeric" column-type
+  # guesses when reading the source Fish Trapping sheet.
+  df <- suppressWarnings(read_excel(xlsx_path, sheet = "Fish Trapping")) |>
     clean_colnames()
 
   if ("Date retrieved" %in% names(df)) {

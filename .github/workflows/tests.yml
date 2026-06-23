@@ -21,71 +21,36 @@ jobs:
         permissions:
             contents: read # Required to checkout the test suite
         env:
-            PYTHONIOENCODING: utf-8
+            R_LIBS_USER: ${{ github.workspace }}/.rlibs
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
               with:
                   persist-credentials: false
 
-            - name: Set up uv
-              uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+            - name: Set up R
+              uses: r-lib/actions/setup-r@v2
               with:
-                  version: latest
+                  r-version: "4.5"
+                  use-public-rspm: true
 
-            - name: Setup dependencies
-              run: uv sync
+            # Install from the dated PPM snapshot pinned in DESCRIPTION
+            # (Config/Repo/Snapshot). Same source of truth as local dev — no
+            # renv::restore (which deadlocks on openxlsx<->zip on Linux) and no
+            # hand-maintained package list to drift.
+            - name: Install R dependencies
+              shell: bash
+              run: |
+                  mkdir -p "$R_LIBS_USER"
+                  Rscript scripts/sync_r_packages.R
 
-            - name: Run pytest
-              uses: pavelzw/pytest-action@510c5e90c360a185039bea56ce8b3e7e51a16507 # v2.2.0
-              with:
-                  emoji: false
-                  job-summary: false
-                  custom-pytest: uv run --frozen pytest --cov --junitxml=junit.xml -o junit_family=legacy --cov-report=xml
-
-            - name: Upload coverage reports
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-              with:
-                  name: coverage-reports
-                  path: test-reports/coverage.xml
-
-
-    sonarqube:
-        name: SonarQube Analysis
-        needs: tests
-        runs-on: ubuntu-latest
-        environment: sonarqube
-        permissions:
-            contents: read # Required to infer project metadata and run the analysis
-            pull-requests: write # SonarQube needs to post comments on PRs
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-              with:
-                  fetch-depth: 0 # No shallow clones, SonarQube uses the full history
-                  persist-credentials: false
-
-            - name: Set up uv
-              uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
-              with:
-                  version: latest
-                  cache-suffix: sonarqube
-
-            - name: Create SonarQube properties
-              run: uvx usethis@0.21.0 show sonarqube --project-key=$SONAR_PROJECT_KEY --output-file=sonar-project.properties
-              env:
-                  SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-
-            - name: Download coverage reports
-              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-              with:
-                  name: coverage-reports
-                  path: test-reports
-              continue-on-error: true
-
-            - name: Run SonarQube analysis
-              uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
-              env:
-                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-                  SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-
+            - name: Run testthat suite
+              run: >
+                Rscript -e "
+                  library(readxl);
+                  library(openxlsx);
+                  library(dplyr);
+                  library(tidyr);
+                  library(lubridate);
+                  testthat::test_dir('tests/r', stop_on_failure=TRUE)
+                "

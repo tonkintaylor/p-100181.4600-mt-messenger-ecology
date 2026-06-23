@@ -35,12 +35,12 @@ else
     fi
 fi
 
-echo "Restoring R packages from renv.lock..."
-Rscript --vanilla -e "source('renv/activate.R'); renv::restore(prompt = FALSE)"
+echo "Syncing R packages from the pinned PPM snapshot..."
+Rscript scripts/sync_r_packages.R
 
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to restore R packages from renv.lock."
-    echo "Try running: Rscript --vanilla -e \"source('renv/activate.R'); renv::restore()\""
+    echo "Error: Failed to sync R packages."
+    echo "Try running: Rscript scripts/sync_r_packages.R --dry-run"
     exit 1
 fi
 

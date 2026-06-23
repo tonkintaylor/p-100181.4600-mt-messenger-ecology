@@ -1,18 +1,13 @@
 #!/bin/bash
 
-# Remove any leftover pre-commit config from before the prek migration (no-op if not installed).
-uvx pre-commit uninstall &> /dev/null || true
-
-output=$(uv pip show prek &> /dev/null)
-if [ $? -eq 0 ]
-then
-    echo Installing hooks...
-    output=$(uv run prek install --overwrite 2>&1)
+# Install pre-commit hooks (generic hooks only — no Python tooling)
+if command -v pre-commit &> /dev/null; then
+    echo "Installing pre-commit hooks..."
+    output=$(pre-commit install 2>&1)
     if [ $? -ne 0 ]
     then
         echo "$output"
-        echo "Error: prek install failed."
-        exit 1
+        echo "Warning: pre-commit install failed. Hooks will not run automatically."
     fi
 fi
 

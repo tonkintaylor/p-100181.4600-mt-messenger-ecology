@@ -78,7 +78,9 @@ compute_metric_summary <- function(site_df, metric) {
     mutate(
       Mean = dplyr::if_else(is.nan(Mean), NA_real_, Mean),
       SE = dplyr::if_else(N_non_na > 1L & !is.na(SD), SD / sqrt(N_non_na), 0),
-      t_crit = dplyr::if_else(N_non_na > 1L, qt(0.975, df = N_non_na - 1), NA_real_),
+      # pmax keeps df >= 1 so qt() never sees df = 0 (which yields NaN + a
+      # warning); the n == 1 result is discarded by the if_else condition anyway.
+      t_crit = dplyr::if_else(N_non_na > 1L, qt(0.975, df = pmax(N_non_na - 1, 1)), NA_real_),
       CI_lower = dplyr::if_else(N_non_na > 1L, pmax(Mean - t_crit * SE, 0), Mean),
       CI_upper = dplyr::if_else(N_non_na > 1L, pmin(Mean + t_crit * SE, cap), Mean)
     ) |>
@@ -194,7 +196,7 @@ make_metric_panel <- function(summary_df, metric, trigger_val = NA,
   # Baseline vline — mapped to colour scale with vertical dotted key glyph.
   p <- p +
     geom_vline(
-      aes(xintercept = as.numeric(BASELINE_END),
+      aes(xintercept = BASELINE_END,
           colour = "Baseline \nMonitoring End"),
       linetype = "dotted", linewidth = 0.8,
       key_glyph = draw_key_vdotted

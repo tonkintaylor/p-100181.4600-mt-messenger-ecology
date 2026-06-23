@@ -31,10 +31,5 @@ jobs:
               with:
                   version: latest
 
-            - name: Run checks
-              run: uv run --frozen prek -a
-              env:
-                  PREK_UV_SOURCE: github
-
-            - name: Check for TODOs
-              run: uv run ruff check --select "FIX" # Disabled in pre-commit
+            - name: Run prek hooks
+              run: uvx prek run --all-files --show-diff-on-failure

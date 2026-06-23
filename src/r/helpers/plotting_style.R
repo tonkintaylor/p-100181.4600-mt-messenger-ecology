@@ -147,9 +147,26 @@ add_summer_shading <- function(p, year_min, year_max) {
 
 
 #' Add baseline end vertical line.
-add_baseline_vline <- function(p) {
+#'
+#' Skips the line when BASELINE_END falls outside the plotted date range (e.g.
+#' RPD/LDV monitoring began well after baseline), since ggplot would otherwise
+#' clip the off-screen line and emit a "Removed 1 row" warning. The plotted
+#' dates default to the plot's own `Date` column.
+#'
+#' @param p A ggplot object with a Date x-axis.
+#' @param plot_dates Optional vector of plotted dates; defaults to `p$data$Date`.
+add_baseline_vline <- function(p, plot_dates = NULL) {
+  if (is.null(plot_dates) && !is.null(p$data) && "Date" %in% names(p$data)) {
+    plot_dates <- p$data[["Date"]]
+  }
+  if (!is.null(plot_dates)) {
+    rng <- suppressWarnings(range(as.Date(plot_dates), na.rm = TRUE))
+    if (all(is.finite(rng)) && (BASELINE_END < rng[1] || BASELINE_END > rng[2])) {
+      return(p)
+    }
+  }
   p + geom_vline(
-    xintercept = as.numeric(BASELINE_END),
+    xintercept = BASELINE_END,
     linetype = "dashed", linewidth = 0.8, alpha = 0.7
   )
 }

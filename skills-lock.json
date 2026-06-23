@@ -31,12 +31,6 @@
       "skillPath": ".agents/skills/testing-python-units/SKILL.md",
       "computedHash": "d83a3de65245200dc842f90b71fb62e7af49faee7ac9b295236707cf2b2a51f2"
     },
-    "using-prek-pre-commit": {
-      "source": "tonkintaylor/.github-private",
-      "sourceType": "github",
-      "skillPath": ".agents/skills/using-prek-pre-commit/SKILL.md",
-      "computedHash": "4e6c6eea3ab511c287e114566ea883baba94e8668c844ada59f429bb740b242d"
-    },
     "using-superpowers": {
       "source": "tonkintaylor/.github-private",
       "sourceType": "github",

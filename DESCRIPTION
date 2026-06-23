@@ -12,4 +12,11 @@ Imports:
     zoo,
     patchwork,
     openxlsx,
-    lubridate
+    lubridate,
+    R6,
+    RcppTOML,
+    testthat,
+    tibble,
+    withr
+Config/R/Version: 4.5
+Config/Repo/Snapshot: 2026-06-01
