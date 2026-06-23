@@ -25,6 +25,14 @@ Describe 'Invoke-PipelineProcess' {
         $r.Output | Should -Match 'ERR'
         ($seen -join ' ') | Should -Match 'ERR'
     }
+    It 'invokes -OnStarted with the live process before it exits' {
+        $info = [hashtable]::Synchronized(@{ Id = 0; Alive = $false })
+        $cb = { param($p) $info.Id = $p.Id; $info.Alive = (-not $p.HasExited) }
+        $r = Invoke-PipelineProcess -FilePath $env:ComSpec -Arguments @('/c','ping -n 2 127.0.0.1 >NUL & exit 0') -OnStarted $cb
+        $info.Id    | Should -BeGreaterThan 0
+        $info.Alive | Should -BeTrue
+        $r.ExitCode | Should -Be 0
+    }
 }
 Describe 'Stop-ProcessTree' {
     It 'terminates a running child process tree' {

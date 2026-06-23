@@ -111,7 +111,7 @@ function Get-PathsHash {
 
 # Run an Rscript command in a background runspace, streaming to $sync.Queue.
 function Start-Job([string]$rscript, [string[]]$scriptArgs) {
-    $sync.Running = $true; $sync.Done = $false; $sync.Exit = $null
+    $sync.Running = $true; $sync.Done = $false; $sync.Exit = $null; $sync.Process = $null
     $sync.Queue.Clear(); [void]$sync.Log.Clear()
     $rbin = Split-Path -Parent $rscript
     $rhome = Split-Path -Parent $rbin
@@ -127,10 +127,9 @@ function Start-Job([string]$rscript, [string[]]$scriptArgs) {
     [void]$ps.AddScript({
         . (Join-Path $engineDir 'ProcessRunner.ps1')
         $cb = { param($line) $sync.Queue.Enqueue($line) }
-        $procRef = [ref]$null
         $r = Invoke-PipelineProcess -FilePath $rscript -Arguments $scriptArgs `
-            -WorkingDirectory $wd -OnOutput $cb -PrependPath $rbin -RHome $rhome -ProcessRef $procRef
-        $sync.Process = $procRef.Value
+            -WorkingDirectory $wd -OnOutput $cb -PrependPath $rbin -RHome $rhome `
+            -OnStarted { param($p) $sync.Process = $p }
         $sync.Exit = $r.ExitCode
         $sync.Done = $true
     })

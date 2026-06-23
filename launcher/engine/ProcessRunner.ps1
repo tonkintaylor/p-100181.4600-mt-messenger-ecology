@@ -14,7 +14,8 @@ function Invoke-PipelineProcess {
         [scriptblock]$OnOutput = { param($line) },
         [string]$PrependPath,
         [string]$RHome,
-        [ref]$ProcessRef
+        [ref]$ProcessRef,
+        [scriptblock]$OnStarted = { param($p) }
     )
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName               = $FilePath
@@ -38,6 +39,7 @@ function Invoke-PipelineProcess {
         return [pscustomobject]@{ ExitCode = -1; Output = "Failed to launch '$FilePath': $($_.Exception.Message)" }
     }
     if ($ProcessRef) { $ProcessRef.Value = $proc }
+    & $OnStarted $proc
 
     # R's message() (progress) goes to stderr, so stream stderr live and drain
     # stdout asynchronously to prevent a full-buffer deadlock.
