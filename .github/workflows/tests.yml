@@ -20,6 +20,11 @@ jobs:
         runs-on: "ubuntu-latest"
         permissions:
             contents: read # Required to checkout the test suite
+        env:
+            # Serialize package installs: renv's parallel installer deadlocks
+            # on the openxlsx<->zip pair on Linux (each reported as the other's
+            # failed dependency). One job at a time avoids the scheduler issue.
+            RENV_CONFIG_INSTALL_JOBS: "1"
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
