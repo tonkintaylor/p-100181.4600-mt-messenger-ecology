@@ -1,0 +1,14 @@
+name: launcher-tests
+on:
+  push:
+    paths: ['launcher/**', 'tasks/build_launcher.ps1', '.github/workflows/launcher-tests.yml']
+  pull_request:
+    paths: ['launcher/**', 'tasks/build_launcher.ps1']
+jobs:
+  pester:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run launcher Pester suite
+        shell: powershell
+        run: ./launcher/tests/Invoke-Pester.ps1
