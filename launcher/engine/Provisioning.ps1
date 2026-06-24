@@ -1,3 +1,8 @@
+# NOTE: Not wired into the launcher. The app bundles its own R (see
+# tasks/build_launcher.ps1 Add-PortableR), so no on-first-run install is needed.
+# These winget helpers are retained, with their tests, as a ready alternative if
+# a no-bundle / install-on-demand path is ever wanted. RProject.R's winget
+# manifest is machine-scope only, so a winget path would require admin (UAC).
 function Get-PinnedRVersion {
     param([Parameter(Mandatory)][string]$DescriptionPath)
     $line = Get-Content -LiteralPath $DescriptionPath |

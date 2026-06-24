@@ -47,3 +47,18 @@ function Resolve-RscriptPath {
     }
     return $null
 }
+
+# Pick the Rscript the launcher should use: the R bundled inside the app
+# (<ScriptRoot>\R\bin\Rscript.exe) when present, else fall back to a
+# system-resolved R. The bundled-R build ships its own pinned R, so this
+# normally returns the bundled copy and never touches a system install.
+function Get-LauncherRscript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ScriptRoot,
+        [scriptblock]$SystemResolver = { Resolve-RscriptPath }
+    )
+    $bundled = Join-Path $ScriptRoot 'R\bin\Rscript.exe'
+    if (Test-Path -LiteralPath $bundled -PathType Leaf) { return $bundled }
+    return (& $SystemResolver)
+}

@@ -9,7 +9,6 @@ foreach ($f in Get-ChildItem -LiteralPath (Join-Path $ScriptRoot 'engine') -Filt
 }
 
 # --- Config ---
-$script:RWingetVersionFallback = '4.5.1'   # fallback only; confirm/adjust during clean-VM smoke
 $PipelineRoot   = Join-Path $ScriptRoot 'pipeline'
 $RunPipeline    = Join-Path $PipelineRoot 'src\r\run_pipeline.R'
 $RunData        = Join-Path $PipelineRoot 'src\r\run_data.R'
@@ -84,17 +83,7 @@ $log.Font = New-Object System.Drawing.Font('Consolas', 9)
 $status = New-Object System.Windows.Forms.Label
 $status.Location = '15,530'; $status.Size = '600,24'; $status.Text = 'Ready.'
 
-$setupPanel = New-Object System.Windows.Forms.Panel
-$setupPanel.Location = '15,40'; $setupPanel.Size = '715,170'; $setupPanel.BackColor = 'WhiteSmoke'; $setupPanel.Visible = $false
-$setupLabel = New-Object System.Windows.Forms.Label
-$setupLabel.Location = '15,15'; $setupLabel.Size = '680,90'
-$setupLabel.Text = "R isn't installed on this PC yet.`r`nSetup installs R + the required packages." +
-    "`r`n  - One-time, ~5-10 min, needs internet`r`n  - No admin rights needed (installs just for you)"
-$btnSetup = New-Object System.Windows.Forms.Button
-$btnSetup.Text = 'Start setup'; $btnSetup.Location = '15,120'; $btnSetup.Size = '120,30'
-$setupPanel.Controls.AddRange(@($setupLabel, $btnSetup))
-
-$form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $log, $status, $setupPanel))
+$form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $log, $status))
 
 # --- Helpers ---
 function Set-Busy([bool]$busy) {
@@ -188,29 +177,17 @@ $btnCancel.Add_Click({
     $timer.Stop(); $sync.Running = $false; Set-Busy $false
     $status.ForeColor = [System.Drawing.Color]::Gray; $status.Text = 'Run cancelled.'
 })
-$btnSetup.Add_Click({
-    $btnSetup.Enabled = $false; $status.Text = 'Setting up R...'
-    $pinned = $null
-    $descPath = Join-Path $PipelineRoot 'DESCRIPTION'
-    if (Test-Path -LiteralPath $descPath) { $pinned = Get-PinnedRVersion -DescriptionPath $descPath }
-    $rv = if ($pinned) { Get-WingetRVersion -MajorMinor $pinned } else { $null }
-    if (-not $rv) { $rv = $script:RWingetVersionFallback; $log.AppendText("Note: using fallback R version $rv`r`n") }
-    $res = Install-RIfMissing -WingetVersion $rv `
-        -RscriptResolver { Resolve-RscriptPath } -OnOutput { param($l) $log.AppendText($l + "`r`n") }
-    if (-not $res.Ok) { $status.ForeColor=[System.Drawing.Color]::Red; $status.Text=$res.Message; $btnSetup.Enabled=$true; return }
-    $script:RscriptPath = $res.RscriptPath
-    $log.AppendText("Installing R packages...`r`n")
-    $rc = Invoke-PackageSync -RscriptPath $script:RscriptPath -PipelineRoot $PipelineRoot `
-        -OnOutput { param($l) $log.AppendText($l + "`r`n") }
-    if ($rc -ne 0) { $status.ForeColor=[System.Drawing.Color]::Red
-        $status.Text='Couldn''t download R packages - check your internet connection, then retry setup.'; $btnSetup.Enabled=$true; return }
-    $setupPanel.Visible = $false; Set-Busy $false; $status.Text = 'Ready.'
-})
 
 # --- Startup ---
 $s = Get-LauncherSettings -Path $SettingsPath
 $tbMacro.Text=$s.MacroDb; $tbAquatic.Text=$s.AquaticDb; $tbData.Text=$s.DataXlsx
 $tbFigures.Text=$s.FiguresDir; $tbTables.Text=$s.TablesDir
-$script:RscriptPath = Resolve-RscriptPath
-if (-not $script:RscriptPath) { $setupPanel.Visible = $true; Set-Busy $true; $btnCancel.Enabled = $false }
+# The app bundles its own pinned R; Get-LauncherRscript returns that bundled
+# copy (falling back to a system R only in an unstaged dev checkout).
+$script:RscriptPath = Get-LauncherRscript -ScriptRoot $ScriptRoot
+if (-not $script:RscriptPath) {
+    $status.ForeColor = [System.Drawing.Color]::Red
+    $status.Text = 'Bundled R not found - reinstall the app (the installer ships R).'
+    Set-Busy $true; $btnCheck.Enabled = $false; $btnRun.Enabled = $false; $btnCancel.Enabled = $false
+}
 [void]$form.ShowDialog()

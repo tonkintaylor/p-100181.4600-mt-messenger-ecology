@@ -46,3 +46,18 @@ Describe 'Get-RscriptCandidatePath' {
         $relative | Should -BeNullOrEmpty
     }
 }
+
+Describe 'Get-LauncherRscript' {
+    It 'prefers the bundled R when present' {
+        $root = Join-Path $TestDrive 'app'
+        New-Item -ItemType Directory -Path (Join-Path $root 'R\bin') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $root 'R\bin\Rscript.exe') -Value 'stub'
+        Get-LauncherRscript -ScriptRoot $root -SystemResolver { 'SYSTEM' } |
+            Should -Be (Join-Path $root 'R\bin\Rscript.exe')
+    }
+    It 'falls back to the system resolver when no bundled R is present' {
+        $root = Join-Path $TestDrive 'empty'
+        New-Item -ItemType Directory -Path $root -Force | Out-Null
+        Get-LauncherRscript -ScriptRoot $root -SystemResolver { 'SYSTEM' } | Should -Be 'SYSTEM'
+    }
+}
