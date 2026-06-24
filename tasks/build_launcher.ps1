@@ -18,8 +18,10 @@ function Build-LauncherApp {
     Copy-Item (Join-Path $RepoRoot 'scripts\sync_r_packages.R') (Join-Path $pipeline 'scripts')
     Copy-Item (Join-Path $RepoRoot 'DESCRIPTION') $pipeline
 
-    # Exclude renv/.Rprofile so bundled scripts use the user library, not an empty renv lib.
-    foreach ($x in @('pipeline\renv', 'pipeline\.Rprofile', 'pipeline\src\r\tests')) {
+    # Exclude renv/.Rprofile (so bundled scripts use the user library, not an empty
+    # renv lib) and dev-machine artifacts (tests, and generated figures under
+    # src/r/outputs) so the bundle ships only pipeline code, not stale outputs.
+    foreach ($x in @('pipeline\renv', 'pipeline\.Rprofile', 'pipeline\src\r\tests', 'pipeline\src\r\outputs')) {
         $p = Join-Path $Destination $x
         if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force }
     }

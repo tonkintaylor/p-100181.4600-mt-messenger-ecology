@@ -11,5 +11,7 @@ Describe 'Build-LauncherApp' {
         Test-Path (Join-Path $dest 'pipeline\DESCRIPTION')               | Should -BeTrue
         Test-Path (Join-Path $dest 'pipeline\renv')                      | Should -BeFalse
         Test-Path (Join-Path $dest 'pipeline\.Rprofile')                 | Should -BeFalse
+        Test-Path (Join-Path $dest 'pipeline\src\r\tests')               | Should -BeFalse
+        Test-Path (Join-Path $dest 'pipeline\src\r\outputs')             | Should -BeFalse
     }
 }
