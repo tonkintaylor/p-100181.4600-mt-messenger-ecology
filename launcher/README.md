@@ -2,8 +2,9 @@
 
 A Windows "click-to-run" GUI for the Mt Messenger R ecology pipeline. The user
 picks the two input databases and the three output locations, clicks **Run**,
-and the launcher runs the bundled R pipeline and streams progress. On a machine
-without R, it installs R per-user (no admin) on first launch.
+and the launcher runs the bundled R pipeline and streams progress. The installer
+**bundles its own R + packages**, so it runs on a machine with no R, no admin,
+and no internet — nothing to set up beforehand.
 
 - Design: [`docs/superpowers/specs/2026-06-23-pipeline-launcher-gui-design.md`](../docs/superpowers/specs/2026-06-23-pipeline-launcher-gui-design.md)
 - Implementation plan: [`docs/superpowers/plans/2026-06-23-pipeline-launcher-gui.md`](../docs/superpowers/plans/2026-06-23-pipeline-launcher-gui.md)
@@ -18,10 +19,9 @@ You just need the installer — **no R, no admin, no setup beforehand**:
    [Distributing](#distributing)).
 2. Double-click it. It installs to your own profile (`%LOCALAPPDATA%`) and adds
    a **Mt Messenger Ecology Pipeline** shortcut to the Start menu and desktop.
-3. Launch it. If R isn't installed, you'll see a **First-time setup** panel —
-   click **Start setup** (one-time, a few minutes, needs internet; no admin).
-4. Browse to the two input `.xlsx` databases and the three output locations,
-   click **Check inputs** to validate, then **Run**.
+   No admin, and no R install — R is bundled inside the app.
+3. Launch it, browse to the two input `.xlsx` databases and the three output
+   locations, click **Check inputs** to validate, then **Run**.
 
 Your paths are remembered for next time.
 
@@ -32,10 +32,14 @@ Your paths are remembered for next time.
 ### Prerequisites
 
 - **Windows 10/11** with **Windows PowerShell 5.1** (built in — `powershell.exe`).
-- **Inno Setup 6** — only needed to *build the installer* (see below).
-- **R is NOT required to build or test.** The test suite covers pure PowerShell
-  functions and shells out to `cmd.exe`; Pester 5 is installed automatically by
-  the test runner on first use.
+- **Inno Setup 6** — to compile the installer (see below).
+- **A matching R install + internet — to BUILD** (not to test). The build copies
+  an installed R whose major.minor matches `DESCRIPTION`'s `Config/R/Version`
+  (currently `4.5`, e.g. `R-4.5.3`) into the bundle and downloads the project's
+  packages into it. Install that R first (e.g. `winget install --id RProject.R`),
+  or point the build at one with `$env:LAUNCHER_R_HOME`.
+- **The Pester suite needs neither R nor internet** — it tests pure functions and
+  shells out to `cmd.exe`; Pester 5 auto-installs on first run.
 
 ### Install Inno Setup
 
@@ -60,13 +64,20 @@ Expect all tests passing (34 at time of writing). The runner installs Pester 5
 
 Two steps, run from the repo root.
 
-**1. Stage the app folder** — copies the launcher + engine + a code-only copy of
-the R pipeline into `build\launcher-app\` (excludes `renv`, `.Rprofile`, tests,
-and generated `src/r/outputs`):
+**1. Stage the app** — `build_launcher.ps1` copies the launcher + engine + a
+code-only copy of the pipeline into `build\launcher-app\` (excludes `renv`,
+`.Rprofile`, tests, generated `src/r/outputs`), **then bundles R**: it copies a
+matching installed R into `build\launcher-app\R\` and installs the project's
+packages into that R's own library (PPM Windows binaries). It finds the R
+automatically (pinned major.minor, under Program Files or
+`%LOCALAPPDATA%\Programs\R`); override with `$env:LAUNCHER_R_HOME`.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tasks\build_launcher.ps1
 ```
+
+This step needs **R installed + internet** and takes a few minutes (it downloads
+all the pipeline's R packages into the bundle).
 
 **2. Compile the installer** with Inno Setup's command-line compiler (`ISCC.exe`):
 
@@ -81,23 +92,24 @@ $iscc = @(
 & $iscc installer\MtMessengerPipeline.iss
 ```
 
-Output: **`build\MtMessengerPipeline-Setup.exe`** (~2 MB, per-user installer).
+Output: **`build\MtMessengerPipeline-Setup.exe`** — a per-user installer of
+roughly **200–400 MB** (it embeds R + all packages).
 
-> Always **re-run the stage step before compiling** after any change to
-> `launcher\`, the engine, or the R pipeline — the installer packages whatever is
-> in `build\launcher-app\`.
+> Re-run the stage step before compiling after any change to `launcher\`, the
+> engine, the R pipeline, or to refresh the bundled R/packages.
 
 ### Run it locally without building the installer
 
-After staging, run the staged launcher directly (it needs the `pipeline\` folder
-beside it, which staging creates):
+After staging, run the staged launcher directly (it uses the bundled `R\` and
+`pipeline\` folders beside it, which staging creates):
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File build\launcher-app\launcher.ps1
 ```
 
-Running `launcher\launcher.ps1` straight from the repo will open the window but
-**Run/Check will fail** — the pipeline copy only exists in the staged folder.
+Running `launcher\launcher.ps1` straight from the repo opens the window, but with
+no bundled `R\`/`pipeline\` beside it, it falls back to a system R (if any) and
+**Run/Check fail** without the staged `pipeline\`.
 
 ---
 
@@ -121,33 +133,35 @@ The installer installs locally per machine; you only need to put the **single
 
 - `launcher.ps1` is the **view** (WinForms window + a background runspace so the
   UI stays responsive during the multi-minute run).
-- `engine\*.ps1` are pure, unit-tested functions: locate `Rscript.exe`, write a
-  temp `cycle.toml`, pre-flight output paths (incl. Excel-lock), persist
-  last-used paths, map exit codes to pass/fail, run/cancel the process, and
-  provision R via winget.
+- `engine\*.ps1` are pure, unit-tested functions: pick the bundled `Rscript.exe`,
+  write a temp `cycle.toml`, pre-flight output paths (incl. Excel-lock), persist
+  last-used paths, map exit codes to pass/fail, and run/cancel the process tree.
 - A **Run** writes the 5 paths to a temp `cycle.toml` and invokes the bundled
-  `src\r\run_pipeline.R`; **Check inputs** runs `run_data.R --validate`.
-- First-run setup uses the repo's own `scripts\sync_r_packages.R` (a dated Posit
-  Package Manager snapshot — Windows binaries, no compiler) after winget installs R.
+  `pipeline\src\r\run_pipeline.R` with the bundled R; **Check inputs** runs
+  `run_data.R --validate`.
+- The bundled R's library is built at package time via the repo's own
+  `scripts\sync_r_packages.R` (a dated Posit Package Manager snapshot — Windows
+  binaries, no compiler), so the app needs no R install or internet at runtime.
+- `engine\Provisioning.ps1` (a winget install-on-demand path) is retained and
+  tested but **not wired** — see the note at the top of that file.
 
 ---
 
 ## Notes & caveats
 
-- **R version:** the launcher installs the newest R matching the pinned
-  major.minor in `DESCRIPTION` (`Config/R/Version`, currently `4.5`). Confirm a
-  matching build exists in winget before a rollout:
-  `winget show --id RProject.R --versions`.
-- **Pre-existing newer R:** if a target machine already has a newer R (e.g. 4.6+)
-  installed for other work, the launcher resolves to the newest R it finds and
-  the pipeline's version gate will stop. The auto-setup only helps when R is
-  *absent*.
+- **Updating the bundled R/packages:** the app always uses its own bundled R, so
+  to change the R version or refresh packages, install the new R (matching
+  `DESCRIPTION`'s `Config/R/Version`) and **re-run the stage + compile**. Bumping
+  the R version means editing `Config/R/Version` (and the PPM snapshot) in
+  `DESCRIPTION` first. Because R is bundled, a different/newer R already on a
+  target machine is irrelevant — the app never uses it.
+- **Installer size:** ~200–400 MB because R + all packages are embedded. That is
+  the deliberate trade for "runs anywhere, no admin, no internet."
 - **SmartScreen / antivirus:** the installer is unsigned, so SmartScreen may warn
   ("unrecognized app") until reputation accrues. For internal use, distribute
   from a trusted location and/or have IT allow-list it; code-signing is the
   durable fix if you distribute widely.
 - **CI:** `.github/workflows/launcher-tests.yml` runs the Pester suite on
   `windows-latest` for changes under `launcher\**`.
-- **Not yet validated on a clean machine:** the live GUI run and the first-run
-  winget R install should be smoke-tested on a machine without R before a wider
-  rollout.
+- **Smoke-test before a wide rollout:** run the installed app on a machine that
+  has **no R** to confirm the bundled R runs the pipeline end-to-end.
