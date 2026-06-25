@@ -12,6 +12,7 @@ foreach ($f in Get-ChildItem -LiteralPath (Join-Path $ScriptRoot 'engine') -Filt
 $PipelineRoot   = Join-Path $ScriptRoot 'pipeline'
 $RunPipeline    = Join-Path $PipelineRoot 'src\r\run_pipeline.R'
 $RunData        = Join-Path $PipelineRoot 'src\r\run_data.R'
+$RunAll         = Join-Path $PipelineRoot 'src\r\run_all.R'
 $SettingsPath   = Join-Path $env:LOCALAPPDATA 'MtMessengerPipeline\settings.json'
 
 # --- Shared state across UI thread and background runspace ---
@@ -27,7 +28,7 @@ $sync = [hashtable]::Synchronized(@{
 # --- Build the form ---
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'Mt Messenger Ecology Pipeline'
-$form.Size = New-Object System.Drawing.Size(760, 620)
+$form.Size = New-Object System.Drawing.Size(780, 640)
 $form.StartPosition = 'CenterScreen'
 $icoPath = Join-Path $ScriptRoot 'app.ico'
 if (Test-Path $icoPath) { $form.Icon = New-Object System.Drawing.Icon($icoPath) }
@@ -62,40 +63,73 @@ function New-PathRow {
     return $tb
 }
 
-$tbMacro   = New-PathRow $form 'Macroinvertebrate DB'  40  'OpenXlsx'
-$tbAquatic = New-PathRow $form 'Aquatic monitoring DB' 72  'OpenXlsx'
-$tbData    = New-PathRow $form 'Data workbook (.xlsx)' 116 'SaveXlsx'
-$tbFigures = New-PathRow $form 'Figures folder'        148 'Folder'
-$tbTables  = New-PathRow $form 'Tables folder'         180 'Folder'
+# --- Input mode toggle ---
+$grpInput = New-Object System.Windows.Forms.GroupBox
+$grpInput.Text = 'Input'; $grpInput.Location = '12,8'; $grpInput.Size = '736,150'
+
+$rbDatabases = New-Object System.Windows.Forms.RadioButton
+$rbDatabases.Text = 'Build data workbook from databases'
+$rbDatabases.Location = '10,20'; $rbDatabases.Size = '320,20'; $rbDatabases.Checked = $true
+$rbWorkbook = New-Object System.Windows.Forms.RadioButton
+$rbWorkbook.Text = 'Use an existing data workbook'
+$rbWorkbook.Location = '10,92'; $rbWorkbook.Size = '320,20'
+$grpInput.Controls.AddRange(@($rbDatabases, $rbWorkbook))
+$form.Controls.Add($grpInput)
+
+# Rows live inside the Input group; Y is relative to the group box.
+$tbMacro    = New-PathRow $grpInput 'Macroinvertebrate DB'  46  'OpenXlsx'
+$tbAquatic  = New-PathRow $grpInput 'Aquatic monitoring DB' 68  'OpenXlsx'
+$tbWorkbook = New-PathRow $grpInput 'Data workbook (.xlsx)' 118 'OpenXlsx'
+
+# --- Output folder ---
+$tbOutput = New-PathRow $form 'Output folder' 172 'Folder'
 
 $btnCheck = New-Object System.Windows.Forms.Button
-$btnCheck.Text = 'Check inputs'; $btnCheck.Location = '200,220'; $btnCheck.Size = '110,30'
+$btnCheck.Text = 'Check inputs'; $btnCheck.Location = '210,212'; $btnCheck.Size = '110,30'
 $btnRun = New-Object System.Windows.Forms.Button
-$btnRun.Text = 'Run'; $btnRun.Location = '560,220'; $btnRun.Size = '170,32'
+$btnRun.Text = 'Run'; $btnRun.Location = '578,212'; $btnRun.Size = '170,32'
 $btnCancel = New-Object System.Windows.Forms.Button
-$btnCancel.Text = 'Cancel'; $btnCancel.Location = '650,560'; $btnCancel.Size = '80,26'; $btnCancel.Enabled = $false
+$btnCancel.Text = 'Cancel'; $btnCancel.Location = '672,578'; $btnCancel.Size = '80,26'; $btnCancel.Enabled = $false
 
 $log = New-Object System.Windows.Forms.TextBox
 $log.Multiline = $true; $log.ReadOnly = $true; $log.ScrollBars = 'Vertical'
-$log.Location = '15,265'; $log.Size = '715,250'
+$log.Location = '15,285'; $log.Size = '740,250'
 $log.Font = New-Object System.Drawing.Font('Consolas', 9)
 
 $status = New-Object System.Windows.Forms.Label
-$status.Location = '15,530'; $status.Size = '600,24'; $status.Text = 'Ready.'
+$status.Location = '15,548'; $status.Size = '600,24'; $status.Text = 'Ready.'
 
 $form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $log, $status))
+
+# --- Mode toggle handler ---
+function Update-ModeEnabled {
+    $dbMode = $rbDatabases.Checked
+    $tbMacro.Enabled    = $dbMode
+    $tbAquatic.Enabled  = $dbMode
+    $tbWorkbook.Enabled = -not $dbMode
+}
+$rbDatabases.Add_CheckedChanged({ Update-ModeEnabled })
+$rbWorkbook.Add_CheckedChanged({ Update-ModeEnabled })
 
 # --- Helpers ---
 function Set-Busy([bool]$busy) {
     $btnRun.Enabled = -not $busy; $btnCheck.Enabled = -not $busy; $btnCancel.Enabled = $busy
-    foreach ($t in @($tbMacro,$tbAquatic,$tbData,$tbFigures,$tbTables)) { $t.Enabled = -not $busy }
+    $rbDatabases.Enabled = -not $busy; $rbWorkbook.Enabled = -not $busy
+    foreach ($t in @($tbMacro,$tbAquatic,$tbWorkbook,$tbOutput)) { $t.Enabled = -not $busy }
+    if (-not $busy) { Update-ModeEnabled }
 }
 function Append-Log([string]$text) {
     $log.AppendText($text + "`r`n"); [void]$sync.Log.AppendLine($text)
 }
-function Get-PathsHash {
-    @{ MacroDb=$tbMacro.Text; AquaticDb=$tbAquatic.Text; DataXlsx=$tbData.Text
-       FiguresDir=$tbFigures.Text; TablesDir=$tbTables.Text }
+function Get-UiState {
+    $mode = if ($rbDatabases.Checked) { 'Databases' } else { 'Workbook' }
+    @{ Mode = $mode; MacroDb = $tbMacro.Text; AquaticDb = $tbAquatic.Text
+       DataWorkbook = $tbWorkbook.Text; OutputDir = $tbOutput.Text }
+}
+function Get-ResolvedPaths {
+    $s = Get-UiState
+    Resolve-RunPaths -Mode $s.Mode -OutputDir $s.OutputDir `
+        -MacroDb $s.MacroDb -AquaticDb $s.AquaticDb -DataWorkbook $s.DataWorkbook
 }
 
 # Run an Rscript command in a background runspace, streaming to $sync.Queue.
@@ -139,11 +173,10 @@ $timer.Add_Tick({
         $st = Get-RunStatus -ExitCode ([int]$sync.Exit) -LogText $sync.Log.ToString()
         $status.Text = $st.Message; $status.ForeColor = [System.Drawing.Color]::$($st.Color)
         Set-Busy $false
-        if ($st.State -eq 'Succeeded') { Save-LauncherSettings -Path $SettingsPath -Settings (Get-PathsHash) }
-        # Persist a timestamped run log next to the data workbook.
+        if ($st.State -eq 'Succeeded') { Save-LauncherSettings -Path $SettingsPath -Settings (Get-UiState) }
         try {
             $stamp = (Get-Date).ToString('yyyy-MM-dd-HHmm')
-            $logDir = [System.IO.Path]::GetDirectoryName($tbData.Text)
+            $logDir = $tbOutput.Text
             if ($logDir -and (Test-Path $logDir)) {
                 Set-Content -LiteralPath (Join-Path $logDir "run-$stamp.log") -Value $sync.Log.ToString()
             }
@@ -153,23 +186,47 @@ $timer.Add_Tick({
 
 # --- Button wiring ---
 $btnCheck.Add_Click({
-    $status.ForeColor = [System.Drawing.Color]::Black; $status.Text = 'Checking inputs...'
+    $status.ForeColor = [System.Drawing.Color]::Black
+    $resolved = Get-ResolvedPaths
+    if ($resolved.Mode -eq 'Workbook') {
+        $wb = $resolved.DataXlsx
+        if (-not (Test-Path -LiteralPath $wb -PathType Leaf) -or
+            [System.IO.Path]::GetExtension($wb) -ne '.xlsx') {
+            $status.ForeColor = [System.Drawing.Color]::Red
+            $status.Text = 'Select an existing .xlsx data workbook.'
+            return
+        }
+        if (Test-FileLocked -Path $wb) {
+            $status.ForeColor = [System.Drawing.Color]::Red
+            $status.Text = "$([System.IO.Path]::GetFileName($wb)) is open in Excel - close it and try again."
+            return
+        }
+        $status.ForeColor = [System.Drawing.Color]::Green
+        $status.Text = 'Workbook looks readable. Click Run to generate figures and tables.'
+        return
+    }
+    $status.Text = 'Checking inputs...'
     $log.Clear(); Set-Busy $true
-    $cfg = Write-CycleToml -Paths (Get-PathsHash)
+    $cfg = Write-CycleToml -Paths $resolved
     Start-Job $script:RscriptPath @('--vanilla', $RunData, $cfg, '--validate')
     $timer.Start()
 })
 $btnRun.Add_Click({
     $status.ForeColor = [System.Drawing.Color]::Black
-    $pf = Test-OutputWritable -DataXlsx $tbData.Text -FiguresDir $tbFigures.Text -TablesDir $tbTables.Text
+    $resolved = Get-ResolvedPaths
+    $pf = Test-OutputWritable -Mode $resolved.Mode -OutputDir $resolved.OutputDir -DataXlsx $resolved.DataXlsx
     if (-not $pf.Ok) {
         $status.ForeColor = [System.Drawing.Color]::Red
         $status.Text = ($pf.Problems -join '  ')
         return
     }
     $status.Text = 'Running...'; $log.Clear(); Set-Busy $true
-    $cfg = Write-CycleToml -Paths (Get-PathsHash)
-    Start-Job $script:RscriptPath @('--vanilla', $RunPipeline, $cfg)
+    $cfg = Write-CycleToml -Paths $resolved
+    if ($resolved.Mode -eq 'Workbook') {
+        Start-Job $script:RscriptPath @('--vanilla', $RunAll, "--config=$cfg")
+    } else {
+        Start-Job $script:RscriptPath @('--vanilla', $RunPipeline, $cfg)
+    }
     $timer.Start()
 })
 $btnCancel.Add_Click({
@@ -180,8 +237,10 @@ $btnCancel.Add_Click({
 
 # --- Startup ---
 $s = Get-LauncherSettings -Path $SettingsPath
-$tbMacro.Text=$s.MacroDb; $tbAquatic.Text=$s.AquaticDb; $tbData.Text=$s.DataXlsx
-$tbFigures.Text=$s.FiguresDir; $tbTables.Text=$s.TablesDir
+if ($s.Mode -eq 'Workbook') { $rbWorkbook.Checked = $true } else { $rbDatabases.Checked = $true }
+$tbMacro.Text = $s.MacroDb; $tbAquatic.Text = $s.AquaticDb
+$tbWorkbook.Text = $s.DataWorkbook; $tbOutput.Text = $s.OutputDir
+Update-ModeEnabled
 # The app bundles its own pinned R; Get-LauncherRscript returns that bundled
 # copy (falling back to a system R only in an unstaged dev checkout).
 $script:RscriptPath = Get-LauncherRscript -ScriptRoot $ScriptRoot

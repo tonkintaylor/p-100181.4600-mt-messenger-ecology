@@ -20,8 +20,11 @@ You just need the installer — **no R, no admin, no setup beforehand**:
 2. Double-click it. It installs to your own profile (`%LOCALAPPDATA%`) and adds
    a **Mt Messenger Ecology Pipeline** shortcut to the Start menu and desktop.
    No admin, and no R install — R is bundled inside the app.
-3. Launch it, browse to the two input `.xlsx` databases and the three output
-   locations, click **Check inputs** to validate, then **Run**.
+3. Launch it. Choose **Build data workbook from databases** and browse to the
+   two input `.xlsx` databases, **or** choose **Use an existing data workbook**
+   and pick a previously built workbook. Pick an **Output folder** (the app
+   creates `figures\` and `tables\` inside it, and in build mode writes
+   `MtMessengerEcologyData.xlsx` there). Click **Check inputs**, then **Run**.
 
 Your paths are remembered for next time.
 
@@ -136,9 +139,14 @@ The installer installs locally per machine; you only need to put the **single
 - `engine\*.ps1` are pure, unit-tested functions: pick the bundled `Rscript.exe`,
   write a temp `cycle.toml`, pre-flight output paths (incl. Excel-lock), persist
   last-used paths, map exit codes to pass/fail, and run/cancel the process tree.
-- A **Run** writes the 5 paths to a temp `cycle.toml` and invokes the bundled
-  `pipeline\src\r\run_pipeline.R` with the bundled R; **Check inputs** runs
-  `run_data.R --validate`.
+- A **Run** writes the chosen paths to a temp `cycle.toml`. In *Build* mode it
+  invokes `run_pipeline.R` (data workbook → figures + tables); in *Workbook*
+  mode it invokes `run_all.R --config` (figures + tables from the selected
+  workbook). **Check inputs** runs `run_data.R --validate` in Build mode, and a
+  quick file check on the workbook in Workbook mode.
+- Output is a single folder containing `MtMessengerEcologyData.xlsx` (build
+  mode), `figures\`, and `tables\`. Fish trapping figures come from a `Fish`
+  sheet now written into the data workbook.
 - The bundled R's library is built at package time via the repo's own
   `scripts\sync_r_packages.R` (a dated Posit Package Manager snapshot — Windows
   binaries, no compiler), so the app needs no R install or internet at runtime.
