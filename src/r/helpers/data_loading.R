@@ -76,6 +76,13 @@ load_all_data <- function(xlsx_path) {
       mutate(Date = as.Date(Date))
   }
 
+  # --- Fish (raw trapping rows; aggregated at plot time) ---
+  if ("Fish" %in% sheets) {
+    data$Fish <- read_excel(xlsx_path, sheet = "Fish") |>
+      clean_colnames() |>
+      mutate(Date = as.Date(Date))
+  }
+
   # --- Community (wide-format species matrix, derived from MacroSpecies) ---
   if (!is.null(data$MacroSpecies)) {
     data$Community <- derive_community_matrix(data$MacroSpecies)

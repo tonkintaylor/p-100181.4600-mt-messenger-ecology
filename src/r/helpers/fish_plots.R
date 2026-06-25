@@ -43,11 +43,10 @@ compute_fish_catch_per_night <- function(fish_df) {
 
   df <- fish_df |>
     filter(`Species category (for abundance)` %in% valid_cats,
-           !is.na(`Date retrieved`),
+           !is.na(Date),
            !is.na(Number)) |>
     mutate(
-      Category = FISH_CATEGORY_LABELS[`Species category (for abundance)`],
-      Date = `Date retrieved`
+      Category = FISH_CATEGORY_LABELS[`Species category (for abundance)`]
     )
 
   # Per-category totals

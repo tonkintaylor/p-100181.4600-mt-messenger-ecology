@@ -87,8 +87,6 @@ cfg <- tryCatch(
 xlsx_path <- if (length(positional) >= 1) positional[1] else if (!is.null(cfg)) cfg$data_xlsx else file.path(project_root, "ref", "Data.xlsx")
 output_dir <- if (length(positional) >= 2) positional[2] else if (!is.null(cfg)) cfg$figures_dir else file.path(project_root, "src", "r", "outputs")
 tables_dir <- if (length(positional) >= 3) positional[3] else if (!is.null(cfg)) cfg$tables_dir else output_dir
-aquatic_db_path <- if (!is.null(cfg)) cfg$aquatic_monitoring_db else NULL
-
 if (!file.exists(xlsx_path)) {
   stop("Data.xlsx not found at: ", xlsx_path)
 }
@@ -345,15 +343,10 @@ fish_fig_dir <- file.path(output_dir, "Fish")
 dir.create(fish_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("--- Fish Trapping Plots ---")
-if (!is.null(aquatic_db_path)) {
-  fish_data <- load_fish_trapping(aquatic_db_path)
-  if (!is.null(fish_data)) {
-    plot_fish_by_catchment(fish_data, fish_fig_dir)
-  } else {
-    message("  Skipped: no Fish Trapping sheet found")
-  }
+if (!is.null(data$Fish)) {
+  plot_fish_by_catchment(data$Fish, fish_fig_dir)
 } else {
-  message("  Skipped: aquatic monitoring DB not found")
+  message("  Skipped: no Fish sheet in the data workbook")
 }
 
 message("")
