@@ -39,3 +39,18 @@ test_that("load_config errors on missing input file", {
                            file.path(d, "nope2.xlsx"), out)),
     class = "config_error")
 })
+
+test_that("load_config succeeds with no [input] section (workbook mode)", {
+  d <- withr::local_tempdir()
+  out <- file.path(d, "Data.xlsx")
+  toml <- file.path(d, "cycle.toml")
+  writeLines(c(
+    "[output]",
+    sprintf('data_xlsx = "%s"', gsub("\\\\", "\\\\\\\\", out))
+  ), toml)
+  cfg <- load_config(toml)
+  expect_null(cfg$macroinvertebrate_db)
+  expect_null(cfg$aquatic_monitoring_db)
+  expect_equal(cfg$figures_dir, file.path(dirname(out), "Figures"))
+  expect_equal(cfg$tables_dir, file.path(cfg$figures_dir, "Tables"))
+})
