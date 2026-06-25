@@ -1,6 +1,6 @@
 # test-pipeline-integration.R — full pipeline golden integration gate.
-# Runs all 7 domain processors against the real source databases from cycle.toml
-# and compares all 8 output sheets to the golden file via compare_sheet_to_golden.
+# Runs all 8 domain processors against the real source databases from cycle.toml
+# and compares non-Fish output sheets to the golden file via compare_sheet_to_golden.
 
 # Load all modules in dependency order.
 src_data("errors.R")
@@ -18,6 +18,7 @@ src_data("domains/sediment_size.R")
 src_data("domains/macro_ingest.R")
 src_data("domains/macro.R")
 src_data("domains/macro_species.R")
+src_data("domains/fish.R")
 src_data("pipeline.R")
 
 # helper-golden.R is auto-sourced by test_dir(); for test_file() runs, source it.
@@ -41,7 +42,8 @@ test_that("full pipeline matches the golden file on every sheet", {
     process_sediment_size_domain(cfg$aquatic_monitoring_db),
     process_clarity_domain(cfg$aquatic_monitoring_db),
     process_rpd_domain(cfg$aquatic_monitoring_db),
-    process_ldv_domain(cfg$aquatic_monitoring_db)
+    process_ldv_domain(cfg$aquatic_monitoring_db),
+    process_fish_domain(cfg$aquatic_monitoring_db)
   )
   expect_true(all(vapply(results, function(r) r$ok(), logical(1))),
     info = "All domain processors must succeed (no error-severity errors)")
@@ -50,7 +52,12 @@ test_that("full pipeline matches the golden file on every sheet", {
   for (r in results) if (!is.null(r$data)) combined <- c(combined, r$data)
 
   golden <- golden_path()
-  for (sheet in SHEET_ORDER) {
+  # Fish has no golden counterpart (the Python pipeline reads fish live and
+  # writes no Fish sheet); compare it on schema + non-emptiness instead.
+  for (sheet in setdiff(SHEET_ORDER, "Fish")) {
     compare_sheet_to_golden(combined[[sheet]], sheet, golden)
   }
+  fish <- combined[["Fish"]]
+  expect_equal(names(fish), FISH_COLUMNS)
+  expect_gt(nrow(fish), 0)
 })

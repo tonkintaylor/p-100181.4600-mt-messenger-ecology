@@ -36,7 +36,7 @@ local({
               "writer.R","domains/clarity.R","domains/ldv.R","domains/rpd.R",
               "domains/sediment_ingest.R","domains/sediment.R",
               "domains/sediment_size.R","domains/macro_ingest.R","domains/macro.R",
-              "domains/macro_species.R","pipeline.R")) src1(m)
+              "domains/macro_species.R","domains/fish.R","pipeline.R")) src1(m)
 
   cfg <- tryCatch(load_config(config_path), error = function(e) {
     message("Config error: ", conditionMessage(e)); quit(status = 1) })
@@ -49,7 +49,8 @@ local({
       process_sediment_size_domain(cfg$aquatic_monitoring_db),
       process_clarity_domain(cfg$aquatic_monitoring_db),
       process_rpd_domain(cfg$aquatic_monitoring_db),
-      process_ldv_domain(cfg$aquatic_monitoring_db))
+      process_ldv_domain(cfg$aquatic_monitoring_db),
+      process_fish_domain(cfg$aquatic_monitoring_db))
     errs <- do.call(c, lapply(results, function(r) r$errors))
     if (length(errs) > 0) for (e in errs) message("  ", format(e))
     ok <- all(vapply(results, function(r) r$ok(), logical(1)))

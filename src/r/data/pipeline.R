@@ -8,7 +8,8 @@ run_pipeline <- function(config) {
     process_sediment_size_domain(config$aquatic_monitoring_db),
     process_clarity_domain(config$aquatic_monitoring_db),
     process_rpd_domain(config$aquatic_monitoring_db),
-    process_ldv_domain(config$aquatic_monitoring_db)
+    process_ldv_domain(config$aquatic_monitoring_db),
+    process_fish_domain(config$aquatic_monitoring_db)
   )
   all_errors <- do.call(c, lapply(results, function(r) r$errors))
   if (is.null(all_errors)) all_errors <- list()
