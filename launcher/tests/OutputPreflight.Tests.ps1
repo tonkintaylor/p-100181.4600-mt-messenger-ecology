@@ -48,4 +48,14 @@ Describe 'Test-OutputWritable' {
         $wb = Join-Path $TestDrive 'Data.xlsx'; Set-Content -LiteralPath $wb -Value 'x'
         (Test-OutputWritable -Mode 'Workbook' -OutputDir $out -DataXlsx $wb).Ok | Should -BeTrue
     }
+    It 'flags a locked input workbook with an Excel message (Workbook mode)' {
+        $out = Join-Path $TestDrive 'out5'; New-Item -ItemType Directory -Path $out | Out-Null
+        $wb = Join-Path $TestDrive 'LockedData.xlsx'; Set-Content -LiteralPath $wb -Value 'x'
+        $s = [System.IO.File]::Open($wb, 'Open', 'ReadWrite', 'None')
+        try {
+            $r = Test-OutputWritable -Mode 'Workbook' -OutputDir $out -DataXlsx $wb
+            $r.Ok | Should -BeFalse
+            ($r.Problems -join ' ') | Should -Match 'open in Excel'
+        } finally { $s.Close(); $s.Dispose() }
+    }
 }
