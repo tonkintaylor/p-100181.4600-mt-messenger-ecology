@@ -7,6 +7,7 @@ Describe 'Resolve-RunPaths' {
         $p.TablesDir  | Should -Be (Join-Path 'C:\out' 'tables')
         $p.DataXlsx   | Should -Be (Join-Path 'C:\out' 'MtMessengerEcologyData.xlsx')
         $p.MacroDb    | Should -Be 'T:\m.xlsx'
+        $p.AquaticDb  | Should -Be 'T:\q.xlsx'
     }
     It 'uses the selected workbook as DataXlsx in Workbook mode' {
         $p = Resolve-RunPaths -Mode 'Workbook' -OutputDir 'C:\out' `

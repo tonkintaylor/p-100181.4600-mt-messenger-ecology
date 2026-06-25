@@ -21,7 +21,7 @@ function Test-OutputWritable {
     # Output folder must exist, or its parent must exist so it can be created.
     if (-not (Test-Path -LiteralPath $OutputDir)) {
         $parent = [System.IO.Path]::GetDirectoryName($OutputDir)
-        if (-not $parent -or -not (Test-Path -LiteralPath $parent)) {
+        if (-not $parent -or -not (Test-Path -LiteralPath $parent -PathType Container)) {
             $problems.Add("Output folder cannot be created (parent does not exist): $OutputDir")
         }
     }

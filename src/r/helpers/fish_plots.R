@@ -35,7 +35,7 @@ FISH_CATCHMENT_SITES <- list(
 #' Shrimp records are excluded. Returns a long-format data frame with
 #' a Category column (species label) plus a "Combined" entry for all species.
 #'
-#' @param fish_df Raw fish trapping data frame from load_fish_trapping().
+#' @param fish_df Fish data frame from the workbook `Fish` sheet (via load_all_data()).
 #' @return Data frame: Date, Site, Catchment, Category, Catch.
 compute_fish_catch_per_night <- function(fish_df) {
   # Filter to relevant categories, exclude shrimp and missing
@@ -123,7 +123,7 @@ make_fish_panel <- function(panel_df, category, sites, show_x_axis = FALSE) {
 #' Produces a 3×2 patchwork figure per catchment with panels:
 #' Combined, Bullies, Eels, Koura, Inanga, Kokopu.
 #'
-#' @param fish_df Raw fish trapping data from load_fish_trapping().
+#' @param fish_df Fish data frame from the workbook `Fish` sheet (via load_all_data()).
 #' @param output_dir Output directory for saved plots.
 plot_fish_by_catchment <- function(fish_df, output_dir) {
   catch_df <- compute_fish_catch_per_night(fish_df)
