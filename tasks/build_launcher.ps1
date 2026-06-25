@@ -55,8 +55,20 @@ function Add-PortableR {
     $sync    = Join-Path $RepoRoot 'scripts\sync_r_packages.R'
     $lib     = Join-Path $destR 'library'
     Write-Host "Add-PortableR: syncing packages into bundled library ..."
-    & $rscript --vanilla $sync "--lib=$lib"
-    if ($LASTEXITCODE -ne 0) { throw "Package sync into bundled R failed (exit $LASTEXITCODE)." }
+    # Isolate the bundled R from any library on the BUILD machine so every
+    # transitive dependency lands IN the bundle. Otherwise install.packages skips
+    # deps it already finds in the builder's user library (e.g. Rcpp/zip/stringi),
+    # producing a bundle that only works on the build machine.
+    $savedUser = $env:R_LIBS_USER; $savedSite = $env:R_LIBS_SITE
+    $env:R_LIBS_USER = $lib; $env:R_LIBS_SITE = $lib
+    try {
+        & $rscript --vanilla $sync "--lib=$lib"
+        $rc = $LASTEXITCODE
+    } finally {
+        if ($null -eq $savedUser) { Remove-Item Env:\R_LIBS_USER -ErrorAction SilentlyContinue } else { $env:R_LIBS_USER = $savedUser }
+        if ($null -eq $savedSite) { Remove-Item Env:\R_LIBS_SITE -ErrorAction SilentlyContinue } else { $env:R_LIBS_SITE = $savedSite }
+    }
+    if ($rc -ne 0) { throw "Package sync into bundled R failed (exit $rc)." }
     return $destR
 }
 

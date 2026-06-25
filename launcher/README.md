@@ -93,7 +93,7 @@ $iscc = @(
 ```
 
 Output: **`build\MtMessengerPipeline-Setup.exe`** — a per-user installer of
-roughly **200–400 MB** (it embeds R + all packages).
+roughly **150 MB** (it embeds R + all packages; ~300 MB once installed).
 
 > Re-run the stage step before compiling after any change to `launcher\`, the
 > engine, the R pipeline, or to refresh the bundled R/packages.
@@ -155,8 +155,13 @@ The installer installs locally per machine; you only need to put the **single
   the R version means editing `Config/R/Version` (and the PPM snapshot) in
   `DESCRIPTION` first. Because R is bundled, a different/newer R already on a
   target machine is irrelevant — the app never uses it.
-- **Installer size:** ~200–400 MB because R + all packages are embedded. That is
-  the deliberate trade for "runs anywhere, no admin, no internet."
+- **Installer size:** ~150 MB (≈300 MB installed) because R + all packages are
+  embedded. That is the deliberate trade for "runs anywhere, no admin, no internet."
+- **Bundle completeness:** the build installs packages into the bundle with the
+  library path isolated from the build machine's own R library (`R_LIBS_USER`/
+  `R_LIBS_SITE`), so every transitive dependency is included. Without that, deps
+  already present on the build machine are skipped and the app fails on clean
+  machines (the "openxlsx not available" class of bug).
 - **SmartScreen / antivirus:** the installer is unsigned, so SmartScreen may warn
   ("unrecognized app") until reputation accrues. For internal use, distribute
   from a trusted location and/or have IT allow-list it; code-signing is the
