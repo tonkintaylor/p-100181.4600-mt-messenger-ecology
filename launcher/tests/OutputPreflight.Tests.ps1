@@ -15,20 +15,37 @@ Describe 'Test-FileLocked' {
     }
 }
 Describe 'Test-OutputWritable' {
-    It 'is Ok when parents exist and the workbook is free' {
+    It 'is Ok in Databases mode when the output folder exists and the workbook is free' {
         $out = Join-Path $TestDrive 'out'; New-Item -ItemType Directory -Path $out | Out-Null
-        (Test-OutputWritable -DataXlsx (Join-Path $out 'Data.xlsx') `
-            -FiguresDir (Join-Path $out 'Figures') -TablesDir (Join-Path $out 'Tables')).Ok |
-            Should -BeTrue
+        (Test-OutputWritable -Mode 'Databases' -OutputDir $out `
+            -DataXlsx (Join-Path $out 'MtMessengerEcologyData.xlsx')).Ok | Should -BeTrue
     }
-    It 'flags a locked workbook with an Excel message' {
+    It 'is Ok in Databases mode when the output folder is missing but its parent exists' {
+        $parent = Join-Path $TestDrive 'p'; New-Item -ItemType Directory -Path $parent | Out-Null
+        $out = Join-Path $parent 'new-out'
+        (Test-OutputWritable -Mode 'Databases' -OutputDir $out `
+            -DataXlsx (Join-Path $out 'MtMessengerEcologyData.xlsx')).Ok | Should -BeTrue
+    }
+    It 'flags a locked built workbook with an Excel message (Databases mode)' {
         $out = Join-Path $TestDrive 'out2'; New-Item -ItemType Directory -Path $out | Out-Null
-        $xlsx = Join-Path $out 'Data.xlsx'; Set-Content -LiteralPath $xlsx -Value 'x'
+        $xlsx = Join-Path $out 'MtMessengerEcologyData.xlsx'; Set-Content -LiteralPath $xlsx -Value 'x'
         $s = [System.IO.File]::Open($xlsx, 'Open', 'ReadWrite', 'None')
         try {
-            $r = Test-OutputWritable -DataXlsx $xlsx -FiguresDir (Join-Path $out 'F') -TablesDir (Join-Path $out 'T')
+            $r = Test-OutputWritable -Mode 'Databases' -OutputDir $out -DataXlsx $xlsx
             $r.Ok | Should -BeFalse
             ($r.Problems -join ' ') | Should -Match 'open in Excel'
         } finally { $s.Close(); $s.Dispose() }
+    }
+    It 'flags a missing input workbook (Workbook mode)' {
+        $out = Join-Path $TestDrive 'out3'; New-Item -ItemType Directory -Path $out | Out-Null
+        $r = Test-OutputWritable -Mode 'Workbook' -OutputDir $out `
+            -DataXlsx (Join-Path $TestDrive 'nope.xlsx')
+        $r.Ok | Should -BeFalse
+        ($r.Problems -join ' ') | Should -Match 'not found'
+    }
+    It 'is Ok in Workbook mode when the workbook exists and is free' {
+        $out = Join-Path $TestDrive 'out4'; New-Item -ItemType Directory -Path $out | Out-Null
+        $wb = Join-Path $TestDrive 'Data.xlsx'; Set-Content -LiteralPath $wb -Value 'x'
+        (Test-OutputWritable -Mode 'Workbook' -OutputDir $out -DataXlsx $wb).Ok | Should -BeTrue
     }
 }

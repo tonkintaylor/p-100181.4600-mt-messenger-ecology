@@ -12,23 +12,30 @@ function Test-FileLocked {
 
 function Test-OutputWritable {
     param(
-        [Parameter(Mandatory)][string]$DataXlsx,
-        [Parameter(Mandatory)][string]$FiguresDir,
-        [Parameter(Mandatory)][string]$TablesDir
+        [Parameter(Mandatory)][ValidateSet('Databases','Workbook')][string]$Mode,
+        [Parameter(Mandatory)][string]$OutputDir,
+        [Parameter(Mandatory)][string]$DataXlsx
     )
     $problems = New-Object System.Collections.Generic.List[string]
 
-    $dataParent = [System.IO.Path]::GetDirectoryName($DataXlsx)
-    if ($dataParent -and -not (Test-Path -LiteralPath $dataParent)) {
-        $problems.Add("Output folder does not exist: $dataParent")
+    # Output folder must exist, or its parent must exist so it can be created.
+    if (-not (Test-Path -LiteralPath $OutputDir)) {
+        $parent = [System.IO.Path]::GetDirectoryName($OutputDir)
+        if (-not $parent -or -not (Test-Path -LiteralPath $parent)) {
+            $problems.Add("Output folder cannot be created (parent does not exist): $OutputDir")
+        }
     }
-    if (Test-FileLocked -Path $DataXlsx) {
-        $problems.Add("$([System.IO.Path]::GetFileName($DataXlsx)) is open in Excel - close it and try again.")
-    }
-    foreach ($dir in @($FiguresDir, $TablesDir)) {
-        $parent = [System.IO.Path]::GetDirectoryName($dir)
-        if ($parent -and -not (Test-Path -LiteralPath $parent)) {
-            $problems.Add("Folder path does not exist: $parent")
+
+    if ($Mode -eq 'Workbook') {
+        if (-not (Test-Path -LiteralPath $DataXlsx -PathType Leaf)) {
+            $problems.Add("Data workbook not found: $DataXlsx")
+        } elseif (Test-FileLocked -Path $DataXlsx) {
+            $problems.Add("$([System.IO.Path]::GetFileName($DataXlsx)) is open in Excel - close it and try again.")
+        }
+    } else {
+        # Databases mode: the workbook is produced; only a stale lock blocks us.
+        if (Test-FileLocked -Path $DataXlsx) {
+            $problems.Add("$([System.IO.Path]::GetFileName($DataXlsx)) is open in Excel - close it and try again.")
         }
     }
 
