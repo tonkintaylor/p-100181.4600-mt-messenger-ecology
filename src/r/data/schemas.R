@@ -28,9 +28,15 @@ RPD_COLUMNS <- c("Site", "Date", "Count", "Mean", "StdDev", "CI_Lower", "CI_Uppe
 
 LDV_COLUMNS <- c("Site", "Date", "Season", "CV_pct")
 
+# Fish: R-only sheet carrying the raw trapping rows the figure stage needs.
+# No Python schemas.py counterpart (the Python pipeline reads fish live).
+FISH_COLUMNS <- c(
+  "Site", "Catchment", "Date", "Species category (for abundance)", "Number"
+)
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
-  "SedimentSize", "Clarity", "RPD", "LDV"
+  "SedimentSize", "Clarity", "RPD", "LDV", "Fish"
 )
 
 SCHEMA_MAP <- list(
@@ -41,5 +47,6 @@ SCHEMA_MAP <- list(
   SedimentSize = SEDIMENT_SIZE_COLUMNS,
   Clarity = CLARITY_COLUMNS,
   RPD = RPD_COLUMNS,
-  LDV = LDV_COLUMNS
+  LDV = LDV_COLUMNS,
+  Fish = FISH_COLUMNS
 )
