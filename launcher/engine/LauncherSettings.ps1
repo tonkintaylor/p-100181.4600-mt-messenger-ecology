@@ -1,6 +1,7 @@
 function Get-LauncherSettings {
     param([Parameter(Mandatory)][string]$Path)
-    $default = [ordered]@{ MacroDb = ''; AquaticDb = ''; DataXlsx = ''; FiguresDir = ''; TablesDir = '' }
+    $default = [ordered]@{ Mode = 'Databases'; MacroDb = ''; AquaticDb = '';
+                           DataWorkbook = ''; OutputDir = '' }
     if (-not (Test-Path -LiteralPath $Path)) { return [pscustomobject]$default }
     try {
         $json = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
