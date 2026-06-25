@@ -16,7 +16,7 @@ function Resolve-RunPaths {
     @{
         Mode       = $Mode
         MacroDb    = $MacroDb
-        AquaDb    = $AquaticDb
+        AquaticDb  = $AquaticDb
         OutputDir  = $OutputDir
         DataXlsx   = $dataXlsx
         FiguresDir = $figures
