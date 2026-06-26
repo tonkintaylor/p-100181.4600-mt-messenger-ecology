@@ -54,8 +54,8 @@ function New-PathRow {
                 if ($d.ShowDialog() -eq 'OK') { $tb.Text = $d.FileName }
             }
             'Folder' {
-                $d = New-Object System.Windows.Forms.FolderBrowserDialog
-                if ($d.ShowDialog() -eq 'OK') { $tb.Text = $d.SelectedPath }
+                $sel = Show-FolderPicker -Title $Label -InitialPath $tb.Text
+                if ($sel) { $tb.Text = $sel }
             }
         }
     }.GetNewClosure())
