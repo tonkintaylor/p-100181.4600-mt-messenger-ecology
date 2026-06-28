@@ -92,6 +92,8 @@ $btnRun = New-Object System.Windows.Forms.Button
 $btnRun.Text = 'Run'; $btnRun.Location = '578,212'; $btnRun.Size = '170,32'
 $btnCancel = New-Object System.Windows.Forms.Button
 $btnCancel.Text = 'Cancel'; $btnCancel.Location = '672,578'; $btnCancel.Size = '80,26'; $btnCancel.Enabled = $false
+$btnHelp = New-Object System.Windows.Forms.Button
+$btnHelp.Text = 'Help'; $btnHelp.Location = '15,212'; $btnHelp.Size = '90,30'
 
 $log = New-Object System.Windows.Forms.TextBox
 $log.Multiline = $true; $log.ReadOnly = $true; $log.ScrollBars = 'Vertical'
@@ -105,7 +107,7 @@ $chkWarnings = New-Object System.Windows.Forms.CheckBox
 $chkWarnings.Text = 'Show R warnings in the log'
 $chkWarnings.Location = '15,255'; $chkWarnings.Size = '320,20'
 
-$form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $chkWarnings, $log, $status))
+$form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $btnHelp, $chkWarnings, $log, $status))
 
 # Resize behaviour: the log fills the growing space; the bottom controls ride
 # the bottom edge so they are never overlapped by the expanding log.
@@ -132,6 +134,35 @@ function Set-Busy([bool]$busy) {
 }
 function Append-Log([string]$text) {
     $log.AppendText($text + "`r`n"); [void]$sync.Log.AppendLine($text)
+}
+# Modal, scrollable, resizable info box (the Help button opens this).
+function Show-InfoBox([string]$Text, $Owner) {
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = 'About - Mt Messenger Ecology Pipeline'
+    $dlg.ClientSize = New-Object System.Drawing.Size(560, 460)
+    $dlg.StartPosition = 'CenterParent'
+    $dlg.MinimizeBox = $false; $dlg.MaximizeBox = $false; $dlg.ShowInTaskbar = $false
+    if ($form.Icon) { $dlg.Icon = $form.Icon }
+
+    $box = New-Object System.Windows.Forms.TextBox
+    $box.Multiline = $true; $box.ReadOnly = $true; $box.ScrollBars = 'Vertical'
+    $box.BorderStyle = 'None'; $box.BackColor = $dlg.BackColor
+    $box.Location = '15,15'; $box.Size = '530,395'
+    $box.Anchor = [System.Windows.Forms.AnchorStyles]'Top, Bottom, Left, Right'
+    $box.Font = New-Object System.Drawing.Font('Consolas', 9)
+    $box.Text = $Text
+    $box.Select(0, 0)
+
+    $ok = New-Object System.Windows.Forms.Button
+    $ok.Text = 'Close'; $ok.Size = New-Object System.Drawing.Size(90, 28)
+    $ok.Location = New-Object System.Drawing.Point(455, 420)
+    $ok.Anchor = [System.Windows.Forms.AnchorStyles]'Bottom, Right'
+    $ok.Add_Click({ $dlg.Close() })
+
+    $dlg.Controls.AddRange(@($box, $ok))
+    $dlg.AcceptButton = $ok; $dlg.CancelButton = $ok
+    [void]$dlg.ShowDialog($Owner)
+    $dlg.Dispose()
 }
 function Get-UiState {
     $mode = if ($rbDatabases.Checked) { 'Databases' } else { 'Workbook' }
@@ -251,6 +282,7 @@ $btnCancel.Add_Click({
     $timer.Stop(); $sync.Running = $false; Set-Busy $false
     $status.ForeColor = [System.Drawing.Color]::Gray; $status.Text = 'Run cancelled.'
 })
+$btnHelp.Add_Click({ Show-InfoBox (Get-LauncherHelpText) $form })
 
 # --- Startup ---
 $s = Get-LauncherSettings -Path $SettingsPath
