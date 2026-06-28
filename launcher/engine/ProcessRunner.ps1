@@ -14,6 +14,7 @@ function Invoke-PipelineProcess {
         [scriptblock]$OnOutput = { param($line) },
         [string]$PrependPath,
         [string]$RHome,
+        [hashtable]$Environment = @{},
         [ref]$ProcessRef,
         [scriptblock]$OnStarted = { param($p) }
     )
@@ -30,6 +31,7 @@ function Invoke-PipelineProcess {
         $psi.EnvironmentVariables['Path'] = "$PrependPath;$existing"
     }
     if ($RHome) { $psi.EnvironmentVariables['R_HOME'] = $RHome }
+    foreach ($k in $Environment.Keys) { $psi.EnvironmentVariables[$k] = [string]$Environment[$k] }
 
     $proc = New-Object System.Diagnostics.Process
     $proc.StartInfo = $psi

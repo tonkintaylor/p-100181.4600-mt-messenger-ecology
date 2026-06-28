@@ -25,6 +25,13 @@ Describe 'Invoke-PipelineProcess' {
         $r.Output | Should -Match 'ERR'
         ($seen -join ' ') | Should -Match 'ERR'
     }
+    It 'passes -Environment variables through to the child process' {
+        $r = Invoke-PipelineProcess -FilePath $env:ComSpec `
+            -Arguments @('/c', 'echo VAR=%MTM_SHOW_WARNINGS%') `
+            -Environment @{ MTM_SHOW_WARNINGS = '1' }
+        $r.ExitCode | Should -Be 0
+        $r.Output   | Should -Match 'VAR=1'
+    }
     It 'invokes -OnStarted with the live process before it exits' {
         $info = [hashtable]::Synchronized(@{ Id = 0; Alive = $false })
         $cb = { param($p) $info.Id = $p.Id; $info.Alive = (-not $p.HasExited) }

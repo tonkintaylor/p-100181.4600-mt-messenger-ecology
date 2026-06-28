@@ -2,6 +2,9 @@
 # run_data.R — raw spreadsheets -> MtMessengerEcologyData.xlsx (R data pipeline).
 
 local({
+  # Launcher "Show R warnings" option: emit warnings live instead of the
+  # deferred end-of-run summary.
+  if (nzchar(Sys.getenv("MTM_SHOW_WARNINGS"))) options(warn = 1)
   args <- commandArgs(trailingOnly = TRUE)
   validate_only <- "--validate" %in% args
   positional <- args[!startsWith(args, "--")]

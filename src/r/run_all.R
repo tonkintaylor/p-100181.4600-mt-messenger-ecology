@@ -10,6 +10,10 @@
 #   tables_dir:  same as figures_dir
 
 # --- Setup ---
+# Launcher "Show R warnings" option: emit warnings live instead of the
+# deferred end-of-run summary.
+if (nzchar(Sys.getenv("MTM_SHOW_WARNINGS"))) options(warn = 1)
+
 script_dir <- if (interactive()) {
   "src/r"
 } else {

@@ -99,7 +99,11 @@ $log.Font = New-Object System.Drawing.Font('Consolas', 9)
 $status = New-Object System.Windows.Forms.Label
 $status.Location = '15,548'; $status.Size = '600,24'; $status.Text = 'Ready.'
 
-$form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $log, $status))
+$chkWarnings = New-Object System.Windows.Forms.CheckBox
+$chkWarnings.Text = 'Show R warnings in the log'
+$chkWarnings.Location = '15,255'; $chkWarnings.Size = '320,20'
+
+$form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $chkWarnings, $log, $status))
 
 # --- Mode toggle handler ---
 function Update-ModeEnabled {
@@ -114,7 +118,7 @@ $rbWorkbook.Add_CheckedChanged({ Update-ModeEnabled })
 # --- Helpers ---
 function Set-Busy([bool]$busy) {
     $btnRun.Enabled = -not $busy; $btnCheck.Enabled = -not $busy; $btnCancel.Enabled = $busy
-    $rbDatabases.Enabled = -not $busy; $rbWorkbook.Enabled = -not $busy
+    $rbDatabases.Enabled = -not $busy; $rbWorkbook.Enabled = -not $busy; $chkWarnings.Enabled = -not $busy
     foreach ($t in @($tbMacro,$tbAquatic,$tbWorkbook,$tbOutput)) { $t.Enabled = -not $busy }
     if (-not $busy) { Update-ModeEnabled }
 }
@@ -138,6 +142,10 @@ function Start-Job([string]$rscript, [string[]]$scriptArgs) {
     $sync.Queue.Clear(); [void]$sync.Log.Clear()
     $rbin = Split-Path -Parent $rscript
     $rhome = Split-Path -Parent $rbin
+    # "Show R warnings" option -> the R entrypoints set options(warn=1) when this
+    # env var is present; child stages spawned by run_pipeline.R inherit it.
+    $envVars = @{}
+    if ($chkWarnings.Checked) { $envVars['MTM_SHOW_WARNINGS'] = '1' }
     $ps = [PowerShell]::Create()
     $ps.Runspace = [runspacefactory]::CreateRunspace(); $ps.Runspace.Open()
     $ps.Runspace.SessionStateProxy.SetVariable('sync', $sync)
@@ -147,12 +155,13 @@ function Start-Job([string]$rscript, [string[]]$scriptArgs) {
     $ps.Runspace.SessionStateProxy.SetVariable('wd', $PipelineRoot)
     $ps.Runspace.SessionStateProxy.SetVariable('rbin', $rbin)
     $ps.Runspace.SessionStateProxy.SetVariable('rhome', $rhome)
+    $ps.Runspace.SessionStateProxy.SetVariable('envVars', $envVars)
     [void]$ps.AddScript({
         . (Join-Path $engineDir 'ProcessRunner.ps1')
         $cb = { param($line) $sync.Queue.Enqueue($line) }
         $r = Invoke-PipelineProcess -FilePath $rscript -Arguments $scriptArgs `
             -WorkingDirectory $wd -OnOutput $cb -PrependPath $rbin -RHome $rhome `
-            -OnStarted { param($p) $sync.Process = $p }
+            -Environment $envVars -OnStarted { param($p) $sync.Process = $p }
         $sync.Exit = $r.ExitCode
         $sync.Done = $true
     })
