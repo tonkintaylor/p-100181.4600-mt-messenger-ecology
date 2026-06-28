@@ -21,3 +21,20 @@ Describe 'Get-LauncherHelpText' {
         $script:text | Should -BeLike '*Show R warnings*'
     }
 }
+Describe 'Get-LauncherHelpSections' {
+    BeforeAll { $script:sections = @(Get-LauncherHelpSections) }
+    It 'returns a list of typed sections' {
+        $script:sections.Count | Should -BeGreaterThan 5
+    }
+    It 'starts with the Title' {
+        $script:sections[0].Kind | Should -Be 'Title'
+        $script:sections[0].Text | Should -Be 'Mt Messenger Ecology Pipeline'
+    }
+    It 'uses only known section kinds' {
+        $known = 'Title','Body','Heading','Sub','Detail','Code','Bullet'
+        foreach ($s in $script:sections) { $known | Should -Contain $s.Kind }
+    }
+    It 'every section has non-empty text' {
+        foreach ($s in $script:sections) { $s.Text | Should -Not -BeNullOrEmpty }
+    }
+}

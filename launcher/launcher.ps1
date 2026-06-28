@@ -135,31 +135,60 @@ function Set-Busy([bool]$busy) {
 function Append-Log([string]$text) {
     $log.AppendText($text + "`r`n"); [void]$sync.Log.AppendLine($text)
 }
-# Modal, scrollable, resizable info box (the Help button opens this).
-function Show-InfoBox([string]$Text, $Owner) {
+# Modal, scrollable, resizable info box that renders typed help sections with
+# headings, bold sub-headings, bullets and a monospace block (the Help button).
+function Show-InfoBox($Sections, $Owner) {
     $dlg = New-Object System.Windows.Forms.Form
     $dlg.Text = 'About - Mt Messenger Ecology Pipeline'
-    $dlg.ClientSize = New-Object System.Drawing.Size(560, 460)
+    $dlg.ClientSize = New-Object System.Drawing.Size(600, 520)
     $dlg.StartPosition = 'CenterParent'
     $dlg.MinimizeBox = $false; $dlg.MaximizeBox = $false; $dlg.ShowInTaskbar = $false
+    $dlg.BackColor = [System.Drawing.Color]::White
     if ($form.Icon) { $dlg.Icon = $form.Icon }
 
-    $box = New-Object System.Windows.Forms.TextBox
-    $box.Multiline = $true; $box.ReadOnly = $true; $box.ScrollBars = 'Vertical'
-    $box.BorderStyle = 'None'; $box.BackColor = $dlg.BackColor
-    $box.Location = '15,15'; $box.Size = '530,395'
-    $box.Anchor = [System.Windows.Forms.AnchorStyles]'Top, Bottom, Left, Right'
-    $box.Font = New-Object System.Drawing.Font('Consolas', 9)
-    $box.Text = $Text
-    $box.Select(0, 0)
+    $rtb = New-Object System.Windows.Forms.RichTextBox
+    $rtb.ReadOnly = $true; $rtb.BorderStyle = 'None'; $rtb.ScrollBars = 'Vertical'
+    $rtb.BackColor = [System.Drawing.Color]::White
+    $rtb.Location = '22,18'; $rtb.Size = '556,452'
+    $rtb.Anchor = [System.Windows.Forms.AnchorStyles]'Top, Bottom, Left, Right'
+
+    $fTitle = New-Object System.Drawing.Font('Segoe UI', 15, [System.Drawing.FontStyle]::Bold)
+    $fHead  = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
+    $fSub   = New-Object System.Drawing.Font('Segoe UI', 9.75, [System.Drawing.FontStyle]::Bold)
+    $fBody  = New-Object System.Drawing.Font('Segoe UI', 9.75, [System.Drawing.FontStyle]::Regular)
+    $fCode  = New-Object System.Drawing.Font('Consolas', 9, [System.Drawing.FontStyle]::Regular)
+    $cTitle = [System.Drawing.Color]::FromArgb(31, 56, 100)
+    $cHead  = [System.Drawing.Color]::FromArgb(46, 84, 150)
+    $cBody  = [System.Drawing.Color]::FromArgb(38, 38, 38)
+    $cCode  = [System.Drawing.Color]::FromArgb(96, 96, 96)
+
+    $append = {
+        param($text, $font, $color, $indent, $bullet)
+        $rtb.SelectionStart = $rtb.TextLength; $rtb.SelectionLength = 0
+        $rtb.SelectionFont = $font; $rtb.SelectionColor = $color
+        $rtb.SelectionIndent = $indent; $rtb.SelectionBullet = $bullet
+        $rtb.AppendText($text)
+    }
+    foreach ($s in $Sections) {
+        switch ($s.Kind) {
+            'Title'   { & $append ($s.Text + "`n")          $fTitle $cTitle 0  $false }
+            'Heading' { & $append ("`n" + $s.Text + "`n`n") $fHead  $cHead  0  $false }
+            'Sub'     { & $append ($s.Text + "`n")          $fSub   $cBody  18 $false }
+            'Detail'  { & $append ($s.Text + "`n`n")        $fBody  $cBody  18 $false }
+            'Code'    { & $append ($s.Text + "`n")          $fCode  $cCode  18 $false }
+            'Bullet'  { & $append ($s.Text + "`n")          $fBody  $cBody  18 $true }
+            default   { & $append ($s.Text + "`n`n")        $fBody  $cBody  0  $false }
+        }
+    }
+    $rtb.SelectionStart = 0; $rtb.SelectionLength = 0; $rtb.ScrollToCaret()
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Close'; $ok.Size = New-Object System.Drawing.Size(90, 28)
-    $ok.Location = New-Object System.Drawing.Point(455, 420)
+    $ok.Location = New-Object System.Drawing.Point(488, 482)
     $ok.Anchor = [System.Windows.Forms.AnchorStyles]'Bottom, Right'
     $ok.Add_Click({ $dlg.Close() })
 
-    $dlg.Controls.AddRange(@($box, $ok))
+    $dlg.Controls.AddRange(@($rtb, $ok))
     $dlg.AcceptButton = $ok; $dlg.CancelButton = $ok
     [void]$dlg.ShowDialog($Owner)
     $dlg.Dispose()
@@ -282,7 +311,7 @@ $btnCancel.Add_Click({
     $timer.Stop(); $sync.Running = $false; Set-Busy $false
     $status.ForeColor = [System.Drawing.Color]::Gray; $status.Text = 'Run cancelled.'
 })
-$btnHelp.Add_Click({ Show-InfoBox (Get-LauncherHelpText) $form })
+$btnHelp.Add_Click({ Show-InfoBox (Get-LauncherHelpSections) $form })
 
 # --- Startup ---
 $s = Get-LauncherSettings -Path $SettingsPath
