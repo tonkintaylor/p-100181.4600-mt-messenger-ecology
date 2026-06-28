@@ -29,6 +29,8 @@ $sync = [hashtable]::Synchronized(@{
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'Mt Messenger Ecology Pipeline'
 $form.Size = New-Object System.Drawing.Size(780, 640)
+# Resizable; don't let it shrink below the designed layout (avoids overlap).
+$form.MinimumSize = New-Object System.Drawing.Size(780, 640)
 $form.StartPosition = 'CenterScreen'
 $icoPath = Join-Path $ScriptRoot 'app.ico'
 if (Test-Path $icoPath) { $form.Icon = New-Object System.Drawing.Icon($icoPath) }
@@ -104,6 +106,12 @@ $chkWarnings.Text = 'Show R warnings in the log'
 $chkWarnings.Location = '15,255'; $chkWarnings.Size = '320,20'
 
 $form.Controls.AddRange(@($btnCheck, $btnRun, $btnCancel, $chkWarnings, $log, $status))
+
+# Resize behaviour: the log fills the growing space; the bottom controls ride
+# the bottom edge so they are never overlapped by the expanding log.
+$log.Anchor       = [System.Windows.Forms.AnchorStyles]'Top, Bottom, Left, Right'
+$status.Anchor    = [System.Windows.Forms.AnchorStyles]'Bottom, Left'
+$btnCancel.Anchor = [System.Windows.Forms.AnchorStyles]'Bottom, Right'
 
 # --- Mode toggle handler ---
 function Update-ModeEnabled {
