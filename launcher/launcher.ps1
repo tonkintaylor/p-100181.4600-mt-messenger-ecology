@@ -3,6 +3,19 @@ Set-StrictMode -Version 2.0
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# Give this process its own taskbar identity. The window is owned by
+# powershell.exe; without an explicit AppUserModelID the taskbar attributes it
+# to PowerShell and shows PowerShell's icon. With one, the taskbar uses the
+# window's own icon (app.ico, set below) and groups it separately.
+try {
+    Add-Type -Namespace Win32 -Name Shell32 -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll", SetLastError = true)]
+public static extern int SetCurrentProcessExplicitAppUserModelID(
+    [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)] string AppID);
+'@ -ErrorAction Stop
+    [void][Win32.Shell32]::SetCurrentProcessExplicitAppUserModelID('TonkinTaylor.MtMessengerEcologyPipeline')
+} catch { }
+
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 foreach ($f in Get-ChildItem -LiteralPath (Join-Path $ScriptRoot 'engine') -Filter '*.ps1') {
     . $f.FullName
