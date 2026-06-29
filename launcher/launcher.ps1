@@ -73,8 +73,8 @@ $rbDatabases = New-Object System.Windows.Forms.RadioButton
 $rbDatabases.Text = 'Build data workbook from databases'
 $rbDatabases.Location = '10,20'; $rbDatabases.Size = '320,20'; $rbDatabases.Checked = $true
 $rbWorkbook = New-Object System.Windows.Forms.RadioButton
-$rbWorkbook.Text = 'Use an existing data workbook'
-$rbWorkbook.Location = '10,92'; $rbWorkbook.Size = '320,20'
+$rbWorkbook.Text = 'Use an existing data workbook  (advanced)'
+$rbWorkbook.Location = '10,92'; $rbWorkbook.Size = '360,20'
 $grpInput.Controls.AddRange(@($rbDatabases, $rbWorkbook))
 $form.Controls.Add($grpInput)
 
@@ -122,8 +122,31 @@ function Update-ModeEnabled {
     $tbAquatic.Enabled  = $dbMode
     $tbWorkbook.Enabled = -not $dbMode
 }
+# The advanced "existing workbook" mode is gated behind a confirmation so it
+# isn't picked by accident. The prompt is silenced until the form is ready
+# (so restoring a remembered Workbook selection at startup doesn't nag).
+$script:suppressWorkbookPrompt = $true
 $rbDatabases.Add_CheckedChanged({ Update-ModeEnabled })
-$rbWorkbook.Add_CheckedChanged({ Update-ModeEnabled })
+$rbWorkbook.Add_CheckedChanged({
+    if ($rbWorkbook.Checked -and -not $script:suppressWorkbookPrompt) {
+        $res = [System.Windows.Forms.MessageBox]::Show($form,
+            ("This advanced option only RE-DRAWS the figures and tables from a data " +
+             "workbook the app built on an earlier run. It does not rebuild the data " +
+             "from the source databases.`r`n`r`n" +
+             "Most of the time you want `"Build data workbook from databases`" instead.`r`n`r`n" +
+             "Continue with an existing workbook?"),
+            'Use an existing data workbook (advanced)',
+            [System.Windows.Forms.MessageBoxButtons]::OKCancel,
+            [System.Windows.Forms.MessageBoxIcon]::Information)
+        if ($res -ne [System.Windows.Forms.DialogResult]::OK) {
+            $script:suppressWorkbookPrompt = $true
+            $rbDatabases.Checked = $true   # revert to the default mode
+            $script:suppressWorkbookPrompt = $false
+            return
+        }
+    }
+    Update-ModeEnabled
+})
 
 # --- Helpers ---
 function Set-Busy([bool]$busy) {
@@ -327,4 +350,6 @@ if (-not $script:RscriptPath) {
     $status.Text = 'Bundled R not found - reinstall the app (the installer ships R).'
     Set-Busy $true; $btnCheck.Enabled = $false; $btnRun.Enabled = $false; $btnCancel.Enabled = $false
 }
+# Form is ready: from here a user click on the advanced mode triggers the prompt.
+$script:suppressWorkbookPrompt = $false
 [void]$form.ShowDialog()

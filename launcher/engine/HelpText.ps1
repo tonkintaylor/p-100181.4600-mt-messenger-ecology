@@ -13,8 +13,9 @@ function Get-LauncherHelpSections {
         [pscustomobject]@{ Kind = 'Heading'; Text = '1.  Choose an input mode' }
         [pscustomobject]@{ Kind = 'Sub';     Text = 'Build data workbook from databases' }
         [pscustomobject]@{ Kind = 'Detail';  Text = 'Pick the two source spreadsheets - the Macroinvertebrate DB and the Aquatic monitoring DB. The app builds the consolidated data workbook (MtMessengerEcologyData.xlsx) and then all figures and tables from it.' }
-        [pscustomobject]@{ Kind = 'Sub';     Text = 'Use an existing data workbook' }
-        [pscustomobject]@{ Kind = 'Detail';  Text = 'Pick a data workbook the app built earlier (.xlsx). The app skips the data-building step and (re)generates the figures and tables from it.' }
+        [pscustomobject]@{ Kind = 'Sub';     Text = 'Use an existing data workbook  (advanced)' }
+        [pscustomobject]@{ Kind = 'Detail';  Text = 'This is the advanced, rarely-needed option. It takes a data workbook the app built on a previous run (MtMessengerEcologyData.xlsx) and only re-draws the figures and tables from it - it does NOT rebuild the data from the source databases.' }
+        [pscustomobject]@{ Kind = 'Detail';  Text = 'Use it only when you already have a good workbook and just want to regenerate the outputs - for example after a change to the plotting. If in doubt, use "Build data workbook from databases" above: it always produces a fresh, correct workbook and the figures and tables from it in one step.' }
 
         [pscustomobject]@{ Kind = 'Heading'; Text = '2.  Choose an output folder' }
         [pscustomobject]@{ Kind = 'Body';    Text = 'Everything is written inside the single folder you choose:' }
@@ -27,10 +28,6 @@ function Get-LauncherHelpSections {
         [pscustomobject]@{ Kind = 'Bullet';  Text = 'Click "Check inputs" to validate your selections - fast, and writes nothing.' }
         [pscustomobject]@{ Kind = 'Bullet';  Text = 'Click "Run" to produce the outputs. Progress streams in the log below; use "Cancel" to stop a run.' }
         [pscustomobject]@{ Kind = 'Bullet';  Text = 'Tick "Show R warnings in the log" to see R''s warnings live.' }
-
-        [pscustomobject]@{ Kind = 'Heading'; Text = 'Tips' }
-        [pscustomobject]@{ Kind = 'Bullet';  Text = 'Close the data workbook in Excel before running - an open file cannot be written.' }
-        [pscustomobject]@{ Kind = 'Bullet';  Text = 'Your selections are remembered for next time.' }
     )
 }
 
