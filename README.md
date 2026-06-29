@@ -87,6 +87,13 @@ flowchart TD
 
 See [docs/usage.md](docs/usage.md) for installation and usage instructions.
 
+### Click-to-run app (Windows)
+
+Non-technical colleagues can run the whole pipeline from a GUI — **no R, no
+admin, no setup**. A bundled Windows installer ships its own R and packages.
+See [`launcher/README.md`](launcher/README.md) for end-user instructions,
+how to rebuild the installer, and how it works.
+
 ### Developers
 
 Full developer setup with linters, test tools, pre-commit hooks, and
