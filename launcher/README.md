@@ -65,7 +65,21 @@ Expect all tests passing (34 at time of writing). The runner installs Pester 5
 
 ### Build the installer
 
-Two steps, run from the repo root.
+**Quickest — regenerate the `.exe` with one command** (from the repo root):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tasks\build_installer.ps1
+```
+
+This runs both steps below and prints the path to the finished installer. Re-run
+it after **any** change to `launcher\`, the engine, or the R pipeline — it
+re-stages and recompiles from scratch. Needs **R installed + internet** and
+**Inno Setup 6** (see Prerequisites above); takes a few minutes. On success it
+prints, e.g. `Done. Installer: …\build\MtMessengerPipeline-Setup.exe  (151 MB)`.
+
+---
+
+Under the hood it runs two steps, which you can also do by hand from the repo root.
 
 **1. Stage the app** — `build_launcher.ps1` copies the launcher + engine + a
 code-only copy of the pipeline into `build\launcher-app\` (excludes `renv`,
