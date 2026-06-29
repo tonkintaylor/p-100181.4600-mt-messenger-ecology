@@ -18,15 +18,13 @@ SetupIconFile=..\launcher\app.ico
 [Files]
 Source: "..\build\launcher-app\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
+; Shortcuts launch the GUI stub exe (no console window; carries the app icon).
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\launcher.ps1"""; \
-  IconFilename: "{app}\app.ico"
-Name: "{userdesktop}\{#AppName}"; Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\launcher.ps1"""; \
-  IconFilename: "{app}\app.ico"
+Name: "{group}\{#AppName}"; Filename: "{app}\MtMessengerPipeline.exe"; \
+  WorkingDir: "{app}"; IconFilename: "{app}\app.ico"
+Name: "{userdesktop}\{#AppName}"; Filename: "{app}\MtMessengerPipeline.exe"; \
+  WorkingDir: "{app}"; IconFilename: "{app}\app.ico"
 
 [Run]
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\launcher.ps1"""; \
+Filename: "{app}\MtMessengerPipeline.exe"; WorkingDir: "{app}"; \
   Description: "Launch now"; Flags: postinstall nowait skipifsilent

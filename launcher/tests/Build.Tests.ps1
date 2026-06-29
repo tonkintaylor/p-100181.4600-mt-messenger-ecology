@@ -15,3 +15,17 @@ Describe 'Build-LauncherApp' {
         Test-Path (Join-Path $dest 'pipeline\src\r\outputs')             | Should -BeFalse
     }
 }
+Describe 'Add-LauncherExe' {
+    It 'compiles a GUI-subsystem launcher exe (no console window)' {
+        $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $dest = Join-Path $TestDrive 'app-exe'
+        Build-LauncherApp -RepoRoot $repo -Destination $dest | Out-Null
+        $exe = Add-LauncherExe -RepoRoot $repo -Destination $dest
+        Test-Path $exe | Should -BeTrue
+        # Confirm the PE subsystem is Windows GUI (2), not console (3) — this is
+        # what guarantees launching it never spawns a terminal window.
+        $bytes = [System.IO.File]::ReadAllBytes($exe)
+        $peOff = [BitConverter]::ToInt32($bytes, 0x3C)
+        [BitConverter]::ToUInt16($bytes, $peOff + 92) | Should -Be 2
+    }
+}

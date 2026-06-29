@@ -28,6 +28,41 @@ function Build-LauncherApp {
     return $Destination
 }
 
+# Compile the tiny GUI launcher (MtMessengerPipeline.exe) into the staged app.
+# Built with the .NET Framework C# compiler (present on any Windows with .NET
+# 4.x). /target:winexe gives a GUI-subsystem exe (no console window) and
+# /win32icon embeds app.ico so the shortcut/taskbar show the app, not PowerShell.
+function Add-LauncherExe {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Destination,
+        [Parameter(Mandatory)][string]$RepoRoot
+    )
+    $src  = Join-Path $RepoRoot 'launcher\MtMessengerPipeline.Launcher.cs'
+    $icon = Join-Path $Destination 'app.ico'
+    $exe  = Join-Path $Destination 'MtMessengerPipeline.exe'
+    if (-not (Test-Path -LiteralPath $src)) { throw "Launcher stub source not found: $src" }
+
+    $fwk = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
+    if (-not (Test-Path -LiteralPath (Join-Path $fwk 'csc.exe'))) {
+        $fwk = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319'
+    }
+    $csc = Join-Path $fwk 'csc.exe'
+    if (-not (Test-Path -LiteralPath $csc)) {
+        throw "C# compiler (csc.exe) not found under $env:WINDIR\Microsoft.NET. .NET Framework 4.x is required to build the launcher exe."
+    }
+
+    $cscArgs = @('/nologo', '/target:winexe', "/out:$exe",
+                 "/reference:$(Join-Path $fwk 'System.Windows.Forms.dll')")
+    if (Test-Path -LiteralPath $icon) { $cscArgs += "/win32icon:$icon" }
+    $cscArgs += $src
+    Write-Host "Add-LauncherExe: compiling MtMessengerPipeline.exe ..."
+    & $csc @cscArgs
+    if ($LASTEXITCODE -ne 0) { throw "Compiling MtMessengerPipeline.exe failed (csc exit $LASTEXITCODE)." }
+    if (-not (Test-Path -LiteralPath $exe)) { throw "csc reported success but '$exe' is missing." }
+    return $exe
+}
+
 # Bundle a self-contained R into the staged app: copy a relocatable R install
 # tree to <Destination>\R, then install the project's declared packages into
 # that R's own library (PPM Windows binaries; no compiler needed). The result
@@ -100,6 +135,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     $repo = Split-Path -Parent $PSScriptRoot
     $dest = Join-Path $repo 'build\launcher-app'
     Build-LauncherApp -RepoRoot $repo -Destination $dest
+    Add-LauncherExe -RepoRoot $repo -Destination $dest | Out-Null
 
     $rhome = $env:LAUNCHER_R_HOME
     if (-not $rhome) { $rhome = Find-PinnedRHome -RepoRoot $repo }
