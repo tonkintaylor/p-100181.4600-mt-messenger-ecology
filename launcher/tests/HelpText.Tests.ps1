@@ -31,10 +31,16 @@ Describe 'Get-LauncherHelpSections' {
         $script:sections[0].Text | Should -Be 'Mt Messenger Ecology Pipeline'
     }
     It 'uses only known section kinds' {
-        $known = 'Title','Body','Heading','Sub','Detail','Code','Bullet'
+        $known = 'Title','Body','Heading','Sub','Detail','Code','Diagram','Bullet'
         foreach ($s in $script:sections) { $known | Should -Contain $s.Kind }
     }
     It 'every section has non-empty text' {
         foreach ($s in $script:sections) { $s.Text | Should -Not -BeNullOrEmpty }
+    }
+    It 'includes a diagram showing the data workbook as the hub' {
+        $diagram = @($script:sections | Where-Object { $_.Kind -eq 'Diagram' })
+        $diagram.Count | Should -Be 1
+        $diagram[0].Text | Should -BeLike '*DATA WORKBOOK*'
+        $diagram[0].Text | Should -BeLike '*figures + tables*'
     }
 }

@@ -6,9 +6,30 @@
 # Get-LauncherHelpText derives a plain-text rendering from the same source.
 
 function Get-LauncherHelpSections {
+    # ASCII-only diagram (renders in a monospace block) showing that the data
+    # workbook is the hub: built from the two databases, then everything is
+    # drawn from it - or supplied directly in the advanced mode.
+    $diagramRaw = @'
+  BUILD FROM DATABASES  (default)
+
+  Macroinvertebrate DB --+
+                         +--> [ DATA WORKBOOK ] --> figures + tables
+  Aquatic monitoring DB -+
+
+  USE AN EXISTING WORKBOOK  (advanced)
+
+  [ DATA WORKBOOK built earlier ] --------> figures + tables
+'@
+    # Pad every line to the same width so the shaded panel is a clean rectangle.
+    $w = ($diagramRaw -split "`r?`n" | Measure-Object -Property Length -Maximum).Maximum
+    $diagram = (($diagramRaw -split "`r?`n") | ForEach-Object { $_.PadRight($w) }) -join "`n"
     @(
         [pscustomobject]@{ Kind = 'Title';   Text = 'Mt Messenger Ecology Pipeline' }
         [pscustomobject]@{ Kind = 'Body';    Text = 'Runs the Mt Messenger ecology analysis pipeline and produces the report figures and tables. It bundles its own copy of R, so nothing needs to be installed beforehand.' }
+
+        [pscustomobject]@{ Kind = 'Heading'; Text = 'How it fits together' }
+        [pscustomobject]@{ Kind = 'Body';    Text = 'The data workbook is the hub. In the normal mode it is BUILT from the two source databases and then the figures and tables are drawn from it. The advanced mode feeds an existing workbook straight in.' }
+        [pscustomobject]@{ Kind = 'Diagram'; Text = $diagram }
 
         [pscustomobject]@{ Kind = 'Heading'; Text = '1.  Choose an input mode' }
         [pscustomobject]@{ Kind = 'Sub';     Text = 'Build data workbook from databases' }
@@ -42,6 +63,7 @@ function Get-LauncherHelpText {
             'Sub'     { '  ' + $sec.Text }
             'Detail'  { '    ' + $sec.Text }
             'Code'    { '    ' + $sec.Text }
+            'Diagram' { "`r`n" + $sec.Text }
             'Bullet'  { '  - ' + $sec.Text }
             default   { $sec.Text }
         }

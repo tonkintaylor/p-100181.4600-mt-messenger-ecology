@@ -184,12 +184,14 @@ function Show-InfoBox($Sections, $Owner) {
     $cHead  = [System.Drawing.Color]::FromArgb(46, 84, 150)
     $cBody  = [System.Drawing.Color]::FromArgb(38, 38, 38)
     $cCode  = [System.Drawing.Color]::FromArgb(96, 96, 96)
+    $cPanel = [System.Drawing.Color]::FromArgb(244, 246, 249)
 
     $append = {
-        param($text, $font, $color, $indent, $bullet)
+        param($text, $font, $color, $indent, $bullet, $back = [System.Drawing.Color]::White)
         $rtb.SelectionStart = $rtb.TextLength; $rtb.SelectionLength = 0
         $rtb.SelectionFont = $font; $rtb.SelectionColor = $color
         $rtb.SelectionIndent = $indent; $rtb.SelectionBullet = $bullet
+        $rtb.SelectionBackColor = $back
         $rtb.AppendText($text)
     }
     foreach ($s in $Sections) {
@@ -199,6 +201,7 @@ function Show-InfoBox($Sections, $Owner) {
             'Sub'     { & $append ($s.Text + "`n")          $fSub   $cBody  18 $false }
             'Detail'  { & $append ($s.Text + "`n`n")        $fBody  $cBody  18 $false }
             'Code'    { & $append ($s.Text + "`n")          $fCode  $cCode  18 $false }
+            'Diagram' { & $append ($s.Text + "`n`n")        $fCode  $cBody  14 $false $cPanel }
             'Bullet'  { & $append ($s.Text + "`n")          $fBody  $cBody  18 $true }
             default   { & $append ($s.Text + "`n`n")        $fBody  $cBody  0  $false }
         }
