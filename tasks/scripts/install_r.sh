@@ -36,24 +36,11 @@ else
 fi
 
 echo "Restoring R packages from renv.lock..."
-# Hard-gate the R version (renv::restore only WARNS on a mismatch), bootstrap
-# renv if absent, restore, then VERIFY every declared import is installed -
-# renv::restore can exit 0 on a partial restore, so a bare $? check is not enough.
-Rscript -e '
-want <- tryCatch(trimws(read.dcf("DESCRIPTION")[1, "Config/R/Version"]), error = function(e) NA)
-cur  <- sub("^(\\d+\\.\\d+).*", "\\1", as.character(getRversion()))
-if (!is.na(want) && !identical(cur, want))
-  stop(sprintf("This project requires R %s but you are running R %s. Install R %s and re-run.", want, getRversion(), want), call. = FALSE)
-if (!requireNamespace("renv", quietly = TRUE))
-  install.packages("renv", repos = "https://packagemanager.posit.co/cran/latest")
-if (!requireNamespace("renv", quietly = TRUE)) stop("Could not install renv.", call. = FALSE)
-renv::restore(prompt = FALSE)
-imp  <- tryCatch(read.dcf("DESCRIPTION")[1, "Imports"], error = function(e) "")
-pkgs <- setdiff(trimws(sub("\\s*\\(.*\\)$", "", strsplit(imp, ",")[[1]])), c("", "R"))
-miss <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
-if (length(miss)) stop(sprintf("Restore incomplete; missing: %s", paste(miss, collapse = ", ")), call. = FALSE)
-cat(sprintf("renv restore complete: %d declared packages available.\n", length(pkgs)))
-'
+# Restore + verify lives in a SCRIPT FILE, not an inline `Rscript -e "..."`:
+# passing a multi-line -e program through Git Bash (MSYS) to the native
+# Rscript.exe corrupts the argument and segfaults R. scripts/restore_renv.R
+# gates the R version, restores, and checks the declared imports are installed.
+Rscript scripts/restore_renv.R
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to restore R packages from renv.lock."
