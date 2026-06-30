@@ -30,7 +30,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up R
-              uses: r-lib/actions/setup-r@v2
+              uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
               with:
                   r-version: "4.5"
                   use-public-rspm: true
@@ -38,7 +38,7 @@ jobs:
             # Install renv and restore the exact package versions from renv.lock
             # (the single source of truth). Caches the renv library between runs.
             - name: Restore renv library
-              uses: r-lib/actions/setup-renv@v2
+              uses: r-lib/actions/setup-renv@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
 
             - name: Run testthat suite
               run: Rscript -e "library(readxl); library(openxlsx); library(dplyr); library(tidyr); library(lubridate); testthat::test_dir('tests/r', stop_on_failure=TRUE)"
