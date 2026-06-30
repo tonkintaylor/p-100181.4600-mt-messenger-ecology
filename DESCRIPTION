@@ -19,4 +19,3 @@ Imports:
     tibble,
     withr
 Config/R/Version: 4.5
-Config/Repo/Snapshot: 2026-06-01

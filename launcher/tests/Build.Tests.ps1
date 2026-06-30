@@ -7,7 +7,6 @@ Describe 'Build-LauncherApp' {
         Test-Path (Join-Path $dest 'launcher.ps1')                       | Should -BeTrue
         Test-Path (Join-Path $dest 'engine\Resolve-RscriptPath.ps1')     | Should -BeTrue
         Test-Path (Join-Path $dest 'pipeline\src\r\run_pipeline.R')      | Should -BeTrue
-        Test-Path (Join-Path $dest 'pipeline\scripts\sync_r_packages.R') | Should -BeTrue
         Test-Path (Join-Path $dest 'pipeline\DESCRIPTION')               | Should -BeTrue
         Test-Path (Join-Path $dest 'pipeline\renv')                      | Should -BeFalse
         Test-Path (Join-Path $dest 'pipeline\.Rprofile')                 | Should -BeFalse

@@ -145,38 +145,33 @@ Rscript --vanilla -e "testthat::test_dir('tests/r')"
 
 ### Managing R packages
 
-R dependencies are pinned by a dated [Posit Package Manager][ppm] snapshot, so
-every machine (Windows, macOS, Linux/CI) installs identical package versions
-from plain `install.packages()` — no Docker, and no `renv::restore()`.
+R dependencies are managed by [renv][renv]. `renv.lock` pins the exact version
+of every package (and of R itself) and is the single source of truth. The
+project library is activated automatically by `renv/activate.R` — sourced from
+`.Rprofile`, and explicitly by the `run_*.R` entry points (which use
+`--vanilla`).
 
-The `DESCRIPTION` file is the single source of truth:
-
-- `Imports:` — the direct packages to install
-- `Config/Repo/Snapshot:` — the snapshot date (`YYYY-MM-DD`) that pins versions
-- `Config/R/Version:` — the required R major.minor
-
-[`scripts/sync_r_packages.R`](scripts/sync_r_packages.R) reads those fields,
-checks the R version, and installs anything missing or drifted from the
-snapshot. The same script is used by local dev and by CI.
-
-**Syncing after a pull:**
+**Restoring after a clone or pull:**
 
 ```powershell
-Rscript scripts/sync_r_packages.R
+Rscript -e "renv::restore()"
 ```
 
-Or just re-run `./tasks/dev_sync.ps1` — it syncs R packages automatically.
-Use `--dry-run` to preview, or `--force` to reinstall everything to the snapshot.
+Or just re-run `./tasks/dev_sync.ps1` — it restores the renv library automatically.
 
 **Adding a package:**
 
-1. Add the package to the `Imports:` field in `DESCRIPTION`
-2. Run `Rscript scripts/sync_r_packages.R`
-3. Commit `DESCRIPTION`
+1. `Rscript -e "renv::install('newpackage')"`
+2. Add the package to the `Imports:` field in `DESCRIPTION`
+3. `Rscript -e "renv::snapshot()"` to update `renv.lock`
+4. Commit `DESCRIPTION` and `renv.lock`
 
-**Bumping versions:** change `Config/Repo/Snapshot:` to a newer date and re-run.
+> **Restore runs on Windows.** `renv::restore()` deadlocks on the
+> `openxlsx`↔`zip` dependency on Linux, so package restore — local dev, CI, and
+> the bundled-installer build — runs on **Windows**. The pipeline ships to
+> Windows anyway, and CI (`.github/workflows/tests.yml`) runs on `windows-latest`.
 
-[ppm]: https://packagemanager.posit.co/
+[renv]: https://rstudio.github.io/renv/
 
 ## Licence
 

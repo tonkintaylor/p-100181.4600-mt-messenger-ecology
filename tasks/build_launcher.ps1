@@ -13,9 +13,7 @@ function Build-LauncherApp {
 
     $pipeline = Join-Path $Destination 'pipeline'
     New-Item -ItemType Directory -Path (Join-Path $pipeline 'src') -Force | Out-Null
-    New-Item -ItemType Directory -Path (Join-Path $pipeline 'scripts') -Force | Out-Null
     Copy-Item (Join-Path $RepoRoot 'src\r') (Join-Path $pipeline 'src\r') -Recurse
-    Copy-Item (Join-Path $RepoRoot 'scripts\sync_r_packages.R') (Join-Path $pipeline 'scripts')
     Copy-Item (Join-Path $RepoRoot 'DESCRIPTION') $pipeline
 
     # Exclude renv/.Rprofile (so bundled scripts use the user library, not an empty
@@ -87,23 +85,28 @@ function Add-PortableR {
     Copy-Item -LiteralPath $RHome -Destination $destR -Recurse -Force
 
     $rscript = Join-Path $destR 'bin\Rscript.exe'
-    $sync    = Join-Path $RepoRoot 'scripts\sync_r_packages.R'
+    $lock    = Join-Path $RepoRoot 'renv.lock'
     $lib     = Join-Path $destR 'library'
-    Write-Host "Add-PortableR: syncing packages into bundled library ..."
-    # Isolate the bundled R from any library on the BUILD machine so every
-    # transitive dependency lands IN the bundle. Otherwise install.packages skips
-    # deps it already finds in the builder's user library (e.g. Rcpp/zip/stringi),
-    # producing a bundle that only works on the build machine.
-    $savedUser = $env:R_LIBS_USER; $savedSite = $env:R_LIBS_SITE
-    $env:R_LIBS_USER = $lib; $env:R_LIBS_SITE = $lib
+    if (-not (Test-Path -LiteralPath $lock)) { throw "renv.lock not found at '$lock'." }
+    Write-Host "Add-PortableR: restoring renv.lock into bundled library ..."
+    # Restore the exact versions from renv.lock straight into the bundled R's own
+    # library. Two env guards matter for a RELOCATABLE bundle:
+    #  * RENV_CONFIG_CACHE_ENABLED=FALSE — install real copies, not symlinks into
+    #    the build machine's renv cache (which won't exist on a target PC).
+    #  * R_LIBS_USER/SITE pinned to the bundle lib — isolate from the build
+    #    machine's libraries so the FULL dependency closure lands IN the bundle.
+    $savedUser = $env:R_LIBS_USER; $savedSite = $env:R_LIBS_SITE; $savedCache = $env:RENV_CONFIG_CACHE_ENABLED
+    $env:R_LIBS_USER = $lib; $env:R_LIBS_SITE = $lib; $env:RENV_CONFIG_CACHE_ENABLED = 'FALSE'
+    $lockArg = $lock.Replace('\', '/'); $libArg = $lib.Replace('\', '/')
     try {
-        & $rscript --vanilla $sync "--lib=$lib"
+        & $rscript --vanilla -e "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/latest'); renv::restore(lockfile='$lockArg', library='$libArg', prompt=FALSE)"
         $rc = $LASTEXITCODE
     } finally {
-        if ($null -eq $savedUser) { Remove-Item Env:\R_LIBS_USER -ErrorAction SilentlyContinue } else { $env:R_LIBS_USER = $savedUser }
-        if ($null -eq $savedSite) { Remove-Item Env:\R_LIBS_SITE -ErrorAction SilentlyContinue } else { $env:R_LIBS_SITE = $savedSite }
+        if ($null -eq $savedUser)  { Remove-Item Env:\R_LIBS_USER -ErrorAction SilentlyContinue } else { $env:R_LIBS_USER = $savedUser }
+        if ($null -eq $savedSite)  { Remove-Item Env:\R_LIBS_SITE -ErrorAction SilentlyContinue } else { $env:R_LIBS_SITE = $savedSite }
+        if ($null -eq $savedCache) { Remove-Item Env:\RENV_CONFIG_CACHE_ENABLED -ErrorAction SilentlyContinue } else { $env:RENV_CONFIG_CACHE_ENABLED = $savedCache }
     }
-    if ($rc -ne 0) { throw "Package sync into bundled R failed (exit $rc)." }
+    if ($rc -ne 0) { throw "renv restore into bundled R failed (exit $rc)." }
     return $destR
 }
 

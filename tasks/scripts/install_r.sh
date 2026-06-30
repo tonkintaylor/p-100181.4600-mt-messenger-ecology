@@ -35,12 +35,12 @@ else
     fi
 fi
 
-echo "Syncing R packages from the pinned PPM snapshot..."
-Rscript scripts/sync_r_packages.R
+echo "Restoring R packages from renv.lock..."
+Rscript -e "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/latest'); renv::restore(prompt=FALSE)"
 
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to sync R packages."
-    echo "Try running: Rscript scripts/sync_r_packages.R --dry-run"
+    echo "Error: Failed to restore R packages from renv.lock."
+    echo "Try running: Rscript -e \"renv::restore()\""
     exit 1
 fi
 
