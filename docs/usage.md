@@ -43,16 +43,16 @@ git clone https://github.com/tonkintaylor/p-100181.4600-mt-messenger-ecology.git
 The install script will:
 
 1. Install R if not already present (via winget)
-2. Sync R packages from the pinned package snapshot (`scripts/sync_r_packages.R`)
+2. Restore R packages from `renv.lock` (`renv::restore()`)
 3. Create `cycle.toml` from the template
 
-### Syncing R packages manually
+### Restoring R packages manually
 
-If `./tasks/install.ps1` fails during R setup, sync packages manually
+If `./tasks/install.ps1` fails during R setup, restore packages manually
 from the project root:
 
 ```powershell
-Rscript scripts/sync_r_packages.R
+Rscript -e "renv::restore()"
 ```
 
 ## Configuration
@@ -211,6 +211,11 @@ git pull
 R packages are managed by [renv](https://rstudio.github.io/renv/) for
 reproducibility. The lockfile (`renv.lock`) pins exact versions so every
 developer gets the same R environment.
+
+> **Restore on Windows.** `renv::restore()` deadlocks on the `openxlsx`↔`zip`
+> dependency on Linux, so package restore (local dev, CI, and the bundled
+> installer build) runs on **Windows**. CI runs on `windows-latest` for that
+> reason.
 
 ### Adding an R package
 

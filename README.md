@@ -87,6 +87,13 @@ flowchart TD
 
 See [docs/usage.md](docs/usage.md) for installation and usage instructions.
 
+### Click-to-run app (Windows)
+
+Non-technical colleagues can run the whole pipeline from a GUI — **no R, no
+admin, no setup**. A bundled Windows installer ships its own R and packages.
+See [`launcher/README.md`](launcher/README.md) for end-user instructions,
+how to rebuild the installer, and how it works.
+
 ### Developers
 
 Full developer setup with linters, test tools, pre-commit hooks, and
@@ -101,7 +108,8 @@ VS Code configuration:
 ### Running R code
 
 Use the Rscript entry points for normal operation. They run with `--vanilla`
-and load packages from the synced project library (see Managing R packages).
+and load packages from the renv project library, which they activate themselves
+by sourcing `renv/activate.R` (see Managing R packages).
 
 ```powershell
 # Data pipeline only
@@ -123,53 +131,52 @@ For one-off diagnostics that do not need project packages, use `--vanilla`:
 Rscript --vanilla -e "sessionInfo()"
 ```
 
-Project packages live in the default library once synced, so they are available
-without any bootstrap:
+Project packages live in the renv project library. For an ad-hoc session that
+needs them, **drop `--vanilla`** so `.Rprofile` activates renv (the `--vanilla`
+diagnostics above skip `.Rprofile`, so they cannot see project packages):
 
 ```powershell
-Rscript --vanilla -e "packageVersion('ggplot2')"
+Rscript -e "packageVersion('ggplot2')"
 ```
 
 ### Running tests
 
+Run without `--vanilla` so `.Rprofile` activates the renv library (where
+`testthat` lives):
+
 ```powershell
-Rscript --vanilla -e "testthat::test_dir('tests/r')"
+Rscript -e "testthat::test_dir('tests/r')"
 ```
 
 ### Managing R packages
 
-R dependencies are pinned by a dated [Posit Package Manager][ppm] snapshot, so
-every machine (Windows, macOS, Linux/CI) installs identical package versions
-from plain `install.packages()` — no Docker, and no `renv::restore()`.
+R dependencies are managed by [renv][renv]. `renv.lock` pins the exact version
+of every package (and of R itself) and is the single source of truth. The
+project library is activated automatically by `renv/activate.R` — sourced from
+`.Rprofile`, and explicitly by the `run_*.R` entry points (which use
+`--vanilla`).
 
-The `DESCRIPTION` file is the single source of truth:
-
-- `Imports:` — the direct packages to install
-- `Config/Repo/Snapshot:` — the snapshot date (`YYYY-MM-DD`) that pins versions
-- `Config/R/Version:` — the required R major.minor
-
-[`scripts/sync_r_packages.R`](scripts/sync_r_packages.R) reads those fields,
-checks the R version, and installs anything missing or drifted from the
-snapshot. The same script is used by local dev and by CI.
-
-**Syncing after a pull:**
+**Restoring after a clone or pull:**
 
 ```powershell
-Rscript scripts/sync_r_packages.R
+Rscript -e "renv::restore()"
 ```
 
-Or just re-run `./tasks/dev_sync.ps1` — it syncs R packages automatically.
-Use `--dry-run` to preview, or `--force` to reinstall everything to the snapshot.
+Or just re-run `./tasks/dev_sync.ps1` — it restores the renv library automatically.
 
 **Adding a package:**
 
-1. Add the package to the `Imports:` field in `DESCRIPTION`
-2. Run `Rscript scripts/sync_r_packages.R`
-3. Commit `DESCRIPTION`
+1. `Rscript -e "renv::install('newpackage')"`
+2. Add the package to the `Imports:` field in `DESCRIPTION`
+3. `Rscript -e "renv::snapshot()"` to update `renv.lock`
+4. Commit `DESCRIPTION` and `renv.lock`
 
-**Bumping versions:** change `Config/Repo/Snapshot:` to a newer date and re-run.
+> **Restore runs on Windows.** `renv::restore()` deadlocks on the
+> `openxlsx`↔`zip` dependency on Linux, so package restore — local dev, CI, and
+> the bundled-installer build — runs on **Windows**. The pipeline ships to
+> Windows anyway, and CI (`.github/workflows/tests.yml`) runs on `windows-latest`.
 
-[ppm]: https://packagemanager.posit.co/
+[renv]: https://rstudio.github.io/renv/
 
 ## Licence
 

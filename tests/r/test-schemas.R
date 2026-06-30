@@ -11,9 +11,12 @@ test_that("schema column vectors match the Python contract", {
   expect_equal(RPD_COLUMNS,
                c("Site","Date","Count","Mean","StdDev","CI_Lower","CI_Upper"))
   expect_equal(LDV_COLUMNS, c("Site","Date","Season","CV_pct"))
+  # Fish is an R-only sheet (no Python schemas.py counterpart).
+  expect_equal(FISH_COLUMNS,
+               c("Site","Catchment","Date","Species category (for abundance)","Number"))
   expect_equal(SHEET_ORDER,
                c("Macro","Macro1","MacroSpecies","Sediment",
-                 "SedimentSize","Clarity","RPD","LDV"))
+                 "SedimentSize","Clarity","RPD","LDV","Fish"))
   expect_equal(length(SEDIMENT_SIZE_COLUMNS), 14L)
   expect_equal(SEDIMENT_SIZE_COLUMNS[5], "Clay/silt (<0.06 mm)")
   expect_setequal(names(SCHEMA_MAP), SHEET_ORDER)

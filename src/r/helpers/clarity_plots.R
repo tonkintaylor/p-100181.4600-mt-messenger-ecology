@@ -147,15 +147,23 @@ plot_clarity_timeseries <- function(clarity_df, output_dir) {
   ) %>%
     mutate(y_mid = (ymin + ymax) / 2)
 
+  # Full-width bands on a Date x-axis. Use Date-typed +/-Inf, not bare numeric
+  # -Inf/Inf: a <Date> is a classed numeric, so these carry the infinities while
+  # still passing scales' `inherits(x, "Date")` check. Bare numeric -Inf/Inf
+  # hard-errors on older ggplot2/scales ("transform_date() works with objects of
+  # class <Date> only") and only warns ("converted to a <Date>") on newer ones.
+  bands$x_left  <- structure(rep(-Inf, nrow(bands)), class = "Date")
+  bands$x_right <- structure(rep(Inf,  nrow(bands)), class = "Date")
+
   p <- ggplot() +
     geom_rect(
       data = bands,
-      aes(xmin = -Inf, xmax = Inf, ymin = ymin, ymax = ymax, fill = band),
+      aes(xmin = x_left, xmax = x_right, ymin = ymin, ymax = ymax, fill = band),
       alpha = 0.55
     ) +
     geom_text(
       data = bands,
-      aes(x = -Inf, y = y_mid, label = band),
+      aes(x = x_left, y = y_mid, label = band),
       hjust = -0.2, vjust = 0.5,
       size = 2, fontface = "bold", colour = "black"
     ) +
