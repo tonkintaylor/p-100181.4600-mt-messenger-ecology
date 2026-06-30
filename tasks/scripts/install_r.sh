@@ -35,12 +35,16 @@ else
     fi
 fi
 
-echo "Syncing R packages from the pinned PPM snapshot..."
-Rscript scripts/sync_r_packages.R
+echo "Restoring R packages from renv.lock..."
+# Restore + verify lives in a SCRIPT FILE, not an inline `Rscript -e "..."`:
+# passing a multi-line -e program through Git Bash (MSYS) to the native
+# Rscript.exe corrupts the argument and segfaults R. scripts/restore_renv.R
+# gates the R version, restores, and checks the declared imports are installed.
+Rscript scripts/restore_renv.R
 
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to sync R packages."
-    echo "Try running: Rscript scripts/sync_r_packages.R --dry-run"
+    echo "Error: Failed to restore R packages from renv.lock."
+    echo "Try running: Rscript -e \"renv::restore()\""
     exit 1
 fi
 

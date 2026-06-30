@@ -17,11 +17,12 @@ concurrency:
 jobs:
     tests:
         name: Run
-        runs-on: "ubuntu-latest"
+        # Windows, not Linux: renv::restore deadlocks on the openxlsx<->zip pair
+        # on Linux, and the pipeline ships to Windows anyway (the launcher bundles
+        # a Windows R). See docs/usage.md "R package management".
+        runs-on: "windows-latest"
         permissions:
             contents: read # Required to checkout the test suite
-        env:
-            R_LIBS_USER: ${{ github.workspace }}/.rlibs
         steps:
             - name: Checkout code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -29,28 +30,15 @@ jobs:
                   persist-credentials: false
 
             - name: Set up R
-              uses: r-lib/actions/setup-r@v2
+              uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
               with:
                   r-version: "4.5"
                   use-public-rspm: true
 
-            # Install from the dated PPM snapshot pinned in DESCRIPTION
-            # (Config/Repo/Snapshot). Same source of truth as local dev — no
-            # renv::restore (which deadlocks on openxlsx<->zip on Linux) and no
-            # hand-maintained package list to drift.
-            - name: Install R dependencies
-              shell: bash
-              run: |
-                  mkdir -p "$R_LIBS_USER"
-                  Rscript scripts/sync_r_packages.R
+            # Install renv and restore the exact package versions from renv.lock
+            # (the single source of truth). Caches the renv library between runs.
+            - name: Restore renv library
+              uses: r-lib/actions/setup-renv@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
 
             - name: Run testthat suite
-              run: >
-                Rscript -e "
-                  library(readxl);
-                  library(openxlsx);
-                  library(dplyr);
-                  library(tidyr);
-                  library(lubridate);
-                  testthat::test_dir('tests/r', stop_on_failure=TRUE)
-                "
+              run: Rscript -e "library(readxl); library(openxlsx); library(dplyr); library(tidyr); library(lubridate); testthat::test_dir('tests/r', stop_on_failure=TRUE)"

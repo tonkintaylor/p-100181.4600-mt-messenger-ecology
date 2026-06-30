@@ -71,8 +71,10 @@ function Invoke-PackageSync {
         [Parameter(Mandatory)][string]$PipelineRoot,
         [scriptblock]$OnOutput = { param($line) }
     )
-    $sync = Join-Path $PipelineRoot 'scripts\sync_r_packages.R'
+    # No-bundle / install-on-demand path: restore the renv.lock library in place
+    # (working dir = the checkout root, which has renv.lock + renv/activate.R).
+    $expr = "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/latest'); renv::restore(prompt=FALSE)"
     $res = Invoke-PipelineProcess -FilePath $RscriptPath `
-        -Arguments @('--vanilla', $sync) -WorkingDirectory $PipelineRoot -OnOutput $OnOutput
+        -Arguments @('--vanilla', '-e', $expr) -WorkingDirectory $PipelineRoot -OnOutput $OnOutput
     return $res.ExitCode
 }

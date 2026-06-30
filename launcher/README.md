@@ -84,8 +84,8 @@ Under the hood it runs two steps, which you can also do by hand from the repo ro
 **1. Stage the app** — `build_launcher.ps1` copies the launcher + engine + a
 code-only copy of the pipeline into `build\launcher-app\` (excludes `renv`,
 `.Rprofile`, tests, generated `src/r/outputs`), **then bundles R**: it copies a
-matching installed R into `build\launcher-app\R\` and installs the project's
-packages into that R's own library (PPM Windows binaries). It finds the R
+matching installed R into `build\launcher-app\R\` and restores `renv.lock`
+into that R's own library (`renv::restore`, Windows binaries). It finds the R
 automatically (pinned major.minor, under Program Files or
 `%LOCALAPPDATA%\Programs\R`); override with `$env:LAUNCHER_R_HOME`.
 
@@ -161,9 +161,10 @@ The installer installs locally per machine; you only need to put the **single
 - Output is a single folder containing `MtMessengerEcologyData.xlsx` (build
   mode), `figures\`, and `tables\`. Fish trapping figures come from a `Fish`
   sheet now written into the data workbook.
-- The bundled R's library is built at package time via the repo's own
-  `scripts\sync_r_packages.R` (a dated Posit Package Manager snapshot — Windows
-  binaries, no compiler), so the app needs no R install or internet at runtime.
+- The bundled R's library is built at package time by restoring `renv.lock`
+  (`renv::restore`, Windows binaries, with the renv cache disabled so the bundle
+  gets real copies, not cache symlinks), so the app needs no R install or
+  internet at runtime.
 - `engine\Provisioning.ps1` (a winget install-on-demand path) is retained and
   tested but **not wired** — see the note at the top of that file.
 
@@ -174,8 +175,8 @@ The installer installs locally per machine; you only need to put the **single
 - **Updating the bundled R/packages:** the app always uses its own bundled R, so
   to change the R version or refresh packages, install the new R (matching
   `DESCRIPTION`'s `Config/R/Version`) and **re-run the stage + compile**. Bumping
-  the R version means editing `Config/R/Version` (and the PPM snapshot) in
-  `DESCRIPTION` first. Because R is bundled, a different/newer R already on a
+  the R version means editing `Config/R/Version` in `DESCRIPTION` and refreshing
+  `renv.lock` (`renv::snapshot()`) first. Because R is bundled, a different/newer R already on a
   target machine is irrelevant — the app never uses it.
 - **Installer size:** ~150 MB (≈300 MB installed) because R + all packages are
   embedded. That is the deliberate trade for "runs anywhere, no admin, no internet."
