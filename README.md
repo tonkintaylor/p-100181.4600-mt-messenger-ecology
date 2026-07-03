@@ -171,6 +171,14 @@ Or just re-run `./tasks/dev_sync.ps1` — it restores the renv library automatic
 3. `Rscript -e "renv::snapshot()"` to update `renv.lock`
 4. Commit `DESCRIPTION` and `renv.lock`
 
+> **Keep the CRAN repo pinned.** `renv::snapshot()` rewrites the `Repositories`
+> URL in `renv.lock` to your current `repos` option. It must stay pinned to a
+> dated PPM snapshot (e.g. `https://packagemanager.posit.co/cran/2026-05-13`),
+> **not** `/cran/latest` — otherwise the installer build can fail when a pinned
+> version drifts off `latest` (no matching binary → source build). Set
+> `options(repos)` to the dated snapshot before snapshotting, or re-edit the URL
+> afterward.
+
 > **Restore runs on Windows.** `renv::restore()` deadlocks on the
 > `openxlsx`↔`zip` dependency on Linux, so package restore — local dev, CI, and
 > the bundled-installer build — runs on **Windows**. The pipeline ships to

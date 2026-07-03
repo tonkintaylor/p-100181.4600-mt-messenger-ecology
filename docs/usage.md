@@ -232,6 +232,14 @@ renv::snapshot()
 
 Commit both `DESCRIPTION` and `renv.lock`.
 
+> **Keep the CRAN repo pinned.** `renv::snapshot()` overwrites the
+> `Repositories` URL in `renv.lock` with your current `repos` option. It must
+> stay pinned to a dated PPM snapshot (e.g.
+> `https://packagemanager.posit.co/cran/2026-05-13`), **not** `/cran/latest` —
+> otherwise the installer build can fail when a pinned version drifts off
+> `latest`. Set `options(repos)` to the dated snapshot before snapshotting, or
+> re-edit the URL afterward.
+
 ### Restoring packages after a pull
 
 ```powershell
