@@ -34,9 +34,26 @@ FISH_COLUMNS <- c(
   "Site", "Catchment", "Date", "Species category (for abundance)", "Number"
 )
 
+# MacroSummary: R-only per-site report table (Table 5.6). No Python counterpart.
+# One row per Site x Date. Point estimates for single-sample (soft-bottom/D-net)
+# sites; mean + 95% CI across replicates for multi-sample (hard-bottom/Surber)
+# sites, so the "_CI" half-width columns are NA for single-sample sites.
+# Catchment/Substrate/Method are joined from SITE_LEGEND; MCI/QMCI use the
+# soft-bottom tolerance variant for soft-bottom sites (see SITES_WITHOUT_REPLICATES).
+MACRO_SUMMARY_COLUMNS <- c(
+  "Catchment", "Site", "Substrate", "Method", "Date", "Season",
+  "NumIndividuals", "NumIndividuals_CI",
+  "NumTaxa", "NumTaxa_CI",
+  "MCI", "MCI_CI", "MCI_Class",
+  "QMCI", "QMCI_CI", "QMCI_Class",
+  "PctEPTRichness", "PctEPTRichness_CI",
+  "PctEPTAbundance", "PctEPTAbundance_CI",
+  "DominantTaxa"
+)
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
-  "SedimentSize", "Clarity", "RPD", "LDV", "Fish"
+  "SedimentSize", "Clarity", "RPD", "LDV", "Fish", "MacroSummary"
 )
 
 SCHEMA_MAP <- list(
@@ -48,5 +65,6 @@ SCHEMA_MAP <- list(
   Clarity = CLARITY_COLUMNS,
   RPD = RPD_COLUMNS,
   LDV = LDV_COLUMNS,
-  Fish = FISH_COLUMNS
+  Fish = FISH_COLUMNS,
+  MacroSummary = MACRO_SUMMARY_COLUMNS
 )
