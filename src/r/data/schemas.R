@@ -87,10 +87,22 @@ SEDIMENT_SUMMARY_COLUMNS <- c(
 # t-distribution; the RPD sheet's stored CI_Lower/CI_Upper use a z approx.
 RPD_SUMMARY_COLUMNS <- c("Site", "Season", "Year", "N", "Mean", "CI95")
 
+# MacroSampleData: R-only raw macroinvertebrate count matrix (Appendix B2 Tables
+# 1 & 2). No Python counterpart. One row per Season x Site x Replicate x Taxon
+# with a non-zero count, carrying the taxon's MCI/MCI-sb tolerance scores.
+# Replicate is NA for single-sample (soft-bottom) sites, 1-5 for Surber sites.
+# A faithful tidy emission of the ingest RawData; downstream pivots to the wide
+# taxa x sample appendix layout.
+MACRO_SAMPLE_COLUMNS <- c(
+  "Season", "Year", "Date", "Site", "Replicate",
+  "TaxaGroup", "Species", "MCI", "MCI_sb", "Count"
+)
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
   "SedimentSize", "Clarity", "RPD", "LDV", "Fish",
-  "MacroSummary", "FishSummary", "SedimentSummary", "RpdSummary"
+  "MacroSummary", "FishSummary", "SedimentSummary", "RpdSummary",
+  "MacroSampleData"
 )
 
 SCHEMA_MAP <- list(
@@ -106,5 +118,6 @@ SCHEMA_MAP <- list(
   MacroSummary = MACRO_SUMMARY_COLUMNS,
   FishSummary = FISH_SUMMARY_COLUMNS,
   SedimentSummary = SEDIMENT_SUMMARY_COLUMNS,
-  RpdSummary = RPD_SUMMARY_COLUMNS
+  RpdSummary = RPD_SUMMARY_COLUMNS,
+  MacroSampleData = MACRO_SAMPLE_COLUMNS
 )

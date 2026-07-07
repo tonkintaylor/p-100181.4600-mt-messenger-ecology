@@ -23,6 +23,7 @@ src_data("domains/fish.R")
 src_data("domains/fish_summary.R")
 src_data("domains/sediment_summary.R")
 src_data("domains/rpd_summary.R")
+src_data("domains/macro_sample.R")
 src_data("pipeline.R")
 
 # helper-golden.R is auto-sourced by test_dir(); for test_file() runs, source it.
@@ -51,7 +52,8 @@ test_that("full pipeline matches the golden file on every sheet", {
     process_macro_summary_domain(cfg$macroinvertebrate_db),
     process_fish_summary_domain(cfg$aquatic_monitoring_db),
     process_sediment_summary_domain(cfg$aquatic_monitoring_db),
-    process_rpd_summary_domain(cfg$aquatic_monitoring_db)
+    process_rpd_summary_domain(cfg$aquatic_monitoring_db),
+    process_macro_sample_domain(cfg$macroinvertebrate_db)
   )
   expect_true(all(vapply(results, function(r) r$ok(), logical(1))),
     info = "All domain processors must succeed (no error-severity errors)")
@@ -63,7 +65,7 @@ test_that("full pipeline matches the golden file on every sheet", {
   # Fish and the *Summary sheets are R-only with no golden counterpart; compare
   # them on schema + non-emptiness instead.
   r_only <- c("Fish", "MacroSummary", "FishSummary", "SedimentSummary",
-              "RpdSummary")
+              "RpdSummary", "MacroSampleData")
   for (sheet in setdiff(SHEET_ORDER, r_only)) {
     compare_sheet_to_golden(combined[[sheet]], sheet, golden)
   }
@@ -86,4 +88,8 @@ test_that("full pipeline matches the golden file on every sheet", {
   rpd_summary <- combined[["RpdSummary"]]
   expect_equal(names(rpd_summary), RPD_SUMMARY_COLUMNS)
   expect_gt(nrow(rpd_summary), 0)
+
+  macro_sample <- combined[["MacroSampleData"]]
+  expect_equal(names(macro_sample), MACRO_SAMPLE_COLUMNS)
+  expect_gt(nrow(macro_sample), 0)
 })
