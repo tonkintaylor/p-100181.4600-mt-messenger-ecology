@@ -6,7 +6,8 @@ make_minimal <- function() {
     df <- as.data.frame(setNames(
       lapply(cols, function(c) if (c == "Date") as.Date("2024-01-01") else NA), cols),
       stringsAsFactors = FALSE, check.names = FALSE)
-    df[1, "Date"] <- as.Date("2024-01-01")
+    # Not every sheet carries a Date column (e.g. FishSummary uses Season/Year).
+    if ("Date" %in% cols) df[1, "Date"] <- as.Date("2024-01-01")
     df
   }
   setNames(lapply(SHEET_ORDER, function(s) mk(SCHEMA_MAP[[s]])), SHEET_ORDER)

@@ -51,9 +51,26 @@ MACRO_SUMMARY_COLUMNS <- c(
   "DominantTaxa"
 )
 
+# FishSummary: R-only per-site report table (Table 5.8). No Python counterpart.
+# One row per Site x Season x Year. Species columns are catch counts (0 when
+# absent); Shrimp is a qualitative abundance (Uncommon/Common/Abundant) since
+# shrimp are not counted. TotalFish excludes koura and shrimp but includes
+# unidentified fish/eels. TaxaRichness counts distinct identified taxa groups
+# present (koura counts, shrimp excluded, unidentified not counted separately).
+# CPUE is catch (excl. koura & shrimp) per net/trap, separately for mini-fyke
+# nets (fykes) and Gee's minnow traps (GMTs). Catchment comes from the source.
+FISH_SUMMARY_COLUMNS <- c(
+  "Catchment", "Site", "Season", "Year",
+  "LongfinEel", "ShortfinEel", "CommonBully", "RedfinBully",
+  "BandedKokopu", "GiantKokopu", "Inanga",
+  "UnidBully", "UnidKokopu", "UnidEel", "Koura",
+  "Shrimp", "TotalFish", "TaxaRichness", "CPUE_fykes", "CPUE_GMTs"
+)
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
-  "SedimentSize", "Clarity", "RPD", "LDV", "Fish", "MacroSummary"
+  "SedimentSize", "Clarity", "RPD", "LDV", "Fish",
+  "MacroSummary", "FishSummary"
 )
 
 SCHEMA_MAP <- list(
@@ -66,5 +83,6 @@ SCHEMA_MAP <- list(
   RPD = RPD_COLUMNS,
   LDV = LDV_COLUMNS,
   Fish = FISH_COLUMNS,
-  MacroSummary = MACRO_SUMMARY_COLUMNS
+  MacroSummary = MACRO_SUMMARY_COLUMNS,
+  FishSummary = FISH_SUMMARY_COLUMNS
 )

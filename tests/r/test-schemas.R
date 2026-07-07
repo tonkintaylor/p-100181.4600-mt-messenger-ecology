@@ -16,7 +16,8 @@ test_that("schema column vectors match the Python contract", {
                c("Site","Catchment","Date","Species category (for abundance)","Number"))
   expect_equal(SHEET_ORDER,
                c("Macro","Macro1","MacroSpecies","Sediment",
-                 "SedimentSize","Clarity","RPD","LDV","Fish","MacroSummary"))
+                 "SedimentSize","Clarity","RPD","LDV","Fish",
+                 "MacroSummary","FishSummary"))
   expect_equal(length(SEDIMENT_SIZE_COLUMNS), 14L)
   expect_equal(SEDIMENT_SIZE_COLUMNS[5], "Clay/silt (<0.06 mm)")
   expect_setequal(names(SCHEMA_MAP), SHEET_ORDER)
@@ -30,4 +31,11 @@ test_that("schema column vectors match the Python contract", {
                  "PctEPTRichness","PctEPTRichness_CI",
                  "PctEPTAbundance","PctEPTAbundance_CI",
                  "DominantTaxa"))
+  # FishSummary is an R-only report sheet (Table 5.8); no Python counterpart.
+  expect_equal(FISH_SUMMARY_COLUMNS,
+               c("Catchment","Site","Season","Year",
+                 "LongfinEel","ShortfinEel","CommonBully","RedfinBully",
+                 "BandedKokopu","GiantKokopu","Inanga",
+                 "UnidBully","UnidKokopu","UnidEel","Koura",
+                 "Shrimp","TotalFish","TaxaRichness","CPUE_fykes","CPUE_GMTs"))
 })
