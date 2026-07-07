@@ -79,10 +79,18 @@ SEDIMENT_SUMMARY_COLUMNS <- c(
   "Large cobble (>128-256 mm)", "Boulders (>256 mm)", "Bedrock"
 )
 
+# RpdSummary: R-only per-site report table (Appendix B1 Table 4). No Python
+# counterpart. One row per Site x Season x Year: residual pool depth pooled
+# across all surveys in the season. Mean is the count-weighted pooled mean and
+# CI95 is the 95% t-CI half-width computed from the pooled sample
+# (t(0.975, N-1) * pooled_sd / sqrt(N)). NB this recomputes the CI with the
+# t-distribution; the RPD sheet's stored CI_Lower/CI_Upper use a z approx.
+RPD_SUMMARY_COLUMNS <- c("Site", "Season", "Year", "N", "Mean", "CI95")
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
   "SedimentSize", "Clarity", "RPD", "LDV", "Fish",
-  "MacroSummary", "FishSummary", "SedimentSummary"
+  "MacroSummary", "FishSummary", "SedimentSummary", "RpdSummary"
 )
 
 SCHEMA_MAP <- list(
@@ -97,5 +105,6 @@ SCHEMA_MAP <- list(
   Fish = FISH_COLUMNS,
   MacroSummary = MACRO_SUMMARY_COLUMNS,
   FishSummary = FISH_SUMMARY_COLUMNS,
-  SedimentSummary = SEDIMENT_SUMMARY_COLUMNS
+  SedimentSummary = SEDIMENT_SUMMARY_COLUMNS,
+  RpdSummary = RPD_SUMMARY_COLUMNS
 )
