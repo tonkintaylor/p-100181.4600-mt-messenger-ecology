@@ -67,10 +67,22 @@ FISH_SUMMARY_COLUMNS <- c(
   "Shrimp", "TotalFish", "TaxaRichness", "CPUE_fykes", "CPUE_GMTs"
 )
 
+# SedimentSummary: R-only per-site report table (Appendix B1 Table 3). No Python
+# counterpart. One row per Site x Date: a join of the Sediment sheet (SAM1, SAM3)
+# and the SedimentSize sheet (the 10 substrate fractions). No new derivation --
+# every value already exists in those two sheets; this sheet just combines them.
+SEDIMENT_SUMMARY_COLUMNS <- c(
+  "Site", "Date", "Period", "Season", "SAM1", "SAM3",
+  "Clay/silt (<0.06 mm)", "Sand (>0.06-2 mm)", "Small gravel (>2-8 mm)",
+  "Small-med gravel (>8-16 mm)", "Med-large gravel (>16-32 mm)",
+  "Large gravel (>32-64 mm)", "Small cobble (>64-128 mm)",
+  "Large cobble (>128-256 mm)", "Boulders (>256 mm)", "Bedrock"
+)
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
   "SedimentSize", "Clarity", "RPD", "LDV", "Fish",
-  "MacroSummary", "FishSummary"
+  "MacroSummary", "FishSummary", "SedimentSummary"
 )
 
 SCHEMA_MAP <- list(
@@ -84,5 +96,6 @@ SCHEMA_MAP <- list(
   LDV = LDV_COLUMNS,
   Fish = FISH_COLUMNS,
   MacroSummary = MACRO_SUMMARY_COLUMNS,
-  FishSummary = FISH_SUMMARY_COLUMNS
+  FishSummary = FISH_SUMMARY_COLUMNS,
+  SedimentSummary = SEDIMENT_SUMMARY_COLUMNS
 )

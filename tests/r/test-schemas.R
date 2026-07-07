@@ -17,7 +17,7 @@ test_that("schema column vectors match the Python contract", {
   expect_equal(SHEET_ORDER,
                c("Macro","Macro1","MacroSpecies","Sediment",
                  "SedimentSize","Clarity","RPD","LDV","Fish",
-                 "MacroSummary","FishSummary"))
+                 "MacroSummary","FishSummary","SedimentSummary"))
   expect_equal(length(SEDIMENT_SIZE_COLUMNS), 14L)
   expect_equal(SEDIMENT_SIZE_COLUMNS[5], "Clay/silt (<0.06 mm)")
   expect_setequal(names(SCHEMA_MAP), SHEET_ORDER)
@@ -38,4 +38,10 @@ test_that("schema column vectors match the Python contract", {
                  "BandedKokopu","GiantKokopu","Inanga",
                  "UnidBully","UnidKokopu","UnidEel","Koura",
                  "Shrimp","TotalFish","TaxaRichness","CPUE_fykes","CPUE_GMTs"))
+  # SedimentSummary is an R-only report sheet (Appendix B1 Table 3): a join of
+  # the Sediment (SAM1/SAM3) and SedimentSize (fraction) columns.
+  expect_equal(SEDIMENT_SUMMARY_COLUMNS,
+               c("Site","Date","Period","Season","SAM1","SAM3",
+                 SEDIMENT_SIZE_COLUMNS[5:14]))
+  expect_equal(length(SEDIMENT_SUMMARY_COLUMNS), 16L)
 })

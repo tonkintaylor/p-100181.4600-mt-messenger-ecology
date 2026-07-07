@@ -38,7 +38,8 @@ local({
   for (m in c("schemas.R","domain_types.R","errors.R","validation.R","config.R",
               "writer.R","domains/clarity.R","domains/ldv.R","domains/rpd.R",
               "domains/sediment_ingest.R","domains/sediment.R",
-              "domains/sediment_size.R","domains/macro_ingest.R","domains/macro.R",
+              "domains/sediment_size.R","domains/sediment_summary.R",
+              "domains/macro_ingest.R","domains/macro.R",
               "domains/macro_species.R","domains/macro_summary.R",
               "domains/fish.R","domains/fish_summary.R","pipeline.R")) src1(m)
 
@@ -56,7 +57,8 @@ local({
       process_ldv_domain(cfg$aquatic_monitoring_db),
       process_fish_domain(cfg$aquatic_monitoring_db),
       process_macro_summary_domain(cfg$macroinvertebrate_db),
-      process_fish_summary_domain(cfg$aquatic_monitoring_db))
+      process_fish_summary_domain(cfg$aquatic_monitoring_db),
+      process_sediment_summary_domain(cfg$aquatic_monitoring_db))
     errs <- do.call(c, lapply(results, function(r) r$errors))
     if (length(errs) > 0) for (e in errs) message("  ", format(e))
     ok <- all(vapply(results, function(r) r$ok(), logical(1)))
