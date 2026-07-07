@@ -18,7 +18,7 @@ test_that("schema column vectors match the Python contract", {
                c("Macro","Macro1","MacroSpecies","Sediment",
                  "SedimentSize","Clarity","RPD","LDV","Fish",
                  "MacroSummary","FishSummary","SedimentSummary","RpdSummary",
-                 "MacroSampleData"))
+                 "MacroSampleData","FieldWQ"))
   expect_equal(length(SEDIMENT_SIZE_COLUMNS), 14L)
   expect_equal(SEDIMENT_SIZE_COLUMNS[5], "Clay/silt (<0.06 mm)")
   expect_setequal(names(SCHEMA_MAP), SHEET_ORDER)
@@ -52,4 +52,8 @@ test_that("schema column vectors match the Python contract", {
   expect_equal(MACRO_SAMPLE_COLUMNS,
                c("Season","Year","Date","Site","Replicate",
                  "TaxaGroup","Species","MCI","MCI_sb","Count"))
+  # FieldWQ is an R-only spot water-quality sheet (Appendix B3 Tables 1 & 2).
+  expect_equal(FIELDWQ_COLUMNS,
+               c("Catchment","Site","Season","Year","Date","TimeTaken",
+                 "WaterTempC","pH","SpecCond","DO_mgL","DO_pctSat"))
 })

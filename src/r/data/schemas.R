@@ -98,11 +98,21 @@ MACRO_SAMPLE_COLUMNS <- c(
   "TaxaGroup", "Species", "MCI", "MCI_sb", "Count"
 )
 
+# FieldWQ: R-only spot water-quality readings (Appendix B3 Tables 1 & 2). No
+# Python counterpart. One row per Site x Date from the source "FieldWQ" sheet.
+# Catchment is derived (EM1-EM3 = Mangapepeke, otherwise Mimi) since the source
+# has no catchment column. TimeTaken is "HH:MM" (NA when not recorded). Units:
+# WaterTempC degC, SpecCond uS/cm, DO_mgL mg/L, DO_pctSat % saturation.
+FIELDWQ_COLUMNS <- c(
+  "Catchment", "Site", "Season", "Year", "Date", "TimeTaken",
+  "WaterTempC", "pH", "SpecCond", "DO_mgL", "DO_pctSat"
+)
+
 SHEET_ORDER <- c(
   "Macro", "Macro1", "MacroSpecies", "Sediment",
   "SedimentSize", "Clarity", "RPD", "LDV", "Fish",
   "MacroSummary", "FishSummary", "SedimentSummary", "RpdSummary",
-  "MacroSampleData"
+  "MacroSampleData", "FieldWQ"
 )
 
 SCHEMA_MAP <- list(
@@ -119,5 +129,6 @@ SCHEMA_MAP <- list(
   FishSummary = FISH_SUMMARY_COLUMNS,
   SedimentSummary = SEDIMENT_SUMMARY_COLUMNS,
   RpdSummary = RPD_SUMMARY_COLUMNS,
-  MacroSampleData = MACRO_SAMPLE_COLUMNS
+  MacroSampleData = MACRO_SAMPLE_COLUMNS,
+  FieldWQ = FIELDWQ_COLUMNS
 )

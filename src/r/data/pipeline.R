@@ -14,7 +14,8 @@ run_pipeline <- function(config) {
     process_fish_summary_domain(config$aquatic_monitoring_db),
     process_sediment_summary_domain(config$aquatic_monitoring_db),
     process_rpd_summary_domain(config$aquatic_monitoring_db),
-    process_macro_sample_domain(config$macroinvertebrate_db)
+    process_macro_sample_domain(config$macroinvertebrate_db),
+    process_field_wq_domain(config$aquatic_monitoring_db)
   )
   all_errors <- do.call(c, lapply(results, function(r) r$errors))
   if (is.null(all_errors)) all_errors <- list()
