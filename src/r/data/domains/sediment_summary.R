@@ -22,8 +22,27 @@ process_sediment_summary_domain <- function(path) {
 
   keys <- c("Site", "Date", "Period", "Season")
   merged <- merge(sed$data$Sediment, size$data$SedimentSize, by = keys)
-  out <- merged[order(merged$Date, merged$Site),
-                SEDIMENT_SUMMARY_COLUMNS, drop = FALSE]
+
+  # Ordered measurements: SAM1 (deposited cover), then the SAM3 fine-cover value,
+  # then the 10 SAM3 substrate fractions. Each maps a Protocol + display Variable
+  # to the joined source column. setdiff keeps the fractions in report order.
+  fractions <- setdiff(SEDIMENT_SIZE_COLUMNS, keys)
+  measures <- c(
+    list(list(protocol = "SAM1", variable = "Average sediment cover (%)", col = "SAM1"),
+         list(protocol = "SAM3", variable = "Fine sediment cover (<2 mm)", col = "SAM3")),
+    lapply(fractions, function(f) list(protocol = "SAM3", variable = f, col = f)))
+
+  parts <- lapply(seq_along(measures), function(i) {
+    m <- measures[[i]]
+    data.frame(
+      Site = merged$Site, Date = merged$Date, Period = merged$Period,
+      Season = merged$Season, Protocol = m$protocol, Variable = m$variable,
+      Value = suppressWarnings(as.numeric(merged[[m$col]])),
+      .ord = i, stringsAsFactors = FALSE, check.names = FALSE)
+  })
+  out <- do.call(rbind, parts)
+  out <- out[order(out$Date, out$Site, out$.ord), , drop = FALSE]
+  out <- out[, SEDIMENT_SUMMARY_COLUMNS, drop = FALSE]
   rownames(out) <- NULL
   DomainResult$new(data = list(SedimentSummary = out), errors = upstream)
 }

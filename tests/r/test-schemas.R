@@ -42,9 +42,7 @@ test_that("schema column vectors match the Python contract", {
   # SedimentSummary is an R-only report sheet (Appendix B1 Table 3): a join of
   # the Sediment (SAM1/SAM3) and SedimentSize (fraction) columns.
   expect_equal(SEDIMENT_SUMMARY_COLUMNS,
-               c("Site","Date","Period","Season","SAM1","SAM3",
-                 SEDIMENT_SIZE_COLUMNS[5:14]))
-  expect_equal(length(SEDIMENT_SUMMARY_COLUMNS), 16L)
+               c("Site","Date","Period","Season","Protocol","Variable","Value"))
   # RpdSummary is an R-only report sheet (Appendix B1 Table 4).
   expect_equal(RPD_SUMMARY_COLUMNS,
                c("Site","Season","Year","N","Mean","CI95"))

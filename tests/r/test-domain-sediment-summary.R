@@ -30,40 +30,51 @@ sediment_source_xlsx <- function() {
   tmp
 }
 
+# Value for one (site, Variable) in the long-format sheet.
+val <- function(df, site, variable) {
+  df$Value[df$Site == site & df$Variable == variable]
+}
+
 test_that("returns a DomainResult with SedimentSummary + schema columns", {
   result <- process_sediment_summary_domain(sediment_source_xlsx())
   expect_s3_class(result, "DomainResult")
   expect_true(result$ok())
   expect_equal(names(result$data$SedimentSummary), SEDIMENT_SUMMARY_COLUMNS)
-  expect_equal(nrow(result$data$SedimentSummary), 2L)
+  # Long format: 2 sites x (SAM1 + SAM3 fine cover + 10 fractions) = 24 rows.
+  expect_equal(nrow(result$data$SedimentSummary), 24L)
 })
 
-test_that("joins SAM (Sediment) and fractions (SedimentSize) per row", {
+test_that("pivots SAM (Sediment) and fractions (SedimentSize) to long rows", {
   df <- process_sediment_summary_domain(sediment_source_xlsx())$data$SedimentSummary
-  a <- as.list(df[df$Site == "EM_A", ])
-  b <- as.list(df[df$Site == "EM_B", ])
 
-  # SAM columns come from the Sediment sheet.
-  expect_equal(a$SAM1, 12.5)
-  expect_equal(a$SAM3, 8.3)
-  expect_equal(b$SAM1, 20)
-  # Fractions come from the SedimentSize sheet, aligned to the right row:
-  # row A gets i (1..10), row B gets i+10 (11..20).
-  expect_equal(a[["Clay/silt (<0.06 mm)"]], 1)   # first fraction
-  expect_equal(a[["Bedrock"]], 10)               # last fraction
-  expect_equal(b[["Clay/silt (<0.06 mm)"]], 11)
-  expect_equal(b[["Bedrock"]], 20)
-
-  # Period/Season pass through the ingest normalisation.
-  expect_equal(a$Period, "Routine Construction")
-  expect_equal(a$Season, "Spring")
-  expect_equal(b$Period, "Baseline")
-  expect_equal(b$Season, "Summer")
+  # SAM values come from the Sediment sheet, tagged with the right Protocol.
+  expect_equal(val(df, "EM_A", "Average sediment cover (%)"), 12.5)
+  expect_equal(val(df, "EM_A", "Fine sediment cover (<2 mm)"), 8.3)
+  expect_equal(val(df, "EM_B", "Average sediment cover (%)"), 20)
+  # Fractions come from SedimentSize (row A = i, row B = i+10).
+  expect_equal(val(df, "EM_A", "Clay/silt (<0.06 mm)"), 1)
+  expect_equal(val(df, "EM_A", "Bedrock"), 10)
+  expect_equal(val(df, "EM_B", "Clay/silt (<0.06 mm)"), 11)
+  expect_equal(val(df, "EM_B", "Bedrock"), 20)
 })
 
-test_that("row count matches the source (join is 1:1)", {
+test_that("Protocol tags SAM1 for cover and SAM3 for fine cover + fractions", {
   df <- process_sediment_summary_domain(sediment_source_xlsx())$data$SedimentSummary
-  expect_equal(nrow(df), 2L)
+  a <- df[df$Site == "EM_A", ]
+  expect_equal(a$Protocol[a$Variable == "Average sediment cover (%)"], "SAM1")
+  expect_equal(a$Protocol[a$Variable == "Fine sediment cover (<2 mm)"], "SAM3")
+  expect_equal(a$Protocol[a$Variable == "Clay/silt (<0.06 mm)"], "SAM3")
+  expect_equal(a$Protocol[a$Variable == "Bedrock"], "SAM3")
+  # Exactly one SAM1 row per site; the other 11 are SAM3.
+  expect_equal(sum(a$Protocol == "SAM1"), 1L)
+  expect_equal(sum(a$Protocol == "SAM3"), 11L)
+
+  # Period/Season pass through the ingest normalisation (same on every row).
+  expect_true(all(a$Period == "Routine Construction"))
+  expect_true(all(a$Season == "Spring"))
+  b <- df[df$Site == "EM_B", ]
+  expect_true(all(b$Period == "Baseline"))
+  expect_true(all(b$Season == "Summer"))
 })
 
 test_that("missing 'Sediment' sheet returns an error result", {

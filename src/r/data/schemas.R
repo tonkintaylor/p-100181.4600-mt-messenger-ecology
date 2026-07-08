@@ -68,15 +68,14 @@ FISH_SUMMARY_COLUMNS <- c(
 )
 
 # SedimentSummary: R-only per-site report table (Appendix B1 Table 3). No Python
-# counterpart. One row per Site x Date: a join of the Sediment sheet (SAM1, SAM3)
-# and the SedimentSize sheet (the 10 substrate fractions). No new derivation --
-# every value already exists in those two sheets; this sheet just combines them.
+# counterpart. Long format: one row per Site x Date x measurement, with explicit
+# Protocol (SAM1/SAM3) and Variable columns so the protocol applies
+# unambiguously to every value. SAM1 is the average deposited sediment cover;
+# SAM3 covers the fine-sediment-cover (<2 mm) value plus the 10 substrate
+# fractions. A join of the Sediment (SAM1/SAM3) and SedimentSize sheets pivoted
+# long -- no new derivation. Downstream pivots to sites-as-columns.
 SEDIMENT_SUMMARY_COLUMNS <- c(
-  "Site", "Date", "Period", "Season", "SAM1", "SAM3",
-  "Clay/silt (<0.06 mm)", "Sand (>0.06-2 mm)", "Small gravel (>2-8 mm)",
-  "Small-med gravel (>8-16 mm)", "Med-large gravel (>16-32 mm)",
-  "Large gravel (>32-64 mm)", "Small cobble (>64-128 mm)",
-  "Large cobble (>128-256 mm)", "Boulders (>256 mm)", "Bedrock"
+  "Site", "Date", "Period", "Season", "Protocol", "Variable", "Value"
 )
 
 # RpdSummary: R-only per-site report table (Appendix B1 Table 4). No Python

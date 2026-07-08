@@ -17,8 +17,6 @@ src_data("domains/sediment.R")
 src_data("domains/sediment_size.R")
 src_data("domains/sediment_summary.R")
 
-.FRACTION_COLS <- SEDIMENT_SIZE_COLUMNS[5:14]
-
 # Each entry: SAM1, SAM3, and the 10 fractions (in SEDIMENT_SIZE column order),
 # transcribed from Appendix B1 Table 3. ym = source Date year-month.
 .APX <- list(
@@ -31,6 +29,10 @@ src_data("domains/sediment_summary.R")
   list(site="EM7", ym="2025-11", sam1=33, sam3=4,  fr=c(1,3,10,12,27,29,16,2,0,0)),
   list(site="EM7", ym="2026-02", sam1=69, sam3=23, fr=c(21,2,8,12,34,20,1,0,0,2))
 )
+
+# The 12 Variable labels in report order, aligned to (sam1, sam3, fr[1..10]).
+.VARS <- c("Average sediment cover (%)", "Fine sediment cover (<2 mm)",
+           SEDIMENT_SIZE_COLUMNS[5:14])
 
 .near <- function(actual, expected, label, tol = 0.5) {
   ok <- length(actual) == 1 && !is.na(actual) && abs(actual - expected) <= tol
@@ -52,15 +54,14 @@ test_that("SedimentSummary reproduces report Appendix B1 Table 3", {
 
   for (e in .APX) {
     lbl <- paste(e$site, e$ym)
-    row <- df[df$Site == e$site & df$ym == e$ym, , drop = FALSE]
-    expect_equal(nrow(row), 1L, info = paste(lbl, "row count"))
-    if (nrow(row) != 1L) next
-    row <- as.list(row)
-
-    .near(row$SAM1, e$sam1, paste(lbl, "SAM1"))
-    .near(row$SAM3, e$sam3, paste(lbl, "SAM3"))
-    for (i in seq_along(.FRACTION_COLS)) {
-      .near(row[[.FRACTION_COLS[i]]], e$fr[i], paste(lbl, .FRACTION_COLS[i]))
+    site_rows <- df[df$Site == e$site & df$ym == e$ym, , drop = FALSE]
+    # Expect all 12 measurement rows for this site x season.
+    expect_equal(nrow(site_rows), length(.VARS),
+                 info = paste(lbl, "measurement-row count"))
+    expected <- c(e$sam1, e$sam3, e$fr)   # aligned to .VARS
+    for (i in seq_along(.VARS)) {
+      value <- site_rows$Value[site_rows$Variable == .VARS[i]]
+      .near(value, expected[i], paste(lbl, .VARS[i]))
     }
   }
 })
