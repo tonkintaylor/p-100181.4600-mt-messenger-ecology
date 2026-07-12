@@ -34,14 +34,17 @@ FISH_COLUMNS <- c(
   "Site", "Catchment", "Date", "Species category (for abundance)", "Number"
 )
 
-# MacroSummary: R-only per-site report table (Table 5.6). No Python counterpart.
-# One row per Site x Date. Point estimates for single-sample (soft-bottom/D-net)
-# sites; mean + 95% CI across replicates for multi-sample (hard-bottom/Surber)
-# sites, so the "_CI" half-width columns are NA for single-sample sites.
-# Catchment/Substrate/Method are joined from SITE_LEGEND; MCI/QMCI use the
-# soft-bottom tolerance variant for soft-bottom sites (see SITES_WITHOUT_REPLICATES).
+# MacroSummary: R-only per-site report table (Tables 5.6 & 5.7). No Python
+# counterpart. One row per Site x Date. Point estimates for single-sample
+# (soft-bottom/D-net) sites; mean + 95% CI across replicates for multi-sample
+# (hard-bottom/Surber) sites, so the "_CI" half-width columns are NA for
+# single-sample sites. Catchment/Substrate/Method are joined from SITE_LEGEND;
+# MCI/QMCI use the soft-bottom tolerance variant for soft-bottom sites (see
+# SITES_WITHOUT_REPLICATES). Season/Year identify the survey (calendar year of
+# the sample date), matching the report's per-survey table numbering (spring
+# 2025 = Table 5.6, summer 2026 = Table 5.7).
 MACRO_SUMMARY_COLUMNS <- c(
-  "Catchment", "Site", "Substrate", "Method", "Date", "Season",
+  "Catchment", "Site", "Substrate", "Method", "Date", "Season", "Year",
   "NumIndividuals", "NumIndividuals_CI",
   "NumTaxa", "NumTaxa_CI",
   "MCI", "MCI_CI", "MCI_Class",

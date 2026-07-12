@@ -115,6 +115,7 @@ test_that("soft-bottom site (EM1): point estimates, NA CIs, sb tolerance variant
   expect_equal(em1$Substrate, "Soft bottom")
   expect_equal(em1$Method, "D-net")
   expect_equal(em1$Season, "Spring")           # November -> Spring
+  expect_equal(em1$Year, 2025L)                # calendar year of the survey date
 
   # Counts: Deleatidium 10, Zelandobius 3, Hudsonema 2, Oligochaeta 8 (total 23).
   expect_equal(em1$NumIndividuals, 23)

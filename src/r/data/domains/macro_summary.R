@@ -48,6 +48,20 @@
 # See tests/r/test-report-table-5-6.R for the calibration evidence.
 .MACRO_DOMINANT_RATIO <- 0.50
 
+# Taxa excluded from the report-table community indices. Koura (Paranephrops) are
+# large, incidentally-caught decapods rather than part of the D-net/Surber
+# macroinvertebrate community sample, so the report tables drop them from every
+# metric (individuals, taxa, MCI/QMCI, % EPT, dominant taxa). Shrimp (Paratya)
+# are NOT excluded (EM1 summer-2026 reproduces with its 28 Paratya included).
+# This is a report-table convention ONLY: the core Macro/Macro1 pipeline (Python
+# golden) keeps koura, so the exclusion is applied HERE, not in derive_metrics().
+# TODO(report-authors): confirm koura exclusion. Reverse-engineered: dropping
+# Paranephrops reproduces EM2 summer-2026 exactly and EM8's richness/MCI/QMCI/%EPT
+# richness (EM8's individual count still differs by ~10 from the printed table --
+# a residual source drift in one non-EPT taxon). Table 5.6 (spring 2025) has no
+# koura, so this leaves its reproduction unchanged. See tests/r/test-report-table-5-7.R.
+.MACRO_SUMMARY_EXCLUDED_TAXA <- c("Paranephrops")
+
 process_macro_summary_domain <- function(macro_db_path) {
   file_name <- basename(macro_db_path)
   err <- function(loc, msg, sev = "error") ValidationError(
@@ -63,6 +77,13 @@ process_macro_summary_domain <- function(macro_db_path) {
   meta <- bundle$sample_metadata
   taxa_counts <- bundle$taxa_counts
   mci_scores <- bundle$mci_scores
+  # Drop excluded taxa (koura) from every metric by zeroing their counts across
+  # all sample columns before any derivation. See .MACRO_SUMMARY_EXCLUDED_TAXA.
+  excl <- trimws(taxa_counts$Taxon) %in% .MACRO_SUMMARY_EXCLUDED_TAXA
+  if (any(excl)) {
+    sample_cols_all <- setdiff(names(taxa_counts), c("TaxonGroup", "Taxon"))
+    taxa_counts[excl, sample_cols_all] <- 0L
+  }
   taxa_names <- taxa_counts$Taxon
   meta$Site <- trimws(as.character(meta$Site))
 
@@ -128,6 +149,7 @@ process_macro_summary_domain <- function(macro_db_path) {
     rows[[length(rows) + 1L]] <- data.frame(
       Site = site, Date = date,
       Season = normalise_season(trimws(as.character(m0$Season)), date),
+      Year = as.integer(format(date, "%Y")),
       NumIndividuals = .macro_mean_na(num_ind),
       NumIndividuals_CI = .macro_ci95(num_ind),
       NumTaxa = .macro_mean_na(num_tax), NumTaxa_CI = .macro_ci95(num_tax),

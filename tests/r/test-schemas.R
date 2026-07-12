@@ -22,9 +22,9 @@ test_that("schema column vectors match the Python contract", {
   expect_equal(length(SEDIMENT_SIZE_COLUMNS), 14L)
   expect_equal(SEDIMENT_SIZE_COLUMNS[5], "Clay/silt (<0.06 mm)")
   expect_setequal(names(SCHEMA_MAP), SHEET_ORDER)
-  # MacroSummary is an R-only report sheet (Table 5.6); no Python counterpart.
+  # MacroSummary is an R-only report sheet (Tables 5.6 & 5.7); no Python counterpart.
   expect_equal(MACRO_SUMMARY_COLUMNS,
-               c("Catchment","Site","Substrate","Method","Date","Season",
+               c("Catchment","Site","Substrate","Method","Date","Season","Year",
                  "NumIndividuals","NumIndividuals_CI",
                  "NumTaxa","NumTaxa_CI",
                  "MCI","MCI_CI","MCI_Class",
