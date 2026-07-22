@@ -25,7 +25,7 @@ fixture_df <- function() {
     `Water temperature`       = c(13.9, 11.3, 14.3, 9),
     pH                        = c(NA, 6.89, 7.46, 7),
     `Specific conductivity`   = c(162.2, 117.7, 191.6, 100),
-    `Dissolved oxygen (mg/L)` = c(10.47, 11.34, 88.5, 9),   # 88.5 is a source error
+    `Dissolved oxygen (mg/L)` = c(10.47, 11.34, 88.5, 9),   # deliberately implausible: must pass through uncleaned
     `Dissolved oxygen (%)`    = c(101.7, 105.0, 87.0, 90),
     check.names = FALSE, stringsAsFactors = FALSE)
 }

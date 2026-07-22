@@ -156,11 +156,13 @@ The installer installs locally per machine; you only need to put the **single
 - A **Run** writes the chosen paths to a temp `cycle.toml`. In *Build* mode it
   invokes `run_pipeline.R` (data workbook → figures + tables); in *Workbook*
   mode it invokes `run_all.R --config` (figures + tables from the selected
-  workbook). **Check inputs** runs `run_data.R --validate` in Build mode, and a
+  workbook). Both modes now include the report-shaped tables
+  (`tables\ReportTables\`), which `run_all.R` renders as its final stage.
+  **Check inputs** runs `run_data.R --validate` in Build mode, and a
   quick file check on the workbook in Workbook mode.
 - Output is a single folder containing `MtMessengerEcologyData.xlsx` (build
-  mode), `figures\`, and `tables\`. Fish trapping figures come from a `Fish`
-  sheet now written into the data workbook.
+  mode), `figures\`, and `tables\` (including `tables\ReportTables\`). Fish
+  trapping figures come from a `Fish` sheet now written into the data workbook.
 - The bundled R's library is built at package time by restoring `renv.lock`
   (`renv::restore`, Windows binaries, with the renv cache disabled so the bundle
   gets real copies, not cache symlinks), so the app needs no R install or

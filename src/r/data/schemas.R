@@ -66,7 +66,7 @@ FISH_SUMMARY_COLUMNS <- c(
   "Catchment", "Site", "Season", "Year",
   "LongfinEel", "ShortfinEel", "CommonBully", "RedfinBully",
   "BandedKokopu", "GiantKokopu", "Inanga",
-  "UnidBully", "UnidKokopu", "UnidEel", "Koura",
+  "UnidBully", "UnidKokopu", "UnidGalaxiid", "UnidEel", "Koura",
   "Shrimp", "TotalFish", "TaxaRichness", "CPUE_fykes", "CPUE_GMTs"
 )
 

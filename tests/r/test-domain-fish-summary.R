@@ -23,10 +23,12 @@ rec <- function(site, season, year, catch, method, net, species,
 }
 
 # Group A: EM_A / Spring 2099 / Mangapepeke.
-#   Fyke nets present: only Fyke 1 & Fyke 3 (protocol still divides by 6).
-#   GMT present. Mixed shrimp abundance; koura + unidentified eel included.
+#   Fyke: 2 distinct nets recorded (Fyke 1 & Fyke 3, incl. a "no catch" row).
+#   GMT: 2 distinct nets (GMT 1 & GMT 2). CPUE divides by nets recorded.
+#   Mixed shrimp abundance; koura + unidentified eel included.
 # Group B: EM_B / Summer 2099 / Mimi. Fyke only (no GMT -> CPUE_GMTs = NA),
-#   shrimp all Abundant.
+#   shrimp all Abundant, plus an unidentified galaxiid (separate row, excluded
+#   from richness).
 FIXTURE <- list(
   rec("EM_A","Spring",2099,"Mangapepeke","Fyke","Fyke 1","longfin eel", 5),
   rec("EM_A","Spring",2099,"Mangapepeke","Fyke","Fyke 1","redfin bully", 10),
@@ -38,6 +40,7 @@ FIXTURE <- list(
   rec("EM_A","Spring",2099,"Mangapepeke","GMT","GMT 2","unidentified eel", 1),
   rec("EM_A","Spring",2099,"Mangapepeke","GMT","GMT 1","shrimp", NA, "U"),
   rec("EM_B","Summer",2099,"Mimi","Fyke","Fyke 1","giant kokopu", 1),
+  rec("EM_B","Summer",2099,"Mimi","Fyke","Fyke 2","unidentified galaxiid", 3),
   rec("EM_B","Summer",2099,"Mimi","Fyke","Fyke 1","shrimp", NA, "A"),
   rec("EM_B","Summer",2099,"Mimi","Fyke","Fyke 2","shrimp", NA, "A")
 )
@@ -50,7 +53,7 @@ test_that("returns a DomainResult with FishSummary + schema columns", {
   expect_equal(nrow(result$data$FishSummary), 2L)
 })
 
-test_that("group A: counts, totals, richness, CPUE (fixed effort), shrimp", {
+test_that("group A: counts, totals, richness, CPUE (nets recorded), shrimp", {
   df <- process_fish_summary_domain(fish_trapping_xlsx(FIXTURE))$data$FishSummary
   a <- as.list(df[df$Site == "EM_A", ])
 
@@ -67,15 +70,15 @@ test_that("group A: counts, totals, richness, CPUE (fixed effort), shrimp", {
 
   # Total excludes koura & shrimp, includes unidentified eel: 5+10+3+1 = 19.
   expect_equal(a$TotalFish, 19)
-  # Richness = distinct identified taxa present (koura counts, unid excluded):
-  # LongfinEel, RedfinBully, CommonBully, Koura = 4.
+  # Richness = taxa groups present + shrimp: Eel (longfin+unid), Bully
+  # (redfin+common), Koura, Shrimp = 4.
   expect_equal(a$TaxaRichness, 4L)
 
-  # CPUE divides by the deployed protocol (6 fykes, 12 GMTs), not nets seen.
-  # Fyke fish (excl koura/shrimp) = 15 -> 15/6 = 2.5.
-  expect_equal(a$CPUE_fykes, 15 / 6, tolerance = 1e-9)
-  # GMT fish = common bully 3 + unid eel 1 = 4 -> 4/12.
-  expect_equal(a$CPUE_GMTs, 4 / 12, tolerance = 1e-9)
+  # CPUE divides by the count of distinct nets recorded for the method.
+  # Fyke: 2 nets (Fyke 1, Fyke 3); fish (excl koura/shrimp) = 15 -> 15/2 = 7.5.
+  expect_equal(a$CPUE_fykes, 15 / 2, tolerance = 1e-9)
+  # GMT: 2 nets (GMT 1, GMT 2); fish = common bully 3 + unid eel 1 = 4 -> 4/2.
+  expect_equal(a$CPUE_GMTs, 4 / 2, tolerance = 1e-9)
 
   # Shrimp = mean rank of (U,C,U) = mean(1,2,1) = 1.33 -> Uncommon.
   expect_equal(a$Shrimp, "Uncommon")
@@ -86,9 +89,14 @@ test_that("group B: no GMT -> NA CPUE_GMTs; all-Abundant shrimp", {
   b <- as.list(df[df$Site == "EM_B", ])
 
   expect_equal(b$GiantKokopu, 1)
-  expect_equal(b$TotalFish, 1)
-  expect_equal(b$TaxaRichness, 1L)
-  expect_equal(b$CPUE_fykes, 1 / 6, tolerance = 1e-9)
+  expect_equal(b$UnidGalaxiid, 3)
+  # Total includes the unidentified galaxiid (a caught fish): 1 + 3 = 4.
+  expect_equal(b$TotalFish, 4)
+  # Richness = Kokopu (giant) + Shrimp = 2. The galaxiid does NOT add a taxon
+  # (kept separate, excluded from richness) even though it counts to the total.
+  expect_equal(b$TaxaRichness, 2L)
+  # Fyke: 2 nets (Fyke 1, Fyke 2); fish (excl shrimp) = giant 1 + galaxiid 3 = 4.
+  expect_equal(b$CPUE_fykes, 4 / 2, tolerance = 1e-9)
   expect_true(is.na(b$CPUE_GMTs))
   expect_equal(b$Shrimp, "Abundant")
 })

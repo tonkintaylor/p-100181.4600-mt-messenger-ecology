@@ -40,13 +40,16 @@
   if (length(v) == 0) NA_real_ else mean(v)
 }
 
-# Co-dominance ratio: the second-most-abundant taxon is reported alongside the
-# most abundant only if its count is at least this fraction of the top count.
-# TODO(report-authors): confirm the exact "dominant taxa" definition. Three
-# rules all reproduce Table 5.6 exactly but diverge on other data -- this uses
-# "two most abundant taxa, 2nd kept only if >= 50% of the most abundant".
-# See tests/r/test-report-table-5-6.R for the calibration evidence.
-.MACRO_DOMINANT_RATIO <- 0.50
+# Co-dominance gap: the second-most-abundant taxon is reported alongside the
+# most abundant only if its SHARE of the total population is within this many
+# percentage points (expressed as a fraction of the total) of the top taxon's
+# share. Author-confirmed rule (2026 regeneration review): "within 10%" means
+# the second taxon's percent of the whole sample is no more than 10 percentage
+# points below the most dominant's percent -- e.g. a 40%-of-population top taxon
+# keeps a second taxon down to 30% of the population. NOTE: diverges from the
+# printed Table 5.6 (reproduced with a >=50%-of-top count ratio); the affected
+# sites must be re-derived against the source data. See test-report-table-5-6.R.
+.MACRO_DOMINANT_PCT_GAP <- 0.10
 
 # Taxa excluded from the report-table community indices. Koura (Paranephrops) are
 # large, incidentally-caught decapods rather than part of the D-net/Surber
@@ -137,8 +140,12 @@ process_macro_summary_domain <- function(macro_db_path) {
     dominant <- if (tot > 0) {
       ord <- order(total_counts, decreasing = TRUE)
       keep <- ord[1L]
+      # Keep the second taxon only if its share of the total is within
+      # .MACRO_DOMINANT_PCT_GAP (10 percentage points) of the top taxon's share,
+      # i.e. the count gap is <= that fraction of the whole sample.
       if (length(ord) >= 2L &&
-          total_counts[ord[2L]] >= .MACRO_DOMINANT_RATIO * total_counts[ord[1L]]) {
+          (total_counts[ord[1L]] - total_counts[ord[2L]]) <=
+            .MACRO_DOMINANT_PCT_GAP * tot) {
         keep <- c(keep, ord[2L])
       }
       paste(taxa_names[keep], collapse = ", ")

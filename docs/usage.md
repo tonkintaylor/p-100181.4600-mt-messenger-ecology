@@ -99,8 +99,10 @@ Rscript --vanilla src/r/run_data.R cycle.toml --validate
 ### run_all.R
 
 Generates the figures and tables **only**, reading an already-produced
-`MtMessengerEcologyData.xlsx`. It reads its input/output paths from `cycle.toml`
-in the project root, so it takes **no positional arguments**:
+`MtMessengerEcologyData.xlsx`. This includes the report-shaped tables
+(`Tables/ReportTables/`), rendered as the pipeline's final stage. It reads its
+input/output paths from `cycle.toml` in the project root, so it takes **no
+positional arguments**:
 
 ```powershell
 Rscript --vanilla src/r/run_all.R
@@ -155,9 +157,13 @@ XLSX reference tables:
 
 ```
 Tables/
-├── Community/    Composition summaries, indicator species
-└── NMDS/         Site coordinates, species scores, reference taxa
+├── Community/     Composition summaries, indicator species
+├── NMDS/          Site coordinates, species scores, reference taxa
+└── ReportTables/  Wide, report-shaped appendix tables (one .xlsx per table)
 ```
+
+`ReportTables/` is also produced on its own by `run_tables.R` if you want to
+regenerate just the report tables without re-running the figures.
 
 ### Data spreadsheet
 

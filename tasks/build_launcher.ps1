@@ -105,7 +105,7 @@ function Add-PortableR {
     $savedLock = $env:MTM_RENV_LOCK; $savedLibEnv = $env:MTM_RENV_LIB; $savedCache = $env:RENV_CONFIG_CACHE_ENABLED
     $env:MTM_RENV_LOCK = $lock; $env:MTM_RENV_LIB = $lib; $env:RENV_CONFIG_CACHE_ENABLED = 'FALSE'
     try {
-        & $rscript --vanilla -e "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/latest'); renv::restore(lockfile=Sys.getenv('MTM_RENV_LOCK'), library=Sys.getenv('MTM_RENV_LIB'), prompt=FALSE)"
+        & $rscript --vanilla -e "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/2026-05-13'); renv::restore(lockfile=Sys.getenv('MTM_RENV_LOCK'), library=Sys.getenv('MTM_RENV_LIB'), prompt=FALSE)"
         $rc = $LASTEXITCODE
     } finally {
         if ($null -eq $savedLock)   { Remove-Item Env:\MTM_RENV_LOCK -ErrorAction SilentlyContinue } else { $env:MTM_RENV_LOCK = $savedLock }

@@ -4,8 +4,11 @@
 # Skips when the DB is unavailable.
 #
 # Data-quality notes (see memory / domain comments):
-#  - EM2 summer DO (mg/L) = 88.5 is a genuine error already in the source; it is
-#    carried faithfully (the report prints it too).
+#  - EM2 summer DO (mg/L): the source originally held 88.5 (a data-entry error;
+#    a misplaced decimal, inconsistent with its 87% saturation). The author
+#    corrected the source value to 8.85 in the 2026 regeneration review, so the
+#    expected value below is now 8.85. (The printed report still shows the old
+#    88.5 and should be regenerated.)
 #  - EM6 summer 2026: the source originally had a year typo (2025-02-25) which has
 #    now been corrected to 2026-02-25, so EM6 appears in Summer 2026. The report's
 #    PRINTED EM6 cells are corrupted (times in the conductivity/DO-%sat fields,
@@ -29,7 +32,7 @@ src_data("domains/field_wq.R")
   EM8 = list("2025-11-17", NA,      12.2, 7.06, 146.8, 10.13, 95.2))
 .SUMMER <- list(
   EM1 = list("2026-02-23", "15:07", 13.8, 7.36, 159.2, 9.20,  88.8),
-  EM2 = list("2026-02-23", "13:25", 14.3, 7.46, 191.6, 88.50, 87.0),  # DO error in source
+  EM2 = list("2026-02-23", "13:25", 14.3, 7.46, 191.6, 8.85, 87.0),  # DO corrected in source (was 88.50)
   EM3 = list("2026-02-23", "09:55", 12.5, 6.98, 217.5, 9.69,  91.5),
   EM4 = list("2026-02-25", NA,      12.6, 7.23, 136.2, 7.78,  73.0),
   # EM6: correct source values (report printed corrupted cells for this site).

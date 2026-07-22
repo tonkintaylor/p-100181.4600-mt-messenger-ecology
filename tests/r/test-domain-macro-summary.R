@@ -128,7 +128,8 @@ test_that("soft-bottom site (EM1): point estimates, NA CIs, sb tolerance variant
   expect_equal(em1$QMCI_Class, "Fair")
   expect_equal(em1$PctEPTRichness, 3 / 4, tolerance = 1e-7)
   expect_equal(em1$PctEPTAbundance, 15 / 23, tolerance = 1e-7)
-  # Dominant taxa > 20% of abundance, ordered by abundance desc.
+  # Dominant taxa: Deleatidium 43.5% + Oligochaeta 34.8% of the sample -> their
+  # shares are within 10 percentage points (gap 8.7pp), so both are reported.
   expect_equal(em1$DominantTaxa, "Deleatidium, Oligochaeta")
 
   # Single sample -> every CI is NA.
@@ -157,7 +158,9 @@ test_that("hard-bottom site (EM3): replicate mean + non-zero CI, standard varian
 
   # QMCI varies across reps (count-weighted) -> CI strictly positive.
   expect_gt(em3$QMCI_CI, 0)
-  expect_equal(em3$DominantTaxa, "Deleatidium, Oligochaeta")
+  # Dominant taxa: Deleatidium 48.1% vs Oligochaeta 28.8% (gap 19.2pp > 10pp),
+  # so only the top taxon qualifies under the within-10%-share rule.
+  expect_equal(em3$DominantTaxa, "Deleatidium")
 })
 
 test_that("invalid path returns an error result", {

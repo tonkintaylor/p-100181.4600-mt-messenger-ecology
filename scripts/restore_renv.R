@@ -21,7 +21,7 @@ if (!is.na(want) && cur != want) {
 
 # Bootstrap renv if the project library doesn't have it yet, then restore.
 if (!requireNamespace("renv", quietly = TRUE)) {
-  install.packages("renv", repos = "https://packagemanager.posit.co/cran/latest")
+  install.packages("renv", repos = "https://packagemanager.posit.co/cran/2026-05-13")
 }
 if (!requireNamespace("renv", quietly = TRUE)) {
   stop("Could not install renv.", call. = FALSE)

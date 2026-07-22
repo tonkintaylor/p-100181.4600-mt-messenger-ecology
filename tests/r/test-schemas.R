@@ -37,7 +37,7 @@ test_that("schema column vectors match the Python contract", {
                c("Catchment","Site","Season","Year",
                  "LongfinEel","ShortfinEel","CommonBully","RedfinBully",
                  "BandedKokopu","GiantKokopu","Inanga",
-                 "UnidBully","UnidKokopu","UnidEel","Koura",
+                 "UnidBully","UnidKokopu","UnidGalaxiid","UnidEel","Koura",
                  "Shrimp","TotalFish","TaxaRichness","CPUE_fykes","CPUE_GMTs"))
   # SedimentSummary is an R-only report sheet (Appendix B1 Table 3): a join of
   # the Sediment (SAM1/SAM3) and SedimentSize (fraction) columns.

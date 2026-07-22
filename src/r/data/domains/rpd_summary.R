@@ -13,8 +13,10 @@
 # round runs Dec-Mar and the autumn round Apr-May. Verified against the source's
 # own Season labels (e.g. EM5's 12 Mar 2025 survey is recorded "Summer"). Summer
 # is labelled by its Jan-Mar year (Dec -> following year).
-# TODO(report-authors): confirm this round-based month mapping. The authoritative
-# source is the "Residual pool depths" sheet's Season column, which is blank for
+# CONFIRMED by report author (2026 regeneration review): season is assigned by
+# survey round, not calendar month -- spring surveys have run as late as
+# December and summer surveys are typically Feb-March. The authoritative source
+# is the "Residual pool depths" sheet's Season column, which is blank for
 # baseline/event-based surveys -- this rule assigns those by date (Aug->Winter,
 # Nov->Spring, Apr->Autumn), which reproduces the report.
 .rpd_season_year <- function(dates) {

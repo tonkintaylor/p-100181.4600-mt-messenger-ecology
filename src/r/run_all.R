@@ -65,6 +65,14 @@ source(file.path(helpers_dir, "clarity_plots.R"))
 source(file.path(helpers_dir, "habitat_plots.R"))
 source(file.path(helpers_dir, "fish_plots.R"))
 
+# Report-table builders live under src/r/reporting/ (not helpers/). Same
+# script-dir-first, project-root fallback resolution as the helpers above.
+reporting_dir <- file.path(script_dir, "reporting")
+if (!dir.exists(reporting_dir)) {
+  reporting_dir <- file.path(project_root, "src", "r", "reporting")
+}
+source(file.path(reporting_dir, "report_tables.R"))
+
 # --- Parse arguments ---
 # Positional args are [Data.xlsx] [figures_dir] [tables_dir]; an optional
 # --config=PATH flag selects the cycle.toml (so run_pipeline.R can forward a
@@ -352,6 +360,22 @@ if (!is.null(data$Fish)) {
 } else {
   message("  Skipped: no Fish sheet in the data workbook")
 }
+
+message("")
+
+# --- Report Tables ---
+# Transform the tidy *Summary sheets in the data workbook into the wide,
+# report-shaped tables (one .xlsx each) under tables_dir/ReportTables/. Reads
+# the workbook independently and skips any sheet that is absent.
+report_tables_dir <- file.path(tables_dir, "ReportTables")
+message("--- Report Tables ---")
+report_table_paths <- tryCatch(
+  render_report_tables_xlsx(xlsx_path, report_tables_dir),
+  error = function(e) {
+    message("  Skipped: ", conditionMessage(e)); character(0)
+  }
+)
+message("  Wrote ", length(report_table_paths), " report tables to ", report_tables_dir)
 
 message("")
 message("=== Pipeline Complete ===")
