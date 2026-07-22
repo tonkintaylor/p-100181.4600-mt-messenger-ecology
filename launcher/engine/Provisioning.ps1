@@ -73,7 +73,7 @@ function Invoke-PackageSync {
     )
     # No-bundle / install-on-demand path: restore the renv.lock library in place
     # (working dir = the checkout root, which has renv.lock + renv/activate.R).
-    $expr = "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/latest'); renv::restore(prompt=FALSE)"
+    $expr = "if (!requireNamespace('renv', quietly=TRUE)) install.packages('renv', repos='https://packagemanager.posit.co/cran/2026-05-13'); renv::restore(prompt=FALSE)"
     $res = Invoke-PipelineProcess -FilePath $RscriptPath `
         -Arguments @('--vanilla', '-e', $expr) -WorkingDirectory $PipelineRoot -OnOutput $OnOutput
     return $res.ExitCode

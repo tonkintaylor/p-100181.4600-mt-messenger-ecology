@@ -176,15 +176,22 @@ The installer installs locally per machine; you only need to put the **single
   to change the R version or refresh packages, install the new R (matching
   `DESCRIPTION`'s `Config/R/Version`) and **re-run the stage + compile**. Bumping
   the R version means editing `Config/R/Version` in `DESCRIPTION` and refreshing
-  `renv.lock` (`renv::snapshot()`) first. Because R is bundled, a different/newer R already on a
+  `renv.lock` (`renv::snapshot()`) first. Keep the lockfile's CRAN repo pinned to
+  a dated PPM snapshot (not `/cran/latest`): `renv::snapshot()` resets it to your
+  current `repos`, and an unpinned `latest` lets a version drift off the newest
+  binary, forcing a source build that breaks the binary-only bundle restore.
+  Because R is bundled, a different/newer R already on a
   target machine is irrelevant — the app never uses it.
 - **Installer size:** ~150 MB (≈300 MB installed) because R + all packages are
   embedded. That is the deliberate trade for "runs anywhere, no admin, no internet."
-- **Bundle completeness:** the build installs packages into the bundle with the
-  library path isolated from the build machine's own R library (`R_LIBS_USER`/
-  `R_LIBS_SITE`), so every transitive dependency is included. Without that, deps
-  already present on the build machine are skipped and the app fails on clean
-  machines (the "openxlsx not available" class of bug).
+- **Bundle completeness:** `renv::restore()` is scoped to the lockfile and the
+  bundled R's own `library` folder, so it installs the full dependency closure
+  there regardless of what the build machine already has. The renv cache is
+  disabled (`RENV_CONFIG_CACHE_ENABLED=FALSE`) so the bundle gets real copies,
+  not symlinks into the build machine's cache. `R_LIBS_USER`/`R_LIBS_SITE` are
+  deliberately left unset — pointing them at the bundle's own library makes
+  renv's transactional restore report success while populating nothing (the
+  silent-empty-bundle failure mode).
 - **SmartScreen / antivirus:** the installer is unsigned, so SmartScreen may warn
   ("unrecognized app") until reputation accrues. For internal use, distribute
   from a trusted location and/or have IT allow-list it; code-signing is the
