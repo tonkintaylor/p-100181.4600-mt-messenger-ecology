@@ -6,19 +6,22 @@
 # count, Mean is the count-weighted pooled mean, and CI95 is the 95% t-CI
 # half-width of the pooled sample (t(0.975, N-1) * pooled_sd / sqrt(N)).
 #
-# NB: this recomputes the CI with the t-distribution. The RPD sheet's stored
-# CI_Lower/CI_Upper use a z (1.96) approximation and are NOT used here.
+# NB: this pools across surveys and recomputes the CI from the pooled sample, so
+# it does not reuse the per-survey CI on the RPD sheet (both are t-based).
+#
+# SEASON: taken from the raw "Residual pool depths" sheet's own Season and Year
+# columns -- author-confirmed 2026-07-29: use the sheet's value, do not infer it.
+# .rpd_season_year() below is now only a fallback, for surveys the sheet leaves
+# blank (baseline and event-based ones) and for workbooks that carry only the
+# pre-summarised "RPD Summary" tab, which has no season labels at all.
 
-# Season by monitoring ROUND, not strict meteorological month: the summer survey
-# round runs Dec-Mar and the autumn round Apr-May. Verified against the source's
-# own Season labels (e.g. EM5's 12 Mar 2025 survey is recorded "Summer"). Summer
-# is labelled by its Jan-Mar year (Dec -> following year).
-# CONFIRMED by report author (2026 regeneration review): season is assigned by
-# survey round, not calendar month -- spring surveys have run as late as
-# December and summer surveys are typically Feb-March. The authoritative source
-# is the "Residual pool depths" sheet's Season column, which is blank for
-# baseline/event-based surveys -- this rule assigns those by date (Aug->Winter,
-# Nov->Spring, Apr->Autumn), which reproduces the report.
+# Fallback season assignment, by monitoring ROUND rather than strict
+# meteorological month: the summer survey round runs Dec-Mar and the autumn round
+# Apr-May. Confirmed by the report author (2026 regeneration review): spring
+# surveys have run as late as December and summer surveys are typically
+# Feb-March. Summer is labelled by its Jan-Mar year (Dec -> following year).
+# This reproduces the report for the blank-Season surveys (Aug->Winter,
+# Nov->Spring, Apr->Autumn).
 .rpd_season_year <- function(dates) {
   m <- as.integer(format(dates, "%m"))
   y <- as.integer(format(dates, "%Y"))
@@ -45,9 +48,30 @@ process_rpd_summary_domain <- function(path) {
   rpd <- rpd_res$data$RPD
   rpd$Date <- as.Date(rpd$Date)
   rpd <- rpd[!is.na(rpd$Date), , drop = FALSE]
+
+  # Start from the date-derived labels, then overwrite with the raw sheet's own
+  # Season/Year wherever it records them. The sheet wins; the derived values
+  # survive only for surveys it leaves blank (baseline/event-based) and for
+  # workbooks with no raw sheet at all.
   sy <- .rpd_season_year(rpd$Date)
   rpd$Season <- sy$season
   rpd$Year <- sy$year
+
+  labels <- rpd_raw_season_labels(path)
+  if (!is.null(labels)) {
+    key <- function(site, date) {
+      paste(site, as.integer(as.Date(date)), sep = "\r")
+    }
+    m <- match(key(rpd$Site, rpd$Date), key(labels$Site, labels$Date))
+    matched <- which(!is.na(m))
+    overwrite <- function(col, from) {
+      take <- !is.na(from)
+      col[matched[take]] <- from[take]
+      col
+    }
+    rpd$Season <- overwrite(rpd$Season, labels$Season[m[matched]])
+    rpd$Year <- overwrite(rpd$Year, labels$Year[m[matched]])
+  }
 
   keys <- paste(rpd$Site, rpd$Season, rpd$Year, sep = "\r")
   rows <- lapply(split(seq_len(nrow(rpd)), keys), function(g) {

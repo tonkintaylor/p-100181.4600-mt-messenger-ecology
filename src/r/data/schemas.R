@@ -24,6 +24,10 @@ SEDIMENT_SIZE_COLUMNS <- c(
   "Large cobble (>128-256 mm)", "Boulders (>256 mm)", "Bedrock"
 )
 
+# RPD: one row per Site x Date. Derived from the raw "Residual pool depths"
+# sheet (Count = number of pools). CI_Lower/CI_Upper are t-based
+# (t(0.975, n-1) * sd / sqrt(n)), NOT the z (1.96) approximation stored in the
+# "RPD Summary" tab -- author-confirmed 2026-07-29.
 RPD_COLUMNS <- c("Site", "Date", "Count", "Mean", "StdDev", "CI_Lower", "CI_Upper")
 
 LDV_COLUMNS <- c("Site", "Date", "Season", "CV_pct")
@@ -85,8 +89,9 @@ SEDIMENT_SUMMARY_COLUMNS <- c(
 # counterpart. One row per Site x Season x Year: residual pool depth pooled
 # across all surveys in the season. Mean is the count-weighted pooled mean and
 # CI95 is the 95% t-CI half-width computed from the pooled sample
-# (t(0.975, N-1) * pooled_sd / sqrt(N)). NB this recomputes the CI with the
-# t-distribution; the RPD sheet's stored CI_Lower/CI_Upper use a z approx.
+# (t(0.975, N-1) * pooled_sd / sqrt(N)). NB this is computed from the pooled
+# sample, so it is not the RPD sheet's per-survey CI (both are t-based).
+# Season/Year come from the raw sheet's own labels where it records them.
 RPD_SUMMARY_COLUMNS <- c("Site", "Season", "Year", "N", "Mean", "CI95")
 
 # MacroSampleData: R-only raw macroinvertebrate count matrix (Appendix B2 Tables

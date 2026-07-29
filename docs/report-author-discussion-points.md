@@ -146,7 +146,7 @@ Two values look like possible outliers relative to the underlying data:
 ### 11. Table 3 – Included seasons
 **Which seasons should be included by default in this table?**
 
-### 12. Table 4 – Residual pool depth confidence intervals
+### 12. Table 4 – Residual pool depth confidence intervals — RESOLVED
 The printed ±95% confidence intervals match a **t-distribution** confidence
 interval (t(0.975, N−1)·sd/√N, with within-season surveys pooled), whereas the
 confidence intervals stored in the RPD spreadsheet use a standard 1.96 (z)
@@ -154,12 +154,22 @@ multiplier and are noticeably narrower (roughly 2.2× smaller).
 
 **Should the report continue using the t-based confidence intervals?**
 
-### 13. Season assignment
+> **Confirmed 2026-07-29: t-based only.** The spreadsheet's z convention is not
+> reproduced anywhere — the RPD sheet's own per-survey CI is now t-based too, not
+> just Table 4's pooled one.
+
+### 13. Season assignment — RESOLVED
 To reproduce the report, I had to treat the Summer survey round as
 **December–March** (and Autumn as April–May). For example, EM5's 12 March 2025
 survey appears in Summer 2025.
 
 **Is season assigned by survey round rather than by calendar month?**
+
+> **Confirmed 2026-07-29: use the source's own Season labels, do not infer.** The
+> raw "Residual pool depths" sheet records Season and Year per survey, and those
+> values are now used directly. The December–March rule survives only as a
+> fallback for surveys the sheet leaves blank (baseline and event-based ones) and
+> for workbooks that carry only the pre-summarised `RPD Summary` tab.
 
 ---
 

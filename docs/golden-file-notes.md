@@ -13,6 +13,32 @@ Sediment, SedimentSize, Clarity, RPD, LDV) against the golden. It skips automati
 when the source databases are unreachable, so a green CI run alone does not certify data
 parity — parity must be confirmed on a machine with the source databases mounted.
 
+## Regenerated 2026-07-29 (RPD/LDV raw-sheet migration)
+
+The golden was refreshed from a run of the `260722_` databases, replacing the
+`Data_20260514.xlsx` snapshot. Three deliberate changes are baked into it, each
+verified against the previous golden before the refresh:
+
+1. **RPD and LDV are derived from the raw measurement sheets** (`Residual pool
+   depths`, `LDV`) rather than read from the pre-summarised tabs. RPD
+   `Count`/`Mean`/`StdDev` matched the previous golden **exactly**, and LDV
+   `CV_pct` matched to ≤0.005 with the residual scattered in sign — the summary
+   tabs' own rounding. That confirms sample (not population) standard deviation,
+   Site × Date grouping, and `Count` = number of pools.
+2. **RPD `CI_Lower`/`CI_Upper` are t-based** (`t(0.975, n-1) * sd / sqrt(n)`),
+   replacing the z (1.96) values the `RPD Summary` tab stores. Author-confirmed:
+   t only. The observed ratio was `t(0.975,2)/1.96 = 2.195` on every row, with
+   midpoints unchanged — every RPD survey in the window has n=3 pools. Note this
+   can push `CI_Lower` below zero on a 3-pool survey, which the z interval never
+   did.
+3. **The two EM3/EM7 event-based LDV survey dates come from the raw sheet**, which
+   the report authors confirmed is correct; the `LDV Summary` tab had them wrong
+   by roughly a fortnight each. Event-based surveys are still *included* in
+   Appendix B1 Table 4 — they are not filtered by season.
+
+Refresh the golden by copying a reviewed pipeline output over
+`tests/r/assets/expected_Data.xlsx`, as the original was created.
+
 ## Known Differences vs Original Hand-Produced Golden File (historical, 2026-05-06)
 
 > The tables in this section record a one-time reconciliation against the original

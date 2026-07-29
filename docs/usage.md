@@ -87,6 +87,42 @@ Validate your config without running the pipeline:
 Rscript --vanilla src/r/run_data.R cycle.toml --validate
 ```
 
+### Required source sheets
+
+Sheet names must match exactly. Any one missing fails the whole run — the
+pipeline never writes a partial data spreadsheet.
+
+| Database | Sheet | Notes |
+|----------|-------|-------|
+| Macroinvertebrate | `RawData` | 5 header rows; taxa and metrics split at the `Number of Taxa` marker in column B |
+| Aquatic Monitoring | `Sediment` | Period header is a single space; site header has a trailing space |
+| Aquatic Monitoring | `Clarity Data` | Only `Site`, `Date` and `Clarity (mm)` are mandatory |
+| Aquatic Monitoring | `Residual pool depths` | Raw per-measurement depths; falls back to `RPD Summary` (header on row 4) |
+| Aquatic Monitoring | `LDV` | Raw per-measurement depths; falls back to `LDV Summary` (header on row 14) |
+| Aquatic Monitoring | `Fish Trapping` | Feeds both the `Fish` and `FishSummary` outputs |
+| Aquatic Monitoring | `FieldWQ` | |
+
+The residual-pool-depth and low-flow-depth-variability domains read the raw
+measurement sheets and derive their own statistics, so the pre-summarised
+`RPD Summary` / `LDV Summary` tabs no longer need to be maintained by hand.
+Those tabs are a **fallback only** and are not required: a database carrying
+just the raw sheets runs unchanged, and one carrying just the summary tabs also
+runs, exactly as before.
+
+Columns used from the raw sheets:
+
+| Sheet | Columns |
+|-------|---------|
+| `LDV` | `Site`, `Date`, `Depth (cm)`; `Season` optional |
+| `Residual pool depths` | `Site`, `Date`, and `Residual pool depth (cm)` — or `Maximum pool depth (cm)` and `Crest depth (cm)`, from which the residual is reconstructed |
+
+Everything else on those sheets is ignored, including `QA` / `QA Notes`: every
+row with a numeric depth counts. Depth column names are matched by prefix, so a
+reworded unit suffix still resolves. Header rows are located by scanning for the
+column names, so inserting a title or note row above the header is harmless —
+unlike the fallback tabs, which use fixed offsets. If one of those reports every
+required column missing at once, its header has moved.
+
 ## Commands
 
 | Command | Description |

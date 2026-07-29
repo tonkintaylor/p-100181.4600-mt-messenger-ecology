@@ -1,6 +1,7 @@
 src_data("errors.R")
 src_data("domain_types.R")
 src_data("schemas.R")
+src_data("validation.R")
 src_data("domains/rpd.R")
 src_data("domains/rpd_summary.R")
 
@@ -95,4 +96,86 @@ test_that("missing 'RPD Summary' sheet returns an error result", {
   result <- process_rpd_summary_domain(tmp)
   expect_false(result$ok())
   expect_null(result$data)
+})
+
+# ===========================================================================
+# Season comes from the raw sheet's own labels, not from the survey date
+# (author-confirmed 2026-07-29). The date-derived rule is a fallback only.
+# ===========================================================================
+
+# Raw "Residual pool depths" fixture: one row per pool, `season`/`year` written
+# verbatim into the sheet's own Season/Year columns.
+raw_xlsx <- function(site, date, depths, season, year) {
+  df <- data.frame(
+    Order  = seq_along(depths),
+    Timing = "Construction",
+    Season = season,
+    Year   = year,
+    Date   = as.Date(date),
+    Site   = site,
+    `Pool Number` = seq_along(depths),
+    `Maximum pool depth (cm)` = depths + 10,
+    `Crest depth (cm)` = 10,
+    `Residual pool depth (cm)` = depths,
+    `QA Notes` = NA_character_,
+    check.names = FALSE, stringsAsFactors = FALSE)
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Residual pool depths")
+  openxlsx::writeData(wb, "Residual pool depths", x = df, colNames = TRUE)
+  tmp <- tempfile(fileext = ".xlsx")
+  openxlsx::saveWorkbook(wb, tmp, overwrite = TRUE)
+  tmp
+}
+
+test_that("the sheet's Season label wins over the date-derived one", {
+  # A 20 Nov survey: the date rule says Spring 2024, the sheet says Summer 2025.
+  # The sheet must win, which a date-derived label could never produce.
+  path <- raw_xlsx("EM8", "2024-11-20", c(46, 50, 18),
+                   season = "Summer", year = 2025L)
+  df <- process_rpd_summary_domain(path)$data$RpdSummary
+
+  expect_equal(nrow(df), 1L)
+  expect_equal(df$Season, "Summer")
+  expect_equal(df$Year, 2025L)
+})
+
+test_that("the sheet's Season groups surveys the date rule would split", {
+  # Two surveys the date rule would label Spring 2024 and Summer 2025; the sheet
+  # labels both Spring 2024, so they must pool into a single row.
+  path <- raw_xlsx(c(rep("EM8", 3), rep("EM8", 3)),
+                   c(rep("2024-11-20", 3), rep("2025-02-24", 3)),
+                   c(46, 50, 18, 42, 38, 40),
+                   season = "Spring", year = 2024L)
+  df <- process_rpd_summary_domain(path)$data$RpdSummary
+
+  expect_equal(nrow(df), 1L)
+  expect_equal(df$Season, "Spring")
+  expect_equal(df$Year, 2024L)
+  expect_equal(df$N, 6L)
+})
+
+test_that("blank sheet Season falls back to the date-derived label", {
+  # The sheet leaves Season blank for baseline and event-based surveys.
+  path <- raw_xlsx("EM8", "2024-08-22", c(46, 50, 18),
+                   season = NA_character_, year = NA_integer_)
+  df <- process_rpd_summary_domain(path)$data$RpdSummary
+
+  expect_equal(df$Season, "Winter")   # August -> Winter by the fallback rule
+  expect_equal(df$Year, 2024L)
+})
+
+test_that("'N/A' sheet Season is treated as blank, not as a label", {
+  path <- raw_xlsx("EM8", "2024-08-22", c(46, 50, 18),
+                   season = "N/A", year = 2024L)
+  df <- process_rpd_summary_domain(path)$data$RpdSummary
+
+  expect_equal(df$Season, "Winter")
+  expect_equal(df$Year, 2024L)
+})
+
+test_that("a summary-tab-only workbook still derives the season from dates", {
+  # No raw sheet, so no labels exist to read: the fallback must still apply.
+  df <- process_rpd_summary_domain(rpd_xlsx(fixture_df()))$data$RpdSummary
+  expect_equal(get_row(df, "EM_A", "Winter", 2024)$N, 4L)
+  expect_equal(nrow(df), 5L)
 })
